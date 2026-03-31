@@ -47,7 +47,7 @@ class AuthProvider with ChangeNotifier {
   }
 
   // Hàm Đăng ký
-  Future<bool> register(String fullName, String email, String password) async {
+  Future<bool> register(String username, String email, String password) async {
     _isLoading = true;
     notifyListeners();
 
@@ -55,11 +55,7 @@ class AuthProvider with ChangeNotifier {
       // Gọi API Đăng ký (đảm bảo các key 'full_name', 'email', 'password' khớp với Backend PHP)
       Response response = await _dioClient.dio.post(
         ApiConstants.register,
-        data: {
-          'full_name': fullName,
-          'email': email,
-          'password': password,
-        },
+        data: {'username': username, 'email': email, 'password': password},
       );
 
       // Giả sử Backend trả về status 201 (Created) hoặc 200, và có chuỗi 'success'
@@ -72,7 +68,6 @@ class AuthProvider with ChangeNotifier {
       _isLoading = false;
       notifyListeners();
       return false; // Thất bại (VD: Email đã tồn tại)
-
     } catch (e) {
       _isLoading = false;
       notifyListeners();
