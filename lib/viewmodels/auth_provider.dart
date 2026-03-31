@@ -4,6 +4,8 @@ import 'package:dio/dio.dart';
 import '../core/constants/api_constants.dart';
 import '../core/network/dio_client.dart';
 
+enum AuthStatus { uninitialized, authenticated, unauthenticated }
+
 class AuthProvider with ChangeNotifier {
   final DioClient _dioClient = DioClient();
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
@@ -11,6 +13,22 @@ class AuthProvider with ChangeNotifier {
   bool _isLoading = false;
   bool get isLoading =>
       _isLoading; // UI sẽ đọc biến này để hiện vòng xoay loading
+
+  AuthStatus _status = AuthStatus.uninitialized;
+  AuthStatus get status => _status;
+
+  // Hàm kiểm tra trạng thái đăng nhập khi mở app
+  Future<void> checkAuthStatus() async {
+    String? token = await _storage.read(key: 'jwt_token');
+
+    if (token != null) {
+      // Ở đây nếu kỹ hơn, bạn có thể gọi API /profile để kiểm tra token còn hạn không
+      _status = AuthStatus.authenticated;
+    } else {
+      _status = AuthStatus.unauthenticated;
+    }
+    notifyListeners();
+  }
 
   // Hàm Đăng nhập
   Future<bool> login(String email, String password) async {
@@ -30,6 +48,7 @@ class AuthProvider with ChangeNotifier {
         String token = response.data['token'];
         await _storage.write(key: 'jwt_token', value: token);
 
+        _status = AuthStatus.authenticated;
         _isLoading = false;
         notifyListeners();
         return true; // Đăng nhập thành công
@@ -79,6 +98,7 @@ class AuthProvider with ChangeNotifier {
   // Hàm Đăng xuất (Xóa token)
   Future<void> logout() async {
     await _storage.delete(key: 'jwt_token');
+    _status = AuthStatus.unauthenticated;
     notifyListeners();
   }
 }
