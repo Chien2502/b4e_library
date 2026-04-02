@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'viewmodels/auth_provider.dart';
 import 'views/screens/login_screen.dart';
-import 'views/screens/home_screen.dart';
+import 'views/screens/main_layout.dart';
 
 class MainWrapper extends StatelessWidget {
   const MainWrapper({super.key});
@@ -17,7 +17,7 @@ class MainWrapper extends StatelessWidget {
         body: Center(child: CircularProgressIndicator()), // Màn hình chờ
       );
     } else if (authProvider.status == AuthStatus.authenticated) {
-      return const HomeScreen(); // Đã đăng nhập
+      return const MainLayout(); // Đã đăng nhập, vào Main Layout
     } else {
       return const LoginScreen(); // Chưa đăng nhập
     }

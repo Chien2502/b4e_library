@@ -16,23 +16,27 @@ class DioClient {
       ),
     );
 
-    // Thêm Interceptor (Người gác cổng)
     _dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) async {
-          // Tự động lấy Token từ két sắt (nếu có) và nhét vào Header trước khi gửi đi
+          // Gắn JWT token vào header nếu đã đăng nhập
           String? token = await _storage.read(key: 'jwt_token');
           if (token != null) {
             options.headers['Authorization'] = 'Bearer $token';
           }
+
+          // Header này bỏ qua trang cảnh báo của Ngrok (free tier).
+          // Ngrok có thể trả HTML thay vì JSON cho BẤT KỲ client nào
+          // kể cả native mobile — gây lỗi parse im lặng.
+          // Gửi header này cho cả web lẫn mobile là an toàn.
+          options.headers['ngrok-skip-browser-warning'] = 'true';
+
           return handler.next(options);
         },
         onResponse: (response, handler) {
-          // Dữ liệu trả về thành công thì cho đi tiếp
           return handler.next(response);
         },
         onError: (DioException e, handler) {
-          // Xử lý lỗi tập trung ở đây (VD: Mất mạng, Lỗi 401 hết hạn Token, Lỗi 500 từ PHP)
           print('Lỗi gọi API: ${e.message}');
           return handler.next(e);
         },
@@ -40,6 +44,5 @@ class DioClient {
     );
   }
 
-  // Cung cấp instance của Dio ra ngoài để các nơi khác dùng
   Dio get dio => _dio;
 }
