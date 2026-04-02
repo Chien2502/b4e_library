@@ -16,8 +16,11 @@ class ApiConstants {
   static const String userBorrowings = '/users/borrowings.php';
   static const String userReturn = '/users/return.php';
   static const String createDonation = '/donations/create.php';
+  static const String userDonations = '/users/donations.php';
   static const String login = '/auth/login.php';
   static const String register = '/auth/register.php';
+  static const String getProfile = '/auth/get_profile.php';
+  static const String updateProfile = '/auth/update_profile.php';
 
   // ========== URL ẢNH ==========
   // URL file tĩnh (dùng cho mobile - không bị CORS)

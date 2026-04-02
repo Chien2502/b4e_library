@@ -4,6 +4,7 @@ import '../../viewmodels/auth_provider.dart';
 import 'home_screen.dart';
 import 'search_screen.dart';
 import 'my_books_screen.dart';
+import 'donation_screen.dart';
 
 class MainLayout extends StatefulWidget {
   const MainLayout({super.key});
@@ -32,8 +33,8 @@ class _MainLayoutState extends State<MainLayout> {
     // 2 — Sách của tôi
     const MyBooksScreen(),
 
-    // 3 — Quyên góp (placeholder)
-    const Center(child: Text('Quyên góp')),
+    // 3 — Quyên góp
+    const DonationScreen(),
 
     // 4 — Hồ sơ
     Builder(
