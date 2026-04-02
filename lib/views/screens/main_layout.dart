@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../viewmodels/auth_provider.dart';
-import 'home_screen.dart'; // Nơi chứa giao diện Trang chủ thực sự
+import 'home_screen.dart';
+import 'search_screen.dart';
+import 'my_books_screen.dart';
 
 class MainLayout extends StatefulWidget {
   const MainLayout({super.key});
@@ -11,52 +13,63 @@ class MainLayout extends StatefulWidget {
 }
 
 class _MainLayoutState extends State<MainLayout> {
-  // Biến lưu trữ index của tab đang được chọn
   int _currentIndex = 0;
 
-  // Danh sách các màn hình tương ứng với các tab
+  // ── Index mapping ──────────────────────────
+  // 0: Trang chủ
+  // 1: Tìm kiếm
+  // 2: Sách của tôi
+  // 3: Quyên góp
+  // 4: Hồ sơ
+
   final List<Widget> _screens = [
+    // 0 — Trang chủ
     const HomeScreen(),
-    const Center(child: Text('Màn hình Tìm kiếm')), // Các màn hình giữ chỗ
-    const Center(child: Text('Sách của tôi')),
-    const Center(child: Text('Thông báo')),
+
+    // 1 — Tìm kiếm
+    const SearchScreen(),
+
+    // 2 — Sách của tôi
+    const MyBooksScreen(),
+
+    // 3 — Quyên góp (placeholder)
+    const Center(child: Text('Quyên góp')),
+
+    // 4 — Hồ sơ
     Builder(
       builder: (context) {
         return Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Text('Hồ sơ cá nhân', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              const Text(
+                'Hồ sơ cá nhân',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
               const SizedBox(height: 20),
               ElevatedButton.icon(
-                onPressed: () {
-                  // Đăng xuất sử dụng AuthProvider
-                  context.read<AuthProvider>().logout();
-                },
+                onPressed: () => context.read<AuthProvider>().logout(),
                 icon: const Icon(Icons.logout),
                 label: const Text('Đăng xuất'),
-              )
+              ),
             ],
           ),
         );
-      }
+      },
     ),
   ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[50], // Màu nền tổng thể sáng sủa
-      // --- THANH ĐIỀU HƯỚNG TRÊN (APP BAR) ---
+      backgroundColor: Colors.grey[50],
+
+      // ── Top App Bar ────────────────────────────────────────────
       appBar: AppBar(
         backgroundColor: Colors.white,
-        elevation: 0, // Bỏ bóng đổ để phẳng và hiện đại hơn
-        leading: IconButton(
-          icon: const Icon(Icons.menu, color: Colors.black87),
-          onPressed: () {
-            // TODO: Xử lý mở Drawer (Menu cạnh bên) nếu cần
-          },
-        ),
+        elevation: 0,
+        // Bỏ leading menu (không cần Drawer)
+        automaticallyImplyLeading: false,
         title: const Text(
           'Thư viện B4E',
           style: TextStyle(
@@ -67,73 +80,103 @@ class _MainLayoutState extends State<MainLayout> {
         ),
         centerTitle: true,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.account_circle, color: Colors.blueAccent, size: 30),
-            onPressed: () {
-              // Chuyển sang tab Hồ sơ (index 4)
-              setState(() {
-                _currentIndex = 4;
-              });
-            },
+          // Icon Thông báo (chuyển sang top bar)
+          Stack(
+            alignment: Alignment.center,
+            children: [
+              IconButton(
+                icon: const Icon(
+                  Icons.notifications_none_outlined,
+                  color: Colors.black87,
+                  size: 28,
+                ),
+                onPressed: () {
+                  // TODO: Mở trang thông báo hoặc hiện panel
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Chưa có thông báo mới.'),
+                      duration: Duration(seconds: 2),
+                    ),
+                  );
+                },
+              ),
+              // Badge số thông báo (chưa đọc) — placeholder
+              // Uncomment và truyền số thực khi có API thông báo
+              // Positioned(
+              //   top: 8,
+              //   right: 8,
+              //   child: Container(
+              //     width: 16, height: 16,
+              //     decoration: const BoxDecoration(
+              //       color: Colors.red,
+              //       shape: BoxShape.circle,
+              //     ),
+              //     child: const Center(
+              //       child: Text('3', style: TextStyle(color: Colors.white, fontSize: 9)),
+              //     ),
+              //   ),
+              // ),
+            ],
           ),
-          const SizedBox(width: 8), // Khoảng cách nhỏ lề phải
+          const SizedBox(width: 4),
         ],
       ),
 
-      // --- PHẦN THÂN (BODY) ---
-      // Dùng IndexedStack để giữ state của các màn hình khi chuyển tab
+      // ── Body ───────────────────────────────────────────────────
       body: IndexedStack(
         index: _currentIndex,
         children: _screens,
       ),
 
-      // --- THANH ĐIỀU HƯỚNG DƯỚI (BOTTOM NAVIGATION BAR) ---
+      // ── Bottom Navigation Bar ──────────────────────────────────
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
+          color: Colors.white,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 10,
-              offset: const Offset(0, -5),
+              color: Colors.black.withOpacity(0.06),
+              blurRadius: 12,
+              offset: const Offset(0, -4),
             ),
           ],
         ),
         child: BottomNavigationBar(
           currentIndex: _currentIndex,
-          onTap: (index) {
-            setState(() {
-              _currentIndex = index;
-            });
-          },
-          // Quan trọng: type fixed giúp hiển thị đầy đủ icon và text khi có từ 4 item trở lên
+          onTap: (index) => setState(() => _currentIndex = index),
           type: BottomNavigationBarType.fixed,
           backgroundColor: Colors.white,
           selectedItemColor: Colors.blueAccent,
-          unselectedItemColor: Colors.grey,
-          selectedFontSize: 12,
-          unselectedFontSize: 12,
+          unselectedItemColor: Colors.grey[500],
+          selectedFontSize: 11,
+          unselectedFontSize: 11,
+          selectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600),
           elevation: 0,
           items: const [
+            // 0 — Trang chủ
             BottomNavigationBarItem(
               icon: Icon(Icons.home_outlined),
               activeIcon: Icon(Icons.home),
               label: 'Trang chủ',
             ),
+            // 1 — Tìm kiếm
             BottomNavigationBarItem(
               icon: Icon(Icons.search_outlined),
               activeIcon: Icon(Icons.search),
               label: 'Tìm kiếm',
             ),
+            // 2 — Sách của tôi
             BottomNavigationBarItem(
               icon: Icon(Icons.library_books_outlined),
               activeIcon: Icon(Icons.library_books),
               label: 'Sách của tôi',
             ),
+            // 3 — Quyên góp
             BottomNavigationBarItem(
-              icon: Icon(Icons.notifications_none_outlined),
-              activeIcon: Icon(Icons.notifications),
-              label: 'Thông báo',
+              icon: Icon(Icons.volunteer_activism_outlined),
+              activeIcon: Icon(Icons.volunteer_activism),
+              label: 'Quyên góp',
             ),
+            // 4 — Hồ sơ
             BottomNavigationBarItem(
               icon: Icon(Icons.person_outline),
               activeIcon: Icon(Icons.person),

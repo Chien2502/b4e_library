@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../viewmodels/book_provider.dart';
 import '../../data/models/book_model.dart';
+import 'book_detail_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -177,8 +178,20 @@ class _HomeScreenState extends State<HomeScreen> {
     final String statusText = isAvailable ? 'Có sẵn' : 'Đã mượn';
 
     return GestureDetector(
-      onTap: () {
-        // TODO: Xem chi tiết sách
+      onTap: () async {
+        final didBorrow = await Navigator.push<bool>(
+          context,
+          MaterialPageRoute(
+            builder: (_) => BookDetailScreen(
+              bookId: book.id,
+              heroTag: 'home_book_${book.id}',
+            ),
+          ),
+        );
+        // Nếu mượn thành công → reload danh sách trang chủ
+        if (didBorrow == true && mounted) {
+          Provider.of<BookProvider>(context, listen: false).fetchLatestBooks();
+        }
       },
       child: Container(
         width: 130,
