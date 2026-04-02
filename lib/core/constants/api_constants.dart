@@ -10,6 +10,7 @@ class ApiConstants {
   // ========== CÁC ENDPOINT ==========
   // Dio dùng đường dẫn tương đối (bỏ baseUrl phía trước)
   static const String readBooks = '/books/read.php';
+  static const String readCategories = '/categories/read.php';
   static const String login = '/auth/login.php';
   static const String register = '/auth/register.php';
 

@@ -17,6 +17,31 @@ class BookProvider with ChangeNotifier {
   bool get isLoading => _isLoading;
   String get errorMessage => _errorMessage;
 
+  /// Trả về Map<thể loại, danh sách sách> với:
+  /// - Số thể loại = 1/4 tổng số thể loại hiện có, tối đa 8.
+  /// - Sắp xếp thể loại theo số sách giảm dần (thể loại nhiều sách đứng đầu).
+  Map<String, List<Book>> get booksByCategory {
+    // Gom nhóm
+    final Map<String, List<Book>> grouped = {};
+    for (final book in _books) {
+      grouped.putIfAbsent(book.category, () => []).add(book);
+    }
+
+    // Sắp xếp thể loại theo số sách giảm dần
+    final sortedKeys = grouped.keys.toList()
+      ..sort((a, b) => grouped[b]!.length.compareTo(grouped[a]!.length));
+
+    // Số thể loại cần hiển thị = 1/4 tổng, tối thiểu 1, tối đa 8
+    final int totalCategories = sortedKeys.length;
+    final int showCount = (totalCategories / 4).ceil().clamp(1, 8);
+
+    final Map<String, List<Book>> result = {};
+    for (int i = 0; i < showCount && i < sortedKeys.length; i++) {
+      result[sortedKeys[i]] = grouped[sortedKeys[i]]!;
+    }
+    return result;
+  }
+
   // --- Dùng cho HomeScreen: Lấy 12 cuốn mới nhất (sắp xếp DESC theo id) ---
   Future<void> fetchLatestBooks() async {
     _isLoading = true;
@@ -28,7 +53,7 @@ class BookProvider with ChangeNotifier {
       // API PHP nhận ?limit=12&page=1 và trả về ORDER BY b.id DESC
       final Response response = await _dioClient.dio.get(
         ApiConstants.readBooks,
-        queryParameters: {'limit': 12, 'page': 1},
+        queryParameters: {'limit': 50, 'page': 1},
         // options: Options(
         //   headers: {
         //     // Bỏ qua cảnh báo browser của Ngrok
