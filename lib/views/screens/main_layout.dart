@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import '../../viewmodels/auth_provider.dart';
 import 'home_screen.dart';
 import 'search_screen.dart';
 import 'my_books_screen.dart';
 import 'donation_screen.dart';
+import 'profile_screen.dart';
 
 class MainLayout extends StatefulWidget {
   const MainLayout({super.key});
@@ -37,27 +36,7 @@ class _MainLayoutState extends State<MainLayout> {
     const DonationScreen(),
 
     // 4 — Hồ sơ
-    Builder(
-      builder: (context) {
-        return Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Text(
-                'Hồ sơ cá nhân',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 20),
-              ElevatedButton.icon(
-                onPressed: () => context.read<AuthProvider>().logout(),
-                icon: const Icon(Icons.logout),
-                label: const Text('Đăng xuất'),
-              ),
-            ],
-          ),
-        );
-      },
-    ),
+    const ProfileScreen(),
   ];
 
   @override
