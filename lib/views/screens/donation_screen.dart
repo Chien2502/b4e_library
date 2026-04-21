@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
+import 'package:provider/provider.dart';
 import '../../core/constants/api_constants.dart';
 import '../../core/network/dio_client.dart';
+import '../../viewmodels/notification_provider.dart';
 import '../../data/models/donation_record_model.dart';
 
 // ── Các lựa chọn dropdown ──────────────────────────────────────────
@@ -96,6 +98,10 @@ class _DonationScreenState extends State<DonationScreen>
           _submitSuccess = true;
           _donations = []; // Invalidate cache để tab theo dõi reload
         });
+        // Fetch ngay để badge đỏ hiện lên sau khi gửi quyên góp thành công
+        if (mounted) {
+          context.read<NotificationProvider>().fetchNotifications();
+        }
         _resetForm();
       } else {
         _showSnackBar(

@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../viewmodels/my_books_provider.dart';
+import '../../viewmodels/notification_provider.dart';
 import '../../data/models/borrowing_model.dart';
 
 class MyBooksScreen extends StatefulWidget {
@@ -445,6 +446,11 @@ class _MyBooksScreenState extends State<MyBooksScreen>
     final error = await provider.returnBook(b.id);
 
     if (!context.mounted) return;
+
+    if (error == null) {
+      // Fetch thông báo ngay sau khi gửi trả thành công
+      context.read<NotificationProvider>().fetchNotifications();
+    }
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(

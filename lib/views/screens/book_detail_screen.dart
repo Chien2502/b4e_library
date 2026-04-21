@@ -6,6 +6,7 @@ import '../../core/constants/api_constants.dart';
 import '../../core/network/dio_client.dart';
 import '../../data/models/book_detail_model.dart';
 import '../../viewmodels/auth_provider.dart';
+import '../../viewmodels/notification_provider.dart';
 import 'login_screen.dart';
 
 class BookDetailScreen extends StatefulWidget {
@@ -116,6 +117,10 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
       if (res.statusCode == 201) {
         _showSnackBar('Mượn sách thành công! Vui lòng trả đúng hạn. 📚',
             isError: false);
+        // Fetch ngay để badge đỏ hiện lên tức thì
+        if (mounted) {
+          context.read<NotificationProvider>().fetchNotifications();
+        }
         await _fetchBookDetail();
         if (mounted) Navigator.pop(context, true);
       } else {
