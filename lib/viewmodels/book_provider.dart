@@ -93,8 +93,9 @@ class BookProvider with ChangeNotifier {
     try {
       final Map<String, dynamic> queryParams = {'limit': limit, 'page': page};
       if (search != null && search.isNotEmpty) queryParams['search'] = search;
-      if (category != null && category != 'Tất cả')
+      if (category != null && category != 'Tất cả') {
         queryParams['category'] = category;
+      }
       if (status != null && status != 'all') queryParams['status'] = status;
       if (sort != null) queryParams['sort'] = sort;
 
@@ -148,3 +149,4 @@ class BookProvider with ChangeNotifier {
     _filteredBooks = List.from(_books);
   }
 }
+

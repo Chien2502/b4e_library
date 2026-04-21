@@ -160,7 +160,7 @@ class _SupportScreenState extends State<SupportScreen> {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-              color: Colors.black.withOpacity(0.04),
+              color: Colors.black.withValues(alpha: 0.04),
               blurRadius: 6,
               offset: const Offset(0, 2))
         ],
@@ -178,7 +178,7 @@ class _SupportScreenState extends State<SupportScreen> {
                   width: 40,
                   height: 40,
                   decoration: BoxDecoration(
-                    color: color.withOpacity(0.1),
+                    color: color.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Icon(icon, color: color, size: 20),
@@ -220,7 +220,7 @@ class _SupportScreenState extends State<SupportScreen> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-              color: Colors.black.withOpacity(0.04),
+              color: Colors.black.withValues(alpha: 0.04),
               blurRadius: 10,
               offset: const Offset(0, 4))
         ],
@@ -268,7 +268,7 @@ class _SupportScreenState extends State<SupportScreen> {
             // Chủ đề
             _buildLabel('Chủ đề', required: true),
             DropdownButtonFormField<String>(
-              value: _selectedTopic,
+              initialValue: _selectedTopic,
               items: _topics
                   .map((t) =>
                       DropdownMenuItem(value: t, child: Text(t)))
@@ -331,7 +331,7 @@ class _SupportScreenState extends State<SupportScreen> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-              color: Colors.black.withOpacity(0.04),
+              color: Colors.black.withValues(alpha: 0.04),
               blurRadius: 10,
               offset: const Offset(0, 4))
         ],
@@ -511,3 +511,4 @@ class _SupportScreenState extends State<SupportScreen> {
     );
   }
 }
+

@@ -22,6 +22,28 @@ class ApiConstants {
   static const String getProfile = '/auth/get_profile.php';
   static const String updateProfile = '/auth/update_profile.php';
 
+  // ========== ADMIN ENDPOINTS ==========
+  static const String adminStats = '/admin/get_stats.php';
+  static const String adminUsers = '/admin/users.php';
+  static const String adminGetUser = '/admin/get_user.php';
+  static const String adminUpdateUser = '/admin/update_user.php';
+  static const String adminDeleteUser = '/admin/delete_user.php';
+  static const String adminBorrowings = '/admin/borrowings.php';
+  static const String adminConfirmReturn = '/admin/confirm_return.php';
+  static const String adminDonations = '/admin/donations.php';
+  static const String adminApproveDonation = '/admin/approve_donation.php';
+  static const String adminRejectDonation = '/admin/reject_donation.php';
+
+  // ========== BOOK CRUD (Admin) ==========
+  static const String createBook = '/books/create.php';
+  static const String updateBook = '/books/update.php';
+  static const String deleteBook = '/books/delete.php';
+
+  // ========== CATEGORY CRUD (Admin) ==========
+  static const String createCategory = '/categories/create.php';
+  static const String updateCategory = '/categories/update.php';
+  static const String deleteCategory = '/categories/delete.php';
+
   // ========== URL ẢNH ==========
   // URL file tĩnh (dùng cho mobile - không bị CORS)
   static const String uploadsUrl = '$host/api/uploads';
@@ -30,3 +52,4 @@ class ApiConstants {
   // PHP xử lý header CORS giống các endpoint khác
   static const String imageProxy = '/books/image_proxy.php';
 }
+

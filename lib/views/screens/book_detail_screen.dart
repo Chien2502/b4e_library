@@ -1,9 +1,12 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
+import 'package:provider/provider.dart';
 import '../../core/constants/api_constants.dart';
 import '../../core/network/dio_client.dart';
 import '../../data/models/book_detail_model.dart';
+import '../../viewmodels/auth_provider.dart';
+import 'login_screen.dart';
 
 class BookDetailScreen extends StatefulWidget {
   final int bookId;
@@ -68,6 +71,13 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
   Future<void> _handleBorrow() async {
     if (_book == null || !_book!.isAvailable) return;
 
+    // ── Kiểm tra auth trước khi mượn ──────────────────────────────
+    final auth = context.read<AuthProvider>();
+    if (auth.status != AuthStatus.authenticated) {
+      _showLoginPrompt();
+      return;
+    }
+
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -106,9 +116,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
       if (res.statusCode == 201) {
         _showSnackBar('Mượn sách thành công! Vui lòng trả đúng hạn. 📚',
             isError: false);
-        // Tải lại chi tiết để cập nhật trạng thái badge
         await _fetchBookDetail();
-        // Trả về true để màn hình danh sách biết cần reload
         if (mounted) Navigator.pop(context, true);
       } else {
         final msg = res.data?['error'] ?? 'Không thể mượn sách.';
@@ -120,6 +128,85 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
     } finally {
       setState(() => _isBorrowing = false);
     }
+  }
+
+  /// Hiển thị bottom sheet mời đăng nhập khi chưa có tài khoản
+  void _showLoginPrompt() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => Padding(
+        padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Handle
+            Container(
+              width: 36,
+              height: 4,
+              margin: const EdgeInsets.only(bottom: 20),
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const Icon(Icons.lock_outline,
+                color: Color(0xFF1E88E5), size: 40),
+            const SizedBox(height: 12),
+            const Text(
+              'Đăng nhập để mượn sách',
+              style: TextStyle(
+                  fontSize: 17, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Bạn cần có tài khoản B4E để có thể mượn sách.\nĐăng nhập miễn phí, nhanh chóng!',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                  fontSize: 13, color: Colors.grey[600], height: 1.5),
+            ),
+            const SizedBox(height: 24),
+            SizedBox(
+              width: double.infinity,
+              height: 48,
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(ctx); // đóng bottom sheet
+                  // Push LoginScreen, sau khi login chỉ pop về book detail
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const LoginScreen(popOnSuccess: true),
+                    ),
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF1E88E5),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                  elevation: 0,
+                ),
+                child: const Text(
+                  'Đăng nhập ngay',
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold),
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text('Để sau',
+                  style: TextStyle(color: Colors.grey[500], fontSize: 13)),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   void _showSnackBar(String message, {required bool isError}) {
@@ -463,7 +550,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.06),
+            color: Colors.black.withValues(alpha: 0.06),
             blurRadius: 12,
             offset: const Offset(0, -4),
           ),
@@ -477,7 +564,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                 onPressed: _isBorrowing ? null : _handleBorrow,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.blueAccent,
-                  disabledBackgroundColor: Colors.blueAccent.withOpacity(0.6),
+                  disabledBackgroundColor: Colors.blueAccent.withValues(alpha: 0.6),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(14),
                   ),
@@ -535,3 +622,4 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
     );
   }
 }
+

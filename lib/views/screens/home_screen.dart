@@ -114,7 +114,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     padding: const EdgeInsets.symmetric(
                         horizontal: 8, vertical: 2),
                     decoration: BoxDecoration(
-                      color: Colors.blueAccent.withOpacity(0.12),
+                      color: Colors.blueAccent.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
@@ -201,7 +201,7 @@ class _HomeScreenState extends State<HomeScreen> {
           borderRadius: BorderRadius.circular(14),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.07),
+              color: Colors.black.withValues(alpha: 0.07),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -241,7 +241,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 6, vertical: 3),
                         decoration: BoxDecoration(
-                          color: statusColor.withOpacity(0.88),
+                          color: statusColor.withValues(alpha: 0.88),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
@@ -299,3 +299,4 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 }
+

@@ -163,3 +163,4 @@ class SearchProvider with ChangeNotifier {
     fetchBooks(page: 1);
   }
 }
+

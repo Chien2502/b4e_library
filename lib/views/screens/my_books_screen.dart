@@ -106,7 +106,7 @@ class _MyBooksScreenState extends State<MyBooksScreen>
                     padding: const EdgeInsets.symmetric(
                         horizontal: 6, vertical: 1),
                     decoration: BoxDecoration(
-                      color: Colors.blueAccent.withOpacity(0.15),
+                      color: Colors.blueAccent.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Text(
@@ -449,9 +449,7 @@ class _MyBooksScreenState extends State<MyBooksScreen>
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          error == null
-              ? 'Đã gửi yêu cầu trả sách! Thủ thư sẽ xác nhận sớm. 📬'
-              : error,
+          error ?? 'Đã gửi yêu cầu trả sách! Thủ thư sẽ xác nhận sớm. 📬',
         ),
         backgroundColor: error == null ? Colors.green[700] : Colors.red[700],
         behavior: SnackBarBehavior.floating,
@@ -473,3 +471,4 @@ class _MyBooksScreenState extends State<MyBooksScreen>
 
   bool _isOverdue(Borrowing b) => b.status == 'overdue';
 }
+

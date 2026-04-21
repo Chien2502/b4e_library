@@ -248,7 +248,7 @@ class _DonationScreenState extends State<DonationScreen>
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
+              color: Colors.white.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(12),
             ),
             child: const Icon(Icons.volunteer_activism,
@@ -348,7 +348,7 @@ class _DonationScreenState extends State<DonationScreen>
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withValues(alpha: 0.05),
               blurRadius: 8,
               offset: const Offset(0, 3))
         ],
@@ -397,7 +397,7 @@ class _DonationScreenState extends State<DonationScreen>
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withValues(alpha: 0.05),
               blurRadius: 12,
               offset: const Offset(0, 4))
         ],
@@ -484,7 +484,7 @@ class _DonationScreenState extends State<DonationScreen>
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF1E88E5),
                   disabledBackgroundColor:
-                      const Color(0xFF1E88E5).withOpacity(0.6),
+                      const Color(0xFF1E88E5).withValues(alpha: 0.6),
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14)),
                   elevation: 0,
@@ -522,7 +522,7 @@ class _DonationScreenState extends State<DonationScreen>
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withValues(alpha: 0.05),
               blurRadius: 12,
               offset: const Offset(0, 4))
         ],
@@ -903,7 +903,7 @@ class _DonationScreenState extends State<DonationScreen>
     String? Function(String?)? validator,
   }) {
     return DropdownButtonFormField<String>(
-      value: value,
+      initialValue: value,
       hint: Text(hint,
           style:
               TextStyle(fontSize: 13, color: Colors.grey[400])),
@@ -947,3 +947,4 @@ class _DonationScreenState extends State<DonationScreen>
     );
   }
 }
+

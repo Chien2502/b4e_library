@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../viewmodels/auth_provider.dart';
 import 'about_screen.dart';
+import 'admin_screen.dart';
 import 'borrowing_guide_screen.dart';
 import 'support_screen.dart';
 import 'privacy_policy_screen.dart';
@@ -157,7 +158,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             children: [
               CircleAvatar(
                 radius: 44,
-                backgroundColor: Colors.white.withOpacity(0.2),
+                backgroundColor: Colors.white.withValues(alpha: 0.2),
                 child: Text(
                   user.username.isNotEmpty ? user.username[0].toUpperCase() : '?',
                   style: const TextStyle(
@@ -202,7 +203,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             padding:
                 const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
+              color: Colors.white.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: Colors.white30),
             ),
@@ -233,7 +234,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         borderRadius: BorderRadius.circular(14),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF1565C0).withOpacity(0.3),
+            color: const Color(0xFF1565C0).withValues(alpha: 0.3),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -244,12 +245,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
         child: InkWell(
           borderRadius: BorderRadius.circular(14),
           onTap: () {
-            // TODO: Navigate đến Admin Dashboard (URL web hoặc màn hình riêng)
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Chuyển đến trang quản trị...'),
-                behavior: SnackBarBehavior.floating,
-              ),
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const AdminScreen()),
             );
           },
           child: Padding(
@@ -261,7 +259,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   width: 44,
                   height: 44,
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.15),
+                    color: Colors.white.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: const Icon(Icons.admin_panel_settings_outlined,
@@ -310,7 +308,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -585,7 +583,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -618,7 +616,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           height: 36,
                           decoration: BoxDecoration(
                             color: (item['color'] as Color)
-                                .withOpacity(0.1),
+                                .withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Icon(item['icon'] as IconData,
@@ -718,3 +716,4 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 }
+

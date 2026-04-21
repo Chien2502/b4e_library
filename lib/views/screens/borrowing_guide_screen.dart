@@ -120,7 +120,7 @@ class BorrowingGuideScreen extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
+              color: Colors.white.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(10),
             ),
             child: const Icon(Icons.menu_book_outlined,
@@ -163,7 +163,7 @@ class BorrowingGuideScreen extends StatelessWidget {
         borderRadius: BorderRadius.circular(14),
         boxShadow: [
           BoxShadow(
-              color: Colors.black.withOpacity(0.04),
+              color: Colors.black.withValues(alpha: 0.04),
               blurRadius: 8,
               offset: const Offset(0, 3))
         ],
@@ -175,7 +175,7 @@ class BorrowingGuideScreen extends StatelessWidget {
           Container(
             padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.07),
+              color: color.withValues(alpha: 0.07),
               borderRadius:
                   const BorderRadius.vertical(top: Radius.circular(14)),
             ),
@@ -310,3 +310,4 @@ class BorrowingGuideScreen extends StatelessWidget {
     );
   }
 }
+
