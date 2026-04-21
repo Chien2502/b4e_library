@@ -17,7 +17,7 @@ class BookProvider with ChangeNotifier {
   bool get isLoading => _isLoading;
   String get errorMessage => _errorMessage;
 
-  /// Trả về Map<thể loại, danh sách sách> với:
+  /// Trả về Map (thể loại, danh sách sách) với:
   /// - Số thể loại = 1/4 tổng số thể loại hiện có, tối đa 8.
   /// - Sắp xếp thể loại theo số sách giảm dần (thể loại nhiều sách đứng đầu).
   Map<String, List<Book>> get booksByCategory {
@@ -149,4 +149,3 @@ class BookProvider with ChangeNotifier {
     _filteredBooks = List.from(_books);
   }
 }
-
