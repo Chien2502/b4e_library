@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../constants/api_constants.dart';
@@ -37,7 +38,7 @@ class DioClient {
           return handler.next(response);
         },
         onError: (DioException e, handler) {
-          print('Lỗi gọi API: ${e.message}');
+          debugPrint('Lỗi gọi API: ${e.message}');
           return handler.next(e);
         },
       ),

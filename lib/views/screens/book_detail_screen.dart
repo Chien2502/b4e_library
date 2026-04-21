@@ -342,7 +342,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                         headers: kIsWeb
                             ? const {'ngrok-skip-browser-warning': 'true'}
                             : const {},
-                        errorBuilder: (_, __, ___) => _buildImagePlaceholder(),
+                        errorBuilder: (_, err, stack) => _buildImagePlaceholder(),
                       )
                     : _buildImagePlaceholder(),
               ),

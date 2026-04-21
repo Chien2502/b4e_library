@@ -376,7 +376,7 @@ class _SearchScreenState extends State<SearchScreen> {
                       headers: kIsWeb
                           ? const {'ngrok-skip-browser-warning': 'true'}
                           : const {},
-                      errorBuilder: (_, __, ___) => Container(
+                      errorBuilder: (_, err, stack) => Container(
                         color: Colors.grey[200],
                         child: const Icon(Icons.broken_image,
                             size: 50, color: Colors.grey),

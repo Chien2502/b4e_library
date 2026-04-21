@@ -298,7 +298,7 @@ class _AdminDonationsTabState extends State<AdminDonationsTab> {
       child: ListView.separated(
         padding: const EdgeInsets.all(12),
         itemCount: _items.length,
-        separatorBuilder: (_, __) => const SizedBox(height: 10),
+        separatorBuilder: (_, a) => const SizedBox(height: 10),
         itemBuilder: (_, i) => _buildCard(_items[i]),
       ),
     );

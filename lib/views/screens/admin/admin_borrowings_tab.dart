@@ -158,7 +158,7 @@ class _AdminBorrowingsTabState extends State<AdminBorrowingsTab> {
       child: ListView.separated(
         padding: const EdgeInsets.all(12),
         itemCount: list.length,
-        separatorBuilder: (_, __) => const SizedBox(height: 10),
+        separatorBuilder: (_, a) => const SizedBox(height: 10),
         itemBuilder: (_, i) => _buildCard(list[i]),
       ),
     );
@@ -215,7 +215,7 @@ class _AdminBorrowingsTabState extends State<AdminBorrowingsTab> {
                       headers: kIsWeb
                           ? const {'ngrok-skip-browser-warning': 'true'}
                           : const {},
-                      errorBuilder: (_, __, ___) => _imgPlaceholder())
+                      errorBuilder: (_, err, stack) => _imgPlaceholder())
                   : _imgPlaceholder(),
             ),
           ),

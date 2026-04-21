@@ -176,7 +176,7 @@ class _MyBooksScreenState extends State<MyBooksScreen>
       child: ListView.separated(
         padding: const EdgeInsets.symmetric(vertical: 8),
         itemCount: items.length,
-        separatorBuilder: (_, __) =>
+        separatorBuilder: (_, a) =>
             const Divider(height: 1, indent: 76, endIndent: 16),
         itemBuilder: (context, index) {
           return _buildBorrowingRow(context, items[index], provider);
@@ -285,7 +285,7 @@ class _MyBooksScreenState extends State<MyBooksScreen>
                 fit: BoxFit.cover,
                 headers:
                     kIsWeb ? const {'ngrok-skip-browser-warning': 'true'} : const {},
-                errorBuilder: (_, __, ___) => _placeholder(),
+                errorBuilder: (_, err, stack) => _placeholder(),
               )
             : _placeholder(),
       ),

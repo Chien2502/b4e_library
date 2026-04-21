@@ -320,7 +320,7 @@ class _DonationScreenState extends State<DonationScreen>
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               itemCount: steps.length,
-              separatorBuilder: (_, __) => const SizedBox(width: 10),
+              separatorBuilder: (_, a) => const SizedBox(width: 10),
               itemBuilder: (_, i) => SizedBox(
                 width: 180,
                 child: _buildStepCard(
@@ -665,7 +665,7 @@ class _DonationScreenState extends State<DonationScreen>
             child: ListView.separated(
               padding: const EdgeInsets.only(bottom: 16),
               itemCount: _donations.length,
-              separatorBuilder: (_, __) =>
+              separatorBuilder: (_, a) =>
                   const Divider(height: 1, color: Color(0xFFF0F0F0)),
               itemBuilder: (_, i) => _buildDonationRow(_donations[i]),
             ),

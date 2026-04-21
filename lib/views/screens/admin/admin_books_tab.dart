@@ -1,6 +1,8 @@
+import 'dart:io';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../../core/constants/api_constants.dart';
 import '../../../core/network/dio_client.dart';
 
@@ -210,7 +212,7 @@ class _AdminBooksTabState extends State<AdminBooksTab> {
       child: ListView.separated(
         padding: const EdgeInsets.all(12),
         itemCount: list.length,
-        separatorBuilder: (_, __) => const SizedBox(height: 8),
+        separatorBuilder: (_, a) => const SizedBox(height: 8),
         itemBuilder: (_, i) => _buildCard(list[i]),
       ),
     );
@@ -241,7 +243,7 @@ class _AdminBooksTabState extends State<AdminBooksTab> {
                   ? Image.network(imageUrl,
                       fit: BoxFit.cover,
                       headers: kIsWeb ? const {'ngrok-skip-browser-warning': 'true'} : const {},
-                      errorBuilder: (_, __, ___) => _placeholder())
+                      errorBuilder: (_, err, stack) => _placeholder())
                   : _placeholder(),
             ),
           ),
@@ -364,7 +366,17 @@ class _BookFormSheetState extends State<_BookFormSheet> {
   int? _categoryId;
   bool _saving = false;
 
+  // ── Image picker state ──────────────────────────────────────────
+  XFile? _pickedImage;
+  bool _imageChanged = false;
+
   bool get _isEdit => widget.book != null;
+
+  String get _existingImageUrl {
+    final raw = (widget.book?['image_url'] ?? '').toString();
+    if (raw.isEmpty) return '';
+    return '${ApiConstants.uploadsUrl}/$raw';
+  }
 
   @override
   void initState() {
@@ -373,26 +385,96 @@ class _BookFormSheetState extends State<_BookFormSheet> {
     _titleCtrl = TextEditingController(text: (b?['title'] ?? '').toString());
     _authorCtrl = TextEditingController(text: (b?['author'] ?? '').toString());
     _publisherCtrl = TextEditingController(text: (b?['publisher'] ?? '').toString());
-    _yearCtrl = TextEditingController(text: b?['year'] != null ? b!['year'].toString() : '');
+    _yearCtrl = TextEditingController(
+        text: b?['year'] != null ? b!['year'].toString() : '');
     _descCtrl = TextEditingController(text: (b?['description'] ?? '').toString());
-    _categoryId = b != null
-        ? int.tryParse('${b['category_id']}')
-        : null;
+    _categoryId = b != null ? int.tryParse('${b['category_id']}') : null;
   }
 
   @override
   void dispose() {
-    _titleCtrl.dispose(); _authorCtrl.dispose();
-    _publisherCtrl.dispose(); _yearCtrl.dispose();
+    _titleCtrl.dispose();
+    _authorCtrl.dispose();
+    _publisherCtrl.dispose();
+    _yearCtrl.dispose();
     _descCtrl.dispose();
     super.dispose();
   }
 
+  // ── Chọn ảnh từ Gallery hoặc Camera ────────────────────────────
+  Future<void> _pickImage(ImageSource source) async {
+    final picker = ImagePicker();
+    final XFile? file = await picker.pickImage(
+      source: source,
+      maxWidth: 800,
+      maxHeight: 1200,
+      imageQuality: 85,
+    );
+    if (file != null) {
+      setState(() {
+        _pickedImage = file;
+        _imageChanged = true;
+      });
+    }
+  }
+
+  void _showImageSourceSheet() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 36, height: 4,
+                margin: const EdgeInsets.only(bottom: 12),
+                decoration: BoxDecoration(
+                    color: Colors.grey[300],
+                    borderRadius: BorderRadius.circular(2)),
+              ),
+              const Text('Chọn ảnh bìa',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+              const SizedBox(height: 8),
+              ListTile(
+                leading: const CircleAvatar(
+                  backgroundColor: Color(0xFFE3F2FD),
+                  child: Icon(Icons.photo_library_outlined, color: Color(0xFF1565C0)),
+                ),
+                title: const Text('Chọn từ thư viện ảnh'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _pickImage(ImageSource.gallery);
+                },
+              ),
+              if (!kIsWeb)
+                ListTile(
+                  leading: const CircleAvatar(
+                    backgroundColor: Color(0xFFF3E5F5),
+                    child: Icon(Icons.camera_alt_outlined, color: Colors.purple),
+                  ),
+                  title: const Text('Chụp ảnh mới'),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _pickImage(ImageSource.camera);
+                  },
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ── Lưu sách ────────────────────────────────────────────────────
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _saving = true);
     try {
-      final data = FormData.fromMap({
+      final fields = <String, dynamic>{
         'title': _titleCtrl.text.trim(),
         'author': _authorCtrl.text.trim(),
         'publisher': _publisherCtrl.text.trim(),
@@ -400,7 +482,25 @@ class _BookFormSheetState extends State<_BookFormSheet> {
         'description': _descCtrl.text.trim(),
         if (_categoryId != null) 'category_id': _categoryId.toString(),
         if (_isEdit) 'id': '${widget.book!['id']}',
-      });
+      };
+      final data = FormData.fromMap(fields);
+
+      // Gắn ảnh nếu user đã chọn ảnh mới
+      if (_imageChanged && _pickedImage != null) {
+        final filename = _pickedImage!.name;
+        if (kIsWeb) {
+          final bytes = await _pickedImage!.readAsBytes();
+          data.files.add(MapEntry(
+            'image',
+            MultipartFile.fromBytes(bytes, filename: filename),
+          ));
+        } else {
+          data.files.add(MapEntry(
+            'image',
+            await MultipartFile.fromFile(_pickedImage!.path, filename: filename),
+          ));
+        }
+      }
 
       if (_isEdit) {
         await widget.dio.post(ApiConstants.updateBook, data: data);
@@ -445,11 +545,17 @@ class _BookFormSheetState extends State<_BookFormSheet> {
             children: [
               Center(child: Container(
                 width: 36, height: 4, margin: const EdgeInsets.only(bottom: 16),
-                decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2)),
+                decoration: BoxDecoration(
+                    color: Colors.grey[300], borderRadius: BorderRadius.circular(2)),
               )),
               Text(_isEdit ? 'Chỉnh sửa Sách' : 'Thêm Sách Mới',
                   style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
               const SizedBox(height: 16),
+
+              // ── Ảnh bìa ──────────────────────────────────────────
+              _buildImagePicker(),
+              const SizedBox(height: 16),
+
               _label('Tên sách *'),
               _field(_titleCtrl, 'Nhập tên sách...', Icons.book_outlined,
                   validator: (v) => (v == null || v.trim().isEmpty) ? 'Bắt buộc' : null),
@@ -526,6 +632,124 @@ class _BookFormSheetState extends State<_BookFormSheet> {
     );
   }
 
+  // ── Widget ảnh bìa + nút chọn ────────────────────────────────
+  Widget _buildImagePicker() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _label('Ảnh bìa sách'),
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.grey[50],
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.grey[300]!),
+          ),
+          padding: const EdgeInsets.all(12),
+          child: Row(children: [
+            // Thumbnail 80×110
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: SizedBox(width: 80, height: 110, child: _buildPreview()),
+            ),
+            const SizedBox(width: 14),
+            Expanded(child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: _showImageSourceSheet,
+                    icon: const Icon(Icons.photo_library_outlined, size: 16),
+                    label: Text(
+                      _imageChanged ? 'Đổi ảnh khác'
+                          : (_existingImageUrl.isNotEmpty ? 'Thay ảnh mới' : 'Chọn ảnh'),
+                      style: const TextStyle(fontSize: 13),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xFF1565C0),
+                      side: const BorderSide(color: Color(0xFF1565C0)),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    ),
+                  ),
+                ),
+                if (_imageChanged)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 6),
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: TextButton.icon(
+                        onPressed: () => setState(() {
+                          _pickedImage = null;
+                          _imageChanged = false;
+                        }),
+                        icon: const Icon(Icons.close, size: 14, color: Colors.red),
+                        label: const Text('Hủy chọn ảnh',
+                            style: TextStyle(fontSize: 12, color: Colors.red)),
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        ),
+                      ),
+                    ),
+                  ),
+                const SizedBox(height: 6),
+                Text('JPG, PNG, WEBP · Tối đa 5MB\nẢnh sẽ được nén tự động',
+                    style: TextStyle(fontSize: 10, color: Colors.grey[500])),
+              ],
+            )),
+          ]),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPreview() {
+    // Ảnh mới đã chọn
+    if (_imageChanged && _pickedImage != null) {
+      if (kIsWeb) {
+        return FutureBuilder<List<int>>(
+          future: _pickedImage!.readAsBytes().then((b) => b.toList()),
+          builder: (context, snap) {
+            if (snap.hasData) {
+              return Image.memory(snap.data as dynamic, fit: BoxFit.cover);
+            }
+            return _placeholder(loading: true);
+          },
+        );
+      } else {
+        return Image.file(File(_pickedImage!.path), fit: BoxFit.cover);
+      }
+    }
+    // Ảnh cũ từ server (khi chỉnh sửa)
+    if (_existingImageUrl.isNotEmpty) {
+      return Image.network(
+        _existingImageUrl,
+        fit: BoxFit.cover,
+        headers: kIsWeb ? const {'ngrok-skip-browser-warning': 'true'} : const {},
+        errorBuilder: (_, err, stack) => _placeholder(),
+        loadingBuilder: (_, child, progress) =>
+            progress == null ? child : _placeholder(loading: true),
+      );
+    }
+    return _placeholder();
+  }
+
+  Widget _placeholder({bool loading = false}) => Container(
+    color: Colors.grey[200],
+    child: Center(
+      child: loading
+          ? const SizedBox(width: 20, height: 20,
+              child: CircularProgressIndicator(strokeWidth: 2))
+          : Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+              Icon(Icons.add_photo_alternate_outlined, size: 28, color: Colors.grey[400]),
+              const SizedBox(height: 4),
+              Text('Chưa\ncó ảnh',
+                  style: TextStyle(fontSize: 9, color: Colors.grey[400]),
+                  textAlign: TextAlign.center),
+            ]),
+    ),
+  );
+
   Widget _label(String t) => Padding(
     padding: const EdgeInsets.only(bottom: 5),
     child: Text(t, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
@@ -558,4 +782,8 @@ class _BookFormSheetState extends State<_BookFormSheet> {
         borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Colors.red)),
   );
 }
+
+
+
+
 

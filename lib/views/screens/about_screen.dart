@@ -224,7 +224,7 @@ class AboutScreen extends StatelessWidget {
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               itemCount: members.length,
-              separatorBuilder: (_, __) => const SizedBox(width: 12),
+              separatorBuilder: (_, a) => const SizedBox(width: 12),
               itemBuilder: (_, i) {
                 final m = members[i];
                 return SizedBox(

@@ -174,7 +174,7 @@ class _AdminUsersTabState extends State<AdminUsersTab> {
       child: ListView.separated(
         padding: const EdgeInsets.all(12),
         itemCount: _users.length,
-        separatorBuilder: (_, __) => const SizedBox(height: 8),
+        separatorBuilder: (_, a) => const SizedBox(height: 8),
         itemBuilder: (_, i) => _buildCard(_users[i]),
       ),
     );
