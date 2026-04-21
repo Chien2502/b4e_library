@@ -4,6 +4,7 @@ import 'viewmodels/auth_provider.dart';
 import 'viewmodels/book_provider.dart';
 import 'viewmodels/search_provider.dart';
 import 'viewmodels/my_books_provider.dart';
+import 'viewmodels/notification_provider.dart';
 import 'main_wrapper.dart';
 
 void main() {
@@ -14,6 +15,7 @@ void main() {
         ChangeNotifierProvider(create: (_) => BookProvider()),
         ChangeNotifierProvider(create: (_) => SearchProvider()),
         ChangeNotifierProvider(create: (_) => MyBooksProvider()),
+        ChangeNotifierProvider(create: (_) => NotificationProvider()),
       ],
       child: const MyApp(),
     ),

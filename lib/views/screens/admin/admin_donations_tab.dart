@@ -296,7 +296,7 @@ class _AdminDonationsTabState extends State<AdminDonationsTab> {
     return RefreshIndicator(
       onRefresh: _load,
       child: ListView.separated(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.fromLTRB(12, 12, 12, kBottomNavigationBarHeight + 12),
         itemCount: _items.length,
         separatorBuilder: (_, a) => const SizedBox(height: 10),
         itemBuilder: (_, i) => _buildCard(_items[i]),

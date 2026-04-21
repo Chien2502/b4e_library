@@ -228,7 +228,7 @@ class _AdminCategoriesTabState extends State<AdminCategoriesTab> {
     return RefreshIndicator(
       onRefresh: _load,
       child: ListView.builder(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        padding: const EdgeInsets.fromLTRB(12, 8, 12, kBottomNavigationBarHeight + 12),
         itemCount: _items.length,
         itemBuilder: (_, i) {
           final cat = _items[i];

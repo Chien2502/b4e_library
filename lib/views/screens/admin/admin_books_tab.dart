@@ -210,7 +210,7 @@ class _AdminBooksTabState extends State<AdminBooksTab> {
     return RefreshIndicator(
       onRefresh: _loadAll,
       child: ListView.separated(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.fromLTRB(12, 12, 12, kBottomNavigationBarHeight + 12),
         itemCount: list.length,
         separatorBuilder: (_, a) => const SizedBox(height: 8),
         itemBuilder: (_, i) => _buildCard(list[i]),

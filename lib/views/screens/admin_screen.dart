@@ -100,41 +100,44 @@ class _AdminScreenState extends State<AdminScreen> {
       child: Column(
         children: [
           // Header
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.fromLTRB(20, 48, 20, 20),
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Color(0xFF1565C0), Color(0xFF1E88E5)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
+          SafeArea(
+            bottom: false,
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Color(0xFF1565C0), Color(0xFF1E88E5)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
               ),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const CircleAvatar(
-                  radius: 28,
-                  backgroundColor: Colors.white24,
-                  child: Icon(Icons.admin_panel_settings,
-                      color: Colors.white, size: 30),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  username,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const CircleAvatar(
+                    radius: 28,
+                    backgroundColor: Colors.white24,
+                    child: Icon(Icons.admin_panel_settings,
+                        color: Colors.white, size: 30),
                   ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  email.isNotEmpty ? email : 'B4E Admin Panel',
-                  style: TextStyle(
-                      color: Colors.white.withAlpha(180), fontSize: 12),
-                ),
-              ],
+                  const SizedBox(height: 10),
+                  Text(
+                    username,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    email.isNotEmpty ? email : 'B4E Admin Panel',
+                    style: TextStyle(
+                        color: Colors.white.withAlpha(180), fontSize: 12),
+                  ),
+                ],
+              ),
             ),
           ),
 
@@ -181,67 +184,70 @@ class _AdminScreenState extends State<AdminScreen> {
             ),
           ),
 
-          const Divider(height: 1),
+          SafeArea(
+            top: false,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Divider(height: 1),
 
-          // Quay về trang chủ
-          ListTile(
-            leading: const Icon(Icons.home_outlined,
-                color: Color(0xFF1565C0), size: 22),
-            title: const Text('Trang chủ',
-                style: TextStyle(fontSize: 14, color: Color(0xFF1565C0))),
-            onTap: () {
-              // Đóng drawer rồi pop hết stack về root (MainWrapper)
-              Navigator.pop(context);
-              Navigator.popUntil(context, (route) => route.isFirst);
-            },
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
-          ),
-
-          // Đăng xuất
-          ListTile(
-            leading:
-                const Icon(Icons.logout, color: Colors.red, size: 22),
-            title: const Text('Đăng xuất',
-                style: TextStyle(fontSize: 14, color: Colors.red)),
-            onTap: () async {
-              // Đóng drawer
-              Navigator.pop(context);
-              final confirm = await showDialog<bool>(
-                context: context,
-                builder: (ctx) => AlertDialog(
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14)),
-                  title: const Text('Đăng xuất'),
-                  content: const Text(
-                      'Bạn có chắc muốn đăng xuất khỏi tài khoản?'),
-                  actions: [
-                    TextButton(
-                        onPressed: () => Navigator.pop(ctx, false),
-                        child: const Text('Hủy')),
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.red),
-                      onPressed: () => Navigator.pop(ctx, true),
-                      child: const Text('Đăng xuất',
-                          style: TextStyle(color: Colors.white)),
-                    ),
-                  ],
+                // Quay về trang chủ
+                ListTile(
+                  leading: const Icon(Icons.home_outlined,
+                      color: Color(0xFF1565C0), size: 22),
+                  title: const Text('Trang chủ',
+                      style: TextStyle(fontSize: 14, color: Color(0xFF1565C0))),
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.popUntil(context, (route) => route.isFirst);
+                  },
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
                 ),
-              );
-              if (confirm == true && context.mounted) {
-                // Logout → xóa token, notifyListeners
-                await context.read<AuthProvider>().logout();
-                if (context.mounted) {
-                  // Pop toàn bộ stack về root (MainWrapper)
-                  Navigator.popUntil(context, (route) => route.isFirst);
-                }
-              }
-            },
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+
+                // Đăng xuất
+                ListTile(
+                  leading:
+                      const Icon(Icons.logout, color: Colors.red, size: 22),
+                  title: const Text('Đăng xuất',
+                      style: TextStyle(fontSize: 14, color: Colors.red)),
+                  onTap: () async {
+                    Navigator.pop(context);
+                    final confirm = await showDialog<bool>(
+                      context: context,
+                      builder: (ctx) => AlertDialog(
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14)),
+                        title: const Text('Đăng xuất'),
+                        content: const Text(
+                            'Bạn có chắc muốn đăng xuất khỏi tài khoản?'),
+                        actions: [
+                          TextButton(
+                              onPressed: () => Navigator.pop(ctx, false),
+                              child: const Text('Hủy')),
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.red),
+                            onPressed: () => Navigator.pop(ctx, true),
+                            child: const Text('Đăng xuất',
+                                style: TextStyle(color: Colors.white)),
+                          ),
+                        ],
+                      ),
+                    );
+                    if (confirm == true && context.mounted) {
+                      await context.read<AuthProvider>().logout();
+                      if (context.mounted) {
+                        Navigator.popUntil(context, (route) => route.isFirst);
+                      }
+                    }
+                  },
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+                ),
+              ],
+            ),
           ),
-          const SizedBox(height: 8),
         ],
       ),
     );

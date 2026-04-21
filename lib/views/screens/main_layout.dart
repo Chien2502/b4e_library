@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../viewmodels/auth_provider.dart';
+import '../../viewmodels/notification_provider.dart';
 import 'home_screen.dart';
 import 'search_screen.dart';
 import 'my_books_screen.dart';
 import 'donation_screen.dart';
 import 'profile_screen.dart';
 import 'auth_guard.dart';
+import 'notification_screen.dart';
 
 class MainLayout extends StatefulWidget {
   /// Nếu được truyền vào (từ LoginScreen sau đăng nhập), tự động chuyển tab.
@@ -37,6 +39,32 @@ class _MainLayoutState extends State<MainLayout> {
     _currentIndex = widget.initialIndex;
   }
 
+  // Tự động fetch thông báo khi trạng thái đăng nhập thay đổi
+  AuthStatus? _lastStatus;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final status = context.read<AuthProvider>().status;
+
+    if (status == AuthStatus.authenticated && _lastStatus != AuthStatus.authenticated) {
+      // Defer ra sau frame hiện tại để tránh setState-during-build
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          context.read<NotificationProvider>().fetchNotifications();
+        }
+      });
+    }
+    if (status == AuthStatus.unauthenticated && _lastStatus == AuthStatus.authenticated) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          context.read<NotificationProvider>().clear();
+        }
+      });
+    }
+    _lastStatus = status;
+  }
+
   void _onTabTapped(int index) {
     // Nếu tab yêu cầu auth, kiểm tra trước
     if (_protectedTabs.contains(index)) {
@@ -54,52 +82,94 @@ class _MainLayoutState extends State<MainLayout> {
     return Scaffold(
       backgroundColor: Colors.grey[50],
 
-      // ── Top App Bar ──────────────────────────────────────────────
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        automaticallyImplyLeading: false,
-        title: const Text(
-          'Thư viện B4E',
-          style: TextStyle(
-            color: Colors.black87,
-            fontWeight: FontWeight.bold,
-            fontSize: 20,
-          ),
-        ),
-        centerTitle: true,
-        actions: [
-          // Thông báo (chỉ hiện khi đã đăng nhập)
-          if (isLoggedIn)
-            Stack(
-              alignment: Alignment.center,
-              children: [
-                IconButton(
-                  icon: const Icon(
-                    Icons.notifications_none_outlined,
-                    color: Colors.black87,
-                    size: 28,
-                  ),
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Chưa có thông báo mới.'),
-                        duration: Duration(seconds: 2),
-                      ),
-                    );
-                  },
+      // ── Top App Bar (chỉ hiển thị ở Trang chủ) ──────────────────
+      appBar: _currentIndex == 0
+          ? AppBar(
+              backgroundColor: Colors.white,
+              elevation: 0,
+              automaticallyImplyLeading: false,
+              title: const Text(
+                'Thư viện B4E',
+                style: TextStyle(
+                  color: Colors.black87,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 20,
                 ),
+              ),
+              centerTitle: true,
+              actions: [
+                // Nút chuông thông báo (chỉ hiện khi đã đăng nhập)
+                if (isLoggedIn)
+                  Consumer<NotificationProvider>(
+                    builder: (ctx, notifProv, _) {
+                      return Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          IconButton(
+                            icon: const Icon(
+                              Icons.notifications_none_outlined,
+                              color: Colors.black87,
+                              size: 28,
+                            ),
+                            onPressed: () {
+                              Navigator.push(
+                                ctx,
+                                MaterialPageRoute(
+                                  builder: (_) => const NotificationScreen(),
+                                ),
+                              );
+                            },
+                          ),
+                          // Badge đỏ chỉ hiện khi có thông báo chưa đọc
+                          if (notifProv.hasUnread)
+                            Positioned(
+                              top: 8,
+                              right: 8,
+                              child: Container(
+                                padding: const EdgeInsets.all(2),
+                                constraints: const BoxConstraints(
+                                    minWidth: 16, minHeight: 16),
+                                decoration: const BoxDecoration(
+                                  color: Colors.red,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Text(
+                                  notifProv.unreadCount > 99
+                                      ? '99+'
+                                      : '${notifProv.unreadCount}',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                            ),
+                        ],
+                      );
+                    },
+                  ),
+                const SizedBox(width: 4),
               ],
-            ),
-          const SizedBox(width: 4),
-        ],
-      ),
+            )
+          : null,
 
       // ── Body ─────────────────────────────────────────────────────
-      body: IndexedStack(
-        index: _currentIndex,
-        children: _screens,
-      ),
+      // Khi không có AppBar (tab != 0), bọc SafeArea để tránh bị
+      // che bởi status bar của hệ thống.
+      body: _currentIndex == 0
+          ? IndexedStack(
+              index: _currentIndex,
+              children: _screens,
+            )
+          : SafeArea(
+              bottom: false, // BottomNav đã tự xử lý phần dưới
+              child: IndexedStack(
+                index: _currentIndex,
+                children: _screens,
+              ),
+            ),
 
       // ── Bottom Navigation Bar ─────────────────────────────────────
       bottomNavigationBar: Container(

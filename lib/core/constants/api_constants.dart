@@ -22,6 +22,14 @@ class ApiConstants {
   static const String getProfile = '/auth/get_profile.php';
   static const String updateProfile = '/auth/update_profile.php';
 
+  // ========== NOTIFICATIONS ==========
+  static const String getNotifications  = '/notifications/index.php';
+  static const String markNotificationRead = '/notifications/mark_read.php';
+
+  // ========== ADMIN — UPDATE STATUS (kèm thông báo tự động) ==========
+  static const String adminUpdateBorrowStatus  = '/borrowings/update_status.php';
+  static const String adminUpdateDonationStatus = '/donations/update_status.php';
+
   // ========== ADMIN ENDPOINTS ==========
   static const String adminStats = '/admin/get_stats.php';
   static const String adminUsers = '/admin/users.php';

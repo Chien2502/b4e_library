@@ -65,7 +65,7 @@ class _HomeScreenState extends State<HomeScreen> {
         final categoryMap = bookProvider.booksByCategory;
 
         return ListView.builder(
-          padding: const EdgeInsets.only(top: 16, bottom: 24),
+          padding: const EdgeInsets.only(top: 16, bottom: 80),
           itemCount: categoryMap.length,
           itemBuilder: (context, index) {
             final category = categoryMap.keys.elementAt(index);
