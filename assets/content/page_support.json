@@ -1,0 +1,40 @@
+{
+  "version": 1,
+  "title": "Hỗ trợ & Liên hệ",
+  "contact": {
+    "email": "hotroB4E@gmail.com",
+    "phone": "0989 676 555",
+    "hours": "Thứ 2 – Thứ 6, 8:00 – 17:00",
+    "address": "Thư viện cộng đồng B4E, TP. Hồ Chí Minh"
+  },
+  "faqs": [
+    {
+      "question": "Làm thế nào để mượn sách?",
+      "answer": "Tìm kiếm sách trong tab \"Tìm kiếm\", mở trang chi tiết và nhấn nút \"Mượn sách\". Yêu cầu sẽ được gửi đến ban quản lý để xác nhận."
+    },
+    {
+      "question": "Tôi có thể mượn tối đa bao nhiêu cuốn?",
+      "answer": "Mỗi tài khoản được phép mượn tối đa 3 cuốn sách cùng một lúc."
+    },
+    {
+      "question": "Thời hạn mượn sách là bao lâu?",
+      "answer": "Thời hạn mượn tối đa là 14 ngày kể từ ngày nhận sách tại thư viện."
+    },
+    {
+      "question": "Làm thế nào để trả sách?",
+      "answer": "Vào tab \"Sách của tôi\", chọn sách cần trả và nhấn \"Trả sách\". Sau đó mang sách đến thư viện hoặc liên hệ để sắp xếp giao nhận."
+    },
+    {
+      "question": "Sách hư hỏng thì xử lý như thế nào?",
+      "answer": "Nếu sách bị hư hỏng nặng, bạn cần bồi thường 50% giá bìa. Nếu mất sách, bồi thường 100% giá bìa. Vui lòng liên hệ ngay với thư viện."
+    },
+    {
+      "question": "Tôi quên mật khẩu, phải làm gì?",
+      "answer": "Hiện tại tính năng quên mật khẩu chưa có trong app. Vui lòng liên hệ email hotroB4E@gmail.com để được hỗ trợ đặt lại mật khẩu."
+    },
+    {
+      "question": "Tôi có thể quyên góp sách không?",
+      "answer": "Có! Vào tab \"Quyên góp\" trong ứng dụng, điền thông tin sách bạn muốn quyên góp. Thư viện sẽ liên hệ để nhận sách."
+    }
+  ]
+}

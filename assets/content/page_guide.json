@@ -1,0 +1,59 @@
+{
+  "version": 1,
+  "title": "Hướng dẫn mượn sách",
+  "sections": [
+    {
+      "icon": "checklist_outlined",
+      "color": "blue",
+      "title": "Điều kiện mượn sách",
+      "type": "bullets",
+      "items": [
+        "Là thành viên đã đăng ký tài khoản trên hệ thống B4E.",
+        "Mỗi tài khoản được mượn tối đa 3 quyển sách cùng lúc.",
+        "Thời hạn mượn tối đa là 14 ngày kể từ ngày nhận sách.",
+        "Sách phải được trả về trong tình trạng nguyên vẹn, không bị rách, ướt hoặc mất trang."
+      ]
+    },
+    {
+      "icon": "format_list_numbered_outlined",
+      "color": "green",
+      "title": "Các bước mượn sách",
+      "type": "steps",
+      "items": [
+        { "title": "Tìm sách", "desc": "Vào tab \"Tìm kiếm\", lọc theo thể loại hoặc tên sách bạn muốn mượn." },
+        { "title": "Xem chi tiết", "desc": "Nhấn vào thẻ sách để xem đầy đủ thông tin, tác giả, mô tả và trạng thái còn sẵn." },
+        { "title": "Nhấn Mượn sách", "desc": "Ở màn hình chi tiết, nhấn nút \"Mượn sách\" ở cuối trang và xác nhận yêu cầu." },
+        { "title": "Chờ xác nhận", "desc": "Hệ thống sẽ ghi nhận yêu cầu. Ban quản lý sẽ liên hệ để sắp xếp giao nhận." },
+        { "title": "Nhận sách", "desc": "Đến thư viện hoặc nhận tại địa điểm đã hẹn. Sách sẽ chuyển sang trạng thái \"Đang mượn\"." }
+      ]
+    },
+    {
+      "icon": "assignment_return_outlined",
+      "color": "orange",
+      "title": "Quy trình trả sách",
+      "type": "bullets",
+      "items": [
+        "Vào tab \"Sách của tôi\" → chọn sách muốn trả → nhấn nút \"Trả sách\".",
+        "Hệ thống sẽ cập nhật trạng thái \"Đang xử lý\".",
+        "Mang sách đến thư viện hoặc liên hệ để sắp xếp trả qua dịch vụ chuyển phát.",
+        "Sau khi ban quản lý xác nhận, sách sẽ chuyển sang \"Đã trả\"."
+      ]
+    },
+    {
+      "icon": "attach_money_outlined",
+      "color": "red",
+      "title": "Phí & Quy định phạt",
+      "type": "key_value",
+      "items": [
+        { "key": "Phí mượn sách:", "value": "Miễn phí hoàn toàn" },
+        { "key": "Phí trễ hạn:", "value": "2.000đ / ngày / cuốn sau ngày hết hạn" },
+        { "key": "Sách hư hỏng nặng:", "value": "Bồi thường 50% giá bìa sách" },
+        { "key": "Mất sách:", "value": "Bồi thường 100% giá bìa sách" }
+      ]
+    }
+  ],
+  "note": {
+    "title": "📌 Lưu ý quan trọng",
+    "body": "Trong quá trình mượn sách, nếu có vấn đề xảy ra (hư hỏng, thất lạc,...), vui lòng liên hệ ngay với thư viện qua email hotroB4E@gmail.com hoặc số điện thoại 0989 676 555 để được hỗ trợ kịp thời."
+  }
+}

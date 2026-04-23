@@ -1,11 +1,15 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 import '../core/constants/api_constants.dart';
+import '../core/database/cache_keys.dart';
+import '../core/database/database_service.dart';
 import '../core/network/dio_client.dart';
 import '../data/models/book_model.dart';
 
 class BookProvider with ChangeNotifier {
   final DioClient _dioClient = DioClient();
+  final _cache = DatabaseService.instance;
 
   List<Book> _books = [];
   List<Book> _filteredBooks = [];
@@ -43,27 +47,43 @@ class BookProvider with ChangeNotifier {
   }
 
   // --- Dùng cho HomeScreen: Lấy 12 cuốn mới nhất (sắp xếp DESC theo id) ---
-  Future<void> fetchLatestBooks() async {
+  Future<void> fetchLatestBooks({bool forceRefresh = false}) async {
+    // 1. Đọc cache trước
+    if (!forceRefresh) {
+      final cached = await _cache.readCache<List<Book>>(
+        CacheKeys.homeLatest,
+        (json) {
+          final raw = json is String ? jsonDecode(json) : json;
+          final list = raw is Map ? (raw['data'] as List? ?? []) : (raw as List);
+          return list.map((j) => Book.fromJson(j as Map<String, dynamic>)).toList();
+        },
+      );
+      if (cached != null && cached.isNotEmpty) {
+        _books = cached;
+        _filteredBooks = List.from(_books);
+        notifyListeners();
+        return;
+      }
+    }
+
     _isLoading = true;
     _errorMessage = '';
     notifyListeners();
 
     try {
-      // Gọi đúng endpoint tương đối, Dio tự ghép với baseUrl
-      // API PHP nhận ?limit=12&page=1 và trả về ORDER BY b.id DESC
       final Response response = await _dioClient.dio.get(
         ApiConstants.readBooks,
         queryParameters: {'limit': 50, 'page': 1},
-        // options: Options(
-        //   headers: {
-        //     // Bỏ qua cảnh báo browser của Ngrok
-        //     'ngrok-skip-browser-warning': 'true',
-        //   },
-        // ),
       );
 
       if (response.statusCode == 200) {
         _parseAndStore(response.data);
+        // 2. Ghi vào cache
+        await _cache.writeCache(
+          CacheKeys.homeLatest,
+          response.data,
+          ttlSeconds: CacheKeys.ttlMedium,
+        );
       } else {
         _errorMessage = 'Lỗi server: Code ${response.statusCode}';
       }

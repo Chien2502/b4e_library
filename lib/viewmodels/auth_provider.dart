@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:dio/dio.dart';
 import '../core/constants/api_constants.dart';
+import '../core/database/cache_keys.dart';
+import '../core/database/database_service.dart';
 import '../core/network/dio_client.dart';
 
 // ── User data model (fields từ SELECT id, username, email, phone, address, role) ──
@@ -53,6 +55,7 @@ enum AuthStatus { uninitialized, authenticated, unauthenticated }
 class AuthProvider with ChangeNotifier {
   final DioClient _dioClient = DioClient();
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
+  final _cache = DatabaseService.instance;
 
   bool _isLoading = false;
   bool get isLoading => _isLoading;
@@ -68,7 +71,16 @@ class AuthProvider with ChangeNotifier {
     final String? token = await _storage.read(key: 'jwt_token');
     if (token != null) {
       _status = AuthStatus.authenticated;
-      // Tải profile ngầm sau khi restore session
+      // 1. Load profile từ cache trước (hiển thị tức thì)
+      final cached = await _cache.readCache<UserProfile>(
+        CacheKeys.userProfile,
+        (json) => UserProfile.fromJson(json as Map<String, dynamic>),
+      );
+      if (cached != null) {
+        _userProfile = cached;
+        notifyListeners();
+      }
+      // 2. Sau đó fetch mới từ server (nều có thay đổi)
       fetchProfile();
     } else {
       _status = AuthStatus.unauthenticated;
@@ -83,6 +95,12 @@ class AuthProvider with ChangeNotifier {
           await _dioClient.dio.get(ApiConstants.getProfile);
       if (res.statusCode == 200) {
         _userProfile = UserProfile.fromJson(res.data);
+        // Cache profile
+        await _cache.writeCache(
+          CacheKeys.userProfile,
+          res.data,
+          ttlSeconds: CacheKeys.ttlLong,
+        );
         notifyListeners();
       }
     } catch (e) {
@@ -114,6 +132,21 @@ class AuthProvider with ChangeNotifier {
           phone: phone,
           address: address,
         );
+        // Cập nhật cache
+        if (_userProfile != null) {
+          await _cache.writeCache(
+            CacheKeys.userProfile,
+            {
+              'id': _userProfile!.id,
+              'username': _userProfile!.username,
+              'email': _userProfile!.email,
+              'phone': _userProfile!.phone,
+              'address': _userProfile!.address,
+              'role': _userProfile!.role,
+            },
+            ttlSeconds: CacheKeys.ttlLong,
+          );
+        }
         notifyListeners();
         return null; // success
       }
@@ -195,7 +228,11 @@ class AuthProvider with ChangeNotifier {
     await _storage.delete(key: 'jwt_token');
     _userProfile = null;
     _status = AuthStatus.unauthenticated;
+    // Xóa các cache cá nhân khi đăng xuất
+    await _cache.invalidateMany([
+      CacheKeys.userProfile,
+      CacheKeys.homeRecommendations,
+    ]);
     notifyListeners();
   }
 }
-

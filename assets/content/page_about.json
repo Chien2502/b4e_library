@@ -1,0 +1,42 @@
+{
+  "version": 1,
+  "title": "Giới thiệu B4E Library",
+  "tagline": "Tri thức là hành trình, không phải đích đến",
+  "description": "B4E Library là thư viện cộng đồng phi lợi nhuận, được xây dựng với sứ mệnh mang sách đến gần hơn với mọi người. Chúng tôi tin rằng tri thức từ sách có sức mạnh thay đổi cuộc sống và cộng đồng.",
+  "stats": [
+    { "label": "Đầu sách", "value": "500+" },
+    { "label": "Thành viên", "value": "1.000+" },
+    { "label": "Lượt mượn", "value": "5.000+" },
+    { "label": "Thể loại", "value": "8" }
+  ],
+  "mission": {
+    "title": "Sứ mệnh của chúng tôi",
+    "body": "Chúng tôi hoạt động với tâm huyết lan tỏa văn hóa đọc trong cộng đồng. Mỗi cuốn sách được mượn là một hành trình tri thức được chia sẻ. Mỗi cuốn sách được quyên góp là một nghĩa cử đẹp vì cộng đồng."
+  },
+  "values": [
+    {
+      "icon": "local_library_outlined",
+      "title": "Miễn phí 100%",
+      "desc": "Tất cả dịch vụ mượn sách hoàn toàn miễn phí cho mọi thành viên"
+    },
+    {
+      "icon": "people_outline",
+      "title": "Cộng đồng",
+      "desc": "Xây dựng cộng đồng yêu sách, chia sẻ tri thức và giá trị nhân văn"
+    },
+    {
+      "icon": "volunteer_activism_outlined",
+      "title": "Sẻ chia",
+      "desc": "Khuyến khích văn hóa quyên góp sách để kho tàng ngày càng phong phú"
+    },
+    {
+      "icon": "devices_outlined",
+      "title": "Số hóa",
+      "desc": "Ứng dụng công nghệ để quản lý và trải nghiệm mượn sách tiện lợi hơn"
+    }
+  ],
+  "contact": {
+    "email": "hotroB4E@gmail.com",
+    "phone": "0989 676 555"
+  }
+}

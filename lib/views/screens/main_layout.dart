@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../viewmodels/auth_provider.dart';
 import '../../viewmodels/notification_provider.dart';
+import '../../viewmodels/recommendation_provider.dart';
 import 'home_screen.dart';
 import 'search_screen.dart';
 import 'my_books_screen.dart';
@@ -52,6 +53,9 @@ class _MainLayoutState extends State<MainLayout> {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
           context.read<NotificationProvider>().fetchNotifications();
+          // Fetch recommendations khi đăng nhập
+          context.read<RecommendationProvider>().fetchRecommendations();
+          context.read<RecommendationProvider>().fetchPopular();
         }
       });
     }
@@ -59,7 +63,17 @@ class _MainLayoutState extends State<MainLayout> {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
           context.read<NotificationProvider>().clear();
+          // Xóa dữ liệu cá nhân khi đăng xuất
+          context.read<RecommendationProvider>().clearPersonalized();
+          // Reset về trang chủ sau khi đăng xuất
+          setState(() => _currentIndex = 0);
         }
+      });
+    }
+    // Khi lần đầu khởi động (cả khách) cũng fetch popular
+    if (_lastStatus == null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) context.read<RecommendationProvider>().fetchPopular();
       });
     }
     _lastStatus = status;

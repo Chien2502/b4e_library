@@ -23,8 +23,13 @@ class ApiConstants {
   static const String updateProfile = '/auth/update_profile.php';
 
   // ========== NOTIFICATIONS ==========
-  static const String getNotifications  = '/notifications/index.php';
+  static const String getNotifications     = '/notifications/index.php';
   static const String markNotificationRead = '/notifications/mark_read.php';
+
+  // ========== RECOMMENDATIONS ==========
+  static const String popularBooks    = '/books/popular.php';
+  static const String recommendations = '/recommendations/index.php';
+
 
   // ========== ADMIN — UPDATE STATUS (kèm thông báo tự động) ==========
   static const String adminUpdateBorrowStatus  = '/borrowings/update_status.php';

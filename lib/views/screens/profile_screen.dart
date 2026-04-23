@@ -697,7 +697,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             );
             if (confirm == true && context.mounted) {
-              context.read<AuthProvider>().logout();
+              await context.read<AuthProvider>().logout();
+              if (context.mounted) {
+                // Pop tất cả về root → MainWrapper sẽ rebuild MainLayout với tab 0
+                Navigator.of(context).popUntil((route) => route.isFirst);
+              }
             }
           },
           style: OutlinedButton.styleFrom(

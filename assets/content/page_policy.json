@@ -1,0 +1,31 @@
+{
+  "version": 1,
+  "title": "Chính sách bảo mật",
+  "last_updated": "2025-01-01",
+  "sections": [
+    {
+      "title": "1. Thông tin chúng tôi thu thập",
+      "body": "Khi bạn sử dụng ứng dụng B4E Library, chúng tôi có thể thu thập các thông tin sau:\n\n• Thông tin tài khoản: Họ tên, địa chỉ email, số điện thoại, địa chỉ mà bạn cung cấp khi đăng ký.\n• Thông tin mượn sách: Lịch sử mượn/trả sách, trạng thái mượn hiện tại.\n• Thông tin quyên góp: Danh sách sách bạn đã quyên góp cho thư viện.\n• Dữ liệu kỹ thuật: Loại thiết bị, hệ điều hành, phiên bản ứng dụng nhằm cải thiện trải nghiệm người dùng."
+    },
+    {
+      "title": "2. Mục đích sử dụng thông tin",
+      "body": "Thông tin thu thập được sử dụng để:\n\n• Quản lý tài khoản và xác thực người dùng.\n• Xử lý yêu cầu mượn sách và thông báo trạng thái.\n• Gửi thông báo liên quan đến hoạt động thư viện.\n• Cải thiện chất lượng dịch vụ và trải nghiệm người dùng.\n• Hỗ trợ kỹ thuật khi cần thiết."
+    },
+    {
+      "title": "3. Bảo mật thông tin",
+      "body": "Chúng tôi cam kết bảo vệ thông tin cá nhân của bạn:\n\n• Mật khẩu được mã hóa bằng thuật toán bcrypt trước khi lưu trữ.\n• Phiên đăng nhập được xác thực qua JWT (JSON Web Token) có thời hạn.\n• Dữ liệu truyền tải được mã hóa qua HTTPS.\n• Chúng tôi không chia sẻ thông tin cá nhân của bạn với bên thứ ba vì mục đích thương mại."
+    },
+    {
+      "title": "4. Quyền của người dùng",
+      "body": "Bạn có quyền:\n\n• Xem và cập nhật thông tin cá nhân bất kỳ lúc nào trong phần Hồ sơ.\n• Yêu cầu xóa tài khoản và toàn bộ dữ liệu liên quan bằng cách liên hệ đội ngũ hỗ trợ.\n• Từ chối nhận thông báo không cần thiết thông qua cài đặt thiết bị."
+    },
+    {
+      "title": "5. Thay đổi chính sách",
+      "body": "Chính sách bảo mật này có thể được cập nhật định kỳ. Mọi thay đổi sẽ được thông báo trong ứng dụng. Việc tiếp tục sử dụng dịch vụ sau khi thay đổi có hiệu lực đồng nghĩa với việc bạn chấp nhận chính sách mới."
+    },
+    {
+      "title": "6. Liên hệ",
+      "body": "Nếu bạn có câu hỏi về chính sách bảo mật, vui lòng liên hệ:\n\n📧 Email: hotroB4E@gmail.com\n📞 Điện thoại: 0989 676 555\n🕐 Giờ làm việc: Thứ 2 – Thứ 6, 8:00 – 17:00"
+    }
+  ]
+}
