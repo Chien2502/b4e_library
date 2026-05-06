@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 import '../../../core/constants/api_constants.dart';
 import '../../../core/network/dio_client.dart';
+import '../../widgets/custom_dialog.dart';
+
 
 class AdminUsersTab extends StatefulWidget {
   const AdminUsersTab({super.key});
@@ -40,18 +42,14 @@ class _AdminUsersTabState extends State<AdminUsersTab> {
   Future<void> _deleteUser(int userId, String role, String username) async {
     final ok = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-        title: const Text('Xóa người dùng'),
-        content: Text('Bạn có chắc muốn xóa tài khoản "$username"?\nHành động này không thể hoàn tác.'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Hủy')),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Xóa'),
-          ),
-        ],
+      builder: (ctx) => CustomDialog(
+        title: 'Xóa người dùng',
+        message: 'Bạn có chắc muốn xóa tài khoản "$username"? Mọi thông tin liên quan đến tài khoản này sẽ bị gỡ bỏ vĩnh viễn.',
+        icon: Icons.person_remove_rounded,
+        iconColor: Colors.red,
+        confirmLabel: 'Xóa tài khoản',
+        confirmColor: Colors.red,
+        onConfirm: () => Navigator.pop(ctx, true),
       ),
     );
     if (ok != true) return;

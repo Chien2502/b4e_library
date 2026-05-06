@@ -7,6 +7,8 @@ import 'admin/admin_categories_tab.dart';
 import 'admin/admin_borrowings_tab.dart';
 import 'admin/admin_donations_tab.dart';
 import 'admin/admin_users_tab.dart';
+import '../widgets/custom_dialog.dart';
+
 
 class AdminScreen extends StatefulWidget {
   const AdminScreen({super.key});
@@ -66,10 +68,21 @@ class _AdminScreenState extends State<AdminScreen> {
             padding: const EdgeInsets.only(right: 12),
             child: Row(
               children: [
-                const CircleAvatar(
+                CircleAvatar(
                   radius: 14,
                   backgroundColor: Colors.white24,
-                  child: Icon(Icons.person, color: Colors.white, size: 16),
+                  backgroundImage: user?.avatarUrl != null
+                      ? NetworkImage(user!.avatarUrl!)
+                      : null,
+                  child: user?.avatarUrl != null
+                      ? null
+                      : Text(
+                          username.isNotEmpty ? username[0].toUpperCase() : '?',
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold),
+                        ),
                 ),
                 const SizedBox(width: 6),
                 Text(
@@ -115,11 +128,16 @@ class _AdminScreenState extends State<AdminScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const CircleAvatar(
+                  CircleAvatar(
                     radius: 28,
                     backgroundColor: Colors.white24,
-                    child: Icon(Icons.admin_panel_settings,
-                        color: Colors.white, size: 30),
+                    backgroundImage: user?.avatarUrl != null
+                        ? NetworkImage(user!.avatarUrl!)
+                        : null,
+                    child: user?.avatarUrl != null
+                        ? null
+                        : const Icon(Icons.admin_panel_settings,
+                            color: Colors.white, size: 30),
                   ),
                   const SizedBox(height: 10),
                   Text(
@@ -215,24 +233,14 @@ class _AdminScreenState extends State<AdminScreen> {
                     Navigator.pop(context);
                     final confirm = await showDialog<bool>(
                       context: context,
-                      builder: (ctx) => AlertDialog(
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14)),
-                        title: const Text('Đăng xuất'),
-                        content: const Text(
-                            'Bạn có chắc muốn đăng xuất khỏi tài khoản?'),
-                        actions: [
-                          TextButton(
-                              onPressed: () => Navigator.pop(ctx, false),
-                              child: const Text('Hủy')),
-                          ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.red),
-                            onPressed: () => Navigator.pop(ctx, true),
-                            child: const Text('Đăng xuất',
-                                style: TextStyle(color: Colors.white)),
-                          ),
-                        ],
+                      builder: (ctx) => CustomDialog(
+                        title: 'Đăng xuất',
+                        message: 'Bạn có chắc muốn đăng xuất khỏi tài khoản Quản trị?',
+                        icon: Icons.admin_panel_settings_rounded,
+                        iconColor: Colors.red,
+                        confirmLabel: 'Đăng xuất',
+                        confirmColor: Colors.red,
+                        onConfirm: () => Navigator.pop(ctx, true),
                       ),
                     );
                     if (confirm == true && context.mounted) {

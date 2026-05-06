@@ -4,9 +4,11 @@ import 'package:dio/dio.dart';
 import 'package:provider/provider.dart';
 import '../../core/constants/api_constants.dart';
 import '../../core/network/dio_client.dart';
+import '../../data/models/book_model.dart';
 import '../../data/models/book_detail_model.dart';
 import '../../viewmodels/auth_provider.dart';
 import '../../viewmodels/notification_provider.dart';
+import '../widgets/custom_dialog.dart';
 import 'login_screen.dart';
 
 class BookDetailScreen extends StatefulWidget {
@@ -30,6 +32,11 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
   bool _isLoading = true;
   String _errorMessage = '';
   bool _isBorrowing = false;
+
+  // ── Related books ──────────────────────────────────────────────
+  List<Book> _relatedBooks = [];
+  bool _isLoadingRelated = false;
+  String _relatedType = 'random'; // 'category' hoặc 'random'
 
   @override
   void initState() {
@@ -55,17 +62,46 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
         setState(() {
           _book = BookDetail.fromJson(response.data);
         });
+        _fetchRelatedBooks();
       } else if (response.statusCode == 404) {
         setState(() => _errorMessage = 'Không tìm thấy sách.');
       } else {
         setState(() => _errorMessage = 'Lỗi server: ${response.statusCode}');
       }
     } on DioException catch (e) {
-      setState(() => _errorMessage = 'Lỗi kết nối: ${e.message ?? e.type.name}');
+      if (e.response?.statusCode == 404) {
+        setState(() => _errorMessage = 'Sách này không còn tồn tại hoặc đã bị xóa.');
+      } else {
+        setState(() => _errorMessage = 'Lỗi kết nối: ${e.message ?? e.type.name}');
+      }
     } catch (e) {
       setState(() => _errorMessage = 'Đã xảy ra lỗi: $e');
     } finally {
       setState(() => _isLoading = false);
+    }
+  }
+
+  // ── Lấy danh sách sách liên quan ──────────────────────────────
+  Future<void> _fetchRelatedBooks() async {
+    setState(() => _isLoadingRelated = true);
+    try {
+      final Response res = await _dioClient.dio.get(
+        ApiConstants.relatedBooks,
+        queryParameters: {'book_id': widget.bookId, 'limit': 6},
+      );
+      if (res.statusCode == 200 && res.data['data'] != null) {
+        final list = (res.data['data'] as List)
+            .map((j) => Book.fromJson(j))
+            .toList();
+        setState(() {
+          _relatedBooks = list;
+          _relatedType = res.data['type']?.toString() ?? 'random';
+        });
+      }
+    } catch (_) {
+      // Không ảnh hưởng giao diện chính
+    } finally {
+      if (mounted) setState(() => _isLoadingRelated = false);
     }
   }
 
@@ -81,26 +117,13 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
 
     final confirm = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Xác nhận mượn sách'),
-        content: Text('Bạn muốn mượn cuốn "${_book!.title}"?\n\nHạn trả: 14 ngày kể từ hôm nay.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Hủy', style: TextStyle(color: Colors.grey)),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.blueAccent,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-            ),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Xác nhận'),
-          ),
-        ],
+      builder: (ctx) => CustomDialog(
+        title: 'Xác nhận mượn sách',
+        message: 'Bạn muốn mượn cuốn "${_book!.title}"?\n\nHạn trả dự kiến: 14 ngày kể từ hôm nay.',
+        icon: Icons.auto_stories_rounded,
+        iconColor: Colors.blueAccent,
+        confirmLabel: 'Mượn ngay',
+        onConfirm: () => Navigator.pop(ctx, true),
       ),
     );
 
@@ -306,6 +329,11 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                 // ── Mô tả ──────────────────────────────────────
                 if (book.description.isNotEmpty)
                   _buildDescriptionSection(book.description),
+
+                const SizedBox(height: 16),
+
+                // ── Sách liên quan / Đề xuất ────────────────────
+                _buildRelatedBooksSection(),
 
                 const SizedBox(height: 100), // Khoảng trống cho nút phía dưới
               ],
@@ -623,6 +651,165 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
       color: Colors.grey[200],
       child: const Center(
         child: Icon(Icons.menu_book_outlined, size: 50, color: Colors.grey),
+      ),
+    );
+  }
+
+  // ────────────────────────────────────────────────────────────────
+  // SECTION 4: Sách liên quan / Đề xuất
+  // ────────────────────────────────────────────────────────────────
+  Widget _buildRelatedBooksSection() {
+    // Nếu đang load hoặc danh sách rỗng → ẩn hoặc shimmer
+    if (_isLoadingRelated) {
+      return Container(
+        color: Colors.white,
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 140, height: 16,
+              decoration: BoxDecoration(
+                color: Colors.grey[200],
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              height: 190,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: 3,
+                separatorBuilder: (_, __) => const SizedBox(width: 12),
+                itemBuilder: (_, __) => Container(
+                  width: 120,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[100],
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (_relatedBooks.isEmpty) return const SizedBox.shrink();
+
+    // Tiêu đề dựa trên loại gợi ý
+    final sectionTitle = _relatedType == 'category'
+        ? 'Sách cùng thể loại'
+        : 'Có thể bạn quan tâm';
+    final sectionIcon = _relatedType == 'category'
+        ? Icons.category_rounded
+        : Icons.auto_awesome_rounded;
+
+    return Container(
+      color: Colors.white,
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ── Tiêu đề ───────────────────────────────────────────
+          Row(
+            children: [
+              Icon(sectionIcon, size: 20, color: const Color(0xFF1565C0)),
+              const SizedBox(width: 8),
+              Text(
+                sectionTitle,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF1565C0),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+
+          // ── Danh sách cuộn ngang ──────────────────────────────
+          SizedBox(
+            height: 210,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              physics: const BouncingScrollPhysics(),
+              itemCount: _relatedBooks.length,
+              separatorBuilder: (_, __) => const SizedBox(width: 12),
+              itemBuilder: (_, i) => _buildRelatedBookCard(_relatedBooks[i]),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRelatedBookCard(Book book) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => BookDetailScreen(
+              bookId: book.id,
+              heroTag: 'related_${book.id}',
+            ),
+          ),
+        );
+      },
+      child: SizedBox(
+        width: 120,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Ảnh bìa
+            Hero(
+              tag: 'related_${book.id}',
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: SizedBox(
+                  width: 120,
+                  height: 155,
+                  child: book.displayImageUrl.isNotEmpty &&
+                          !book.displayImageUrl.contains('placeholder')
+                      ? Image.network(
+                          book.displayImageUrl,
+                          fit: BoxFit.cover,
+                          headers: kIsWeb
+                              ? const {'ngrok-skip-browser-warning': 'true'}
+                              : const {},
+                          errorBuilder: (_, __, ___) =>
+                              _buildMiniPlaceholder(),
+                        )
+                      : _buildMiniPlaceholder(),
+                ),
+              ),
+            ),
+            const SizedBox(height: 6),
+
+            // Tên sách
+            Text(
+              book.title,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: Colors.black87,
+                height: 1.3,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMiniPlaceholder() {
+    return Container(
+      color: Colors.grey[200],
+      child: Center(
+        child: Icon(Icons.menu_book_outlined, size: 30, color: Colors.grey[400]),
       ),
     );
   }

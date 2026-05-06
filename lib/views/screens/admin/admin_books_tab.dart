@@ -3,8 +3,15 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:provider/provider.dart';
 import '../../../core/constants/api_constants.dart';
 import '../../../core/network/dio_client.dart';
+import '../../../core/services/book_ai_service.dart';
+import '../../../viewmodels/book_provider.dart';
+import '../../../viewmodels/recommendation_provider.dart';
+import '../../widgets/custom_dialog.dart';
+import 'book_scan_sheet.dart';
+
 
 class AdminBooksTab extends StatefulWidget {
   const AdminBooksTab({super.key});
@@ -29,6 +36,11 @@ class _AdminBooksTabState extends State<AdminBooksTab> {
   Future<void> _loadAll() async {
     setState(() { _loading = true; _error = null; });
     try {
+      if (mounted) {
+        Provider.of<BookProvider>(context, listen: false).fetchLatestBooks(forceRefresh: true);
+        Provider.of<RecommendationProvider>(context, listen: false).fetchPopular(forceRefresh: true);
+        Provider.of<RecommendationProvider>(context, listen: false).fetchRecommendations(forceRefresh: true);
+      }
       final futures = await Future.wait([
         _dio.get(ApiConstants.readBooks),
         _dio.get(ApiConstants.readCategories),
@@ -62,18 +74,14 @@ class _AdminBooksTabState extends State<AdminBooksTab> {
   Future<void> _deleteBook(int id, String title) async {
     final ok = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-        title: const Text('Xóa sách'),
-        content: Text('Xóa cuốn "$title"?\nHành động này không thể hoàn tác.'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Hủy')),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Xóa'),
-          ),
-        ],
+      builder: (ctx) => CustomDialog(
+        title: 'Xóa sách',
+        message: 'Bạn có chắc muốn xóa cuốn "$title"? Hành động này không thể hoàn tác.',
+        icon: Icons.delete_forever_rounded,
+        iconColor: Colors.red,
+        confirmLabel: 'Xóa ngay',
+        confirmColor: Colors.red,
+        onConfirm: () => Navigator.pop(ctx, true),
       ),
     );
     if (ok != true) return;
@@ -88,12 +96,43 @@ class _AdminBooksTabState extends State<AdminBooksTab> {
   }
 
   void _openForm({Map<String, dynamic>? book}) {
+    if (book != null) {
+      // Chỉnh sửa — mở thẳng form
+      _showBookForm(book: book);
+    } else {
+      // Thêm mới — hỏi phương thức nhập trước
+      showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (_) => BookScanSheet(
+          showBarcodeOption: true,
+          onResult: (result, scannedImage) {
+            if (!result.isSuccess && !result.isNotABook) {
+              _showSnack(result.error ?? 'Không thể nhận dạng sách.', true);
+              return;
+            }
+            if (result.isNotABook) {
+              _showSnack('AI không nhận ra bìa sách. Vui lòng nhập tay.', true);
+              _showBookForm();
+              return;
+            }
+            _showBookForm(prefill: result, scannedImage: scannedImage);
+          },
+        ),
+      );
+    }
+  }
+
+  void _showBookForm({Map<String, dynamic>? book, BookLookupResult? prefill, File? scannedImage}) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) => _BookFormSheet(
         book: book,
+        prefill: prefill,
+        scannedImage: scannedImage,
         categories: _categories,
         dio: _dio,
         onSaved: () {
@@ -341,12 +380,16 @@ class _AdminBooksTabState extends State<AdminBooksTab> {
 // ── Form thêm/sửa sách ──────────────────────────────────────────────
 class _BookFormSheet extends StatefulWidget {
   final Map<String, dynamic>? book;
+  final BookLookupResult? prefill; // Dữ liệu tự động điền từ AI / ISBN scan
+  final File? scannedImage; // Ảnh chụp được từ AI
   final List<Map<String, dynamic>> categories;
   final Dio dio;
   final VoidCallback onSaved;
 
   const _BookFormSheet({
     this.book,
+    this.prefill,
+    this.scannedImage,
     required this.categories,
     required this.dio,
     required this.onSaved,
@@ -355,6 +398,7 @@ class _BookFormSheet extends StatefulWidget {
   @override
   State<_BookFormSheet> createState() => _BookFormSheetState();
 }
+
 
 class _BookFormSheetState extends State<_BookFormSheet> {
   final _formKey = GlobalKey<FormState>();
@@ -382,13 +426,20 @@ class _BookFormSheetState extends State<_BookFormSheet> {
   void initState() {
     super.initState();
     final b = widget.book;
-    _titleCtrl = TextEditingController(text: (b?['title'] ?? '').toString());
-    _authorCtrl = TextEditingController(text: (b?['author'] ?? '').toString());
-    _publisherCtrl = TextEditingController(text: (b?['publisher'] ?? '').toString());
-    _yearCtrl = TextEditingController(
-        text: b?['year'] != null ? b!['year'].toString() : '');
-    _descCtrl = TextEditingController(text: (b?['description'] ?? '').toString());
-    _categoryId = b != null ? int.tryParse('${b['category_id']}') : null;
+    final p = widget.prefill;
+    // Nhập dữ liệu: ưu tiên book (đang sửa) → prefill (từ AI) → rỗng
+    _titleCtrl     = TextEditingController(text: b?['title']?.toString()     ?? p?.title     ?? '');
+    _authorCtrl    = TextEditingController(text: b?['author']?.toString()    ?? p?.author    ?? '');
+    _publisherCtrl = TextEditingController(text: b?['publisher']?.toString() ?? p?.publisher ?? '');
+    _yearCtrl      = TextEditingController(
+        text: b?['year']?.toString() ?? p?.publishYear?.toString() ?? '');
+    _descCtrl      = TextEditingController(text: b?['description']?.toString() ?? p?.description ?? '');
+    _categoryId    = b != null ? int.tryParse('${b['category_id']}') : null;
+    
+    if (widget.scannedImage != null) {
+      _pickedImage = XFile(widget.scannedImage!.path);
+      _imageChanged = true;
+    }
   }
 
   @override

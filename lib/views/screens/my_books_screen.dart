@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../viewmodels/my_books_provider.dart';
 import '../../viewmodels/notification_provider.dart';
 import '../../data/models/borrowing_model.dart';
+import '../widgets/custom_dialog.dart';
 
 class MyBooksScreen extends StatefulWidget {
   const MyBooksScreen({super.key});
@@ -414,29 +415,14 @@ class _MyBooksScreenState extends State<MyBooksScreen>
   ) async {
     final confirm = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Xác nhận gửi trả sách'),
-        content: Text(
-          'Bạn muốn gửi yêu cầu trả cuốn "${b.title}"?\n\n'
-          'Thủ thư sẽ xác nhận sau khi nhận được sách.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Hủy', style: TextStyle(color: Colors.grey)),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.orange,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-            ),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Xác nhận'),
-          ),
-        ],
+      builder: (ctx) => CustomDialog(
+        title: 'Xác nhận trả sách',
+        message: 'Bạn muốn gửi yêu cầu trả cuốn "${b.title}"? Thủ thư sẽ xác nhận sau khi nhận được sách.',
+        icon: Icons.assignment_return_rounded,
+        iconColor: Colors.orange,
+        confirmLabel: 'Gửi yêu cầu',
+        confirmColor: Colors.orange,
+        onConfirm: () => Navigator.pop(ctx, true),
       ),
     );
 

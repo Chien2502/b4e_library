@@ -1,4 +1,4 @@
-import '../../../data/models/book_model.dart';
+import 'book_model.dart';
 
 /// Kết quả trả về từ CBF recommendation engine
 class RecommendationResult {

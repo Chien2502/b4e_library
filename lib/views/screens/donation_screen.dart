@@ -1,10 +1,14 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import '../../core/constants/api_constants.dart';
 import '../../core/network/dio_client.dart';
 import '../../viewmodels/notification_provider.dart';
 import '../../data/models/donation_record_model.dart';
+import 'admin/book_scan_sheet.dart'; // BookScanSheet + BookLookupResult
 
 // ── Các lựa chọn dropdown ──────────────────────────────────────────
 const List<Map<String, String>> _conditionOptions = [
@@ -48,6 +52,7 @@ class _DonationScreenState extends State<DonationScreen>
   List<DonationRecord> _donations = [];
   bool _isHistoryLoading = false;
   String _historyError = '';
+  XFile? _pickedImage;
 
   @override
   void initState() {
@@ -77,9 +82,9 @@ class _DonationScreenState extends State<DonationScreen>
     setState(() => _isSubmitting = true);
 
     try {
-      final Response res = await _dioClient.dio.post(
-        ApiConstants.createDonation,
-        data: {
+      dynamic requestData;
+      if (_pickedImage != null) {
+        requestData = FormData.fromMap({
           'book_title': _titleCtrl.text.trim(),
           'book_author': _authorCtrl.text.trim(),
           'book_publisher': _publisherCtrl.text.trim().isEmpty
@@ -90,7 +95,26 @@ class _DonationScreenState extends State<DonationScreen>
               : _yearCtrl.text.trim(),
           'book_condition': _selectedCondition,
           'donation_type': _selectedDonationType,
-        },
+          'image': await MultipartFile.fromFile(_pickedImage!.path),
+        });
+      } else {
+        requestData = {
+          'book_title': _titleCtrl.text.trim(),
+          'book_author': _authorCtrl.text.trim(),
+          'book_publisher': _publisherCtrl.text.trim().isEmpty
+              ? null
+              : _publisherCtrl.text.trim(),
+          'book_year': _yearCtrl.text.trim().isEmpty
+              ? null
+              : _yearCtrl.text.trim(),
+          'book_condition': _selectedCondition,
+          'donation_type': _selectedDonationType,
+        };
+      }
+
+      final Response res = await _dioClient.dio.post(
+        ApiConstants.createDonation,
+        data: requestData,
       );
 
       if (res.statusCode == 201 || res.statusCode == 200) {
@@ -105,14 +129,16 @@ class _DonationScreenState extends State<DonationScreen>
         _resetForm();
       } else {
         _showSnackBar(
-            res.data?['error'] ?? 'Gửi thất bại. Vui lòng thử lại.',
-            isError: true);
+          res.data?['error'] ?? 'Gửi thất bại. Vui lòng thử lại.',
+          isError: true,
+        );
       }
     } on DioException catch (e) {
       _showSnackBar(
-          e.response?.data?['error'] ??
-              'Lỗi kết nối: ${e.message ?? e.type.name}',
-          isError: true);
+        e.response?.data?['error'] ??
+            'Lỗi kết nối: ${e.message ?? e.type.name}',
+        isError: true,
+      );
     } finally {
       setState(() => _isSubmitting = false);
     }
@@ -126,21 +152,20 @@ class _DonationScreenState extends State<DonationScreen>
     });
 
     try {
-      final Response res =
-          await _dioClient.dio.get(ApiConstants.userDonations);
+      final Response res = await _dioClient.dio.get(ApiConstants.userDonations);
 
       if (res.statusCode == 200) {
         final List<dynamic> data = res.data as List<dynamic>;
         setState(() {
-          _donations =
-              data.map((j) => DonationRecord.fromJson(j)).toList();
+          _donations = data.map((j) => DonationRecord.fromJson(j)).toList();
         });
       } else {
         setState(() => _historyError = 'Lỗi server: ${res.statusCode}');
       }
     } on DioException catch (e) {
       setState(
-          () => _historyError = 'Lỗi kết nối: ${e.message ?? e.type.name}');
+        () => _historyError = 'Lỗi kết nối: ${e.message ?? e.type.name}',
+      );
     } finally {
       setState(() => _isHistoryLoading = false);
     }
@@ -155,7 +180,49 @@ class _DonationScreenState extends State<DonationScreen>
     setState(() {
       _selectedCondition = null;
       _selectedDonationType = null;
+      _pickedImage = null;
     });
+  }
+
+  /// Mở bottom sheet chọn phương thức scan và tự điền form.
+  void _openScanSheet() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => BookScanSheet(
+        showBarcodeOption: true,
+        onResult: (result, scannedImage) {
+          if (result.isNotABook) {
+            _showSnackBar(
+              'AI không nhận ra đây là bìa sách. Vui lòng nhập tay.',
+              isError: true,
+            );
+            return;
+          }
+          if (!result.isSuccess) {
+            _showSnackBar(
+              result.error ?? 'Không thể nhận dạng sách.',
+              isError: true,
+            );
+            return;
+          }
+          // Tự điền các trường
+          setState(() {
+            if (result.title?.isNotEmpty == true)
+              _titleCtrl.text = result.title!;
+            if (result.author?.isNotEmpty == true)
+              _authorCtrl.text = result.author!;
+            if (result.publisher?.isNotEmpty == true)
+              _publisherCtrl.text = result.publisher!;
+            if (result.publishYear != null)
+              _yearCtrl.text = result.publishYear.toString();
+            if (scannedImage != null) _pickedImage = XFile(scannedImage.path);
+          });
+          _showSnackBar('✅ Đã điền thông tin sách tự động!', isError: false);
+        },
+      ),
+    );
   }
 
   void _showSnackBar(String msg, {required bool isError}) {
@@ -188,7 +255,9 @@ class _DonationScreenState extends State<DonationScreen>
             indicatorColor: Colors.blueAccent,
             indicatorWeight: 3,
             labelStyle: const TextStyle(
-                fontSize: 14, fontWeight: FontWeight.w600),
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+            ),
             unselectedLabelStyle: const TextStyle(fontSize: 14),
             tabs: const [
               Tab(
@@ -209,10 +278,7 @@ class _DonationScreenState extends State<DonationScreen>
         Expanded(
           child: TabBarView(
             controller: _tabController,
-            children: [
-              _buildFormTab(),
-              _buildHistoryTab(),
-            ],
+            children: [_buildFormTab(), _buildHistoryTab()],
           ),
         ),
       ],
@@ -257,23 +323,30 @@ class _DonationScreenState extends State<DonationScreen>
               color: Colors.white.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: const Icon(Icons.volunteer_activism,
-                color: Colors.white, size: 26),
+            child: const Icon(
+              Icons.volunteer_activism,
+              color: Colors.white,
+              size: 26,
+            ),
           ),
           const SizedBox(width: 14),
           const Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Quyên góp sách',
-                    style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white)),
+                Text(
+                  'Quyên góp sách',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
                 SizedBox(height: 3),
-                Text('Chia sẻ tri thức, lan tỏa yêu thương',
-                    style:
-                        TextStyle(fontSize: 12, color: Colors.white70)),
+                Text(
+                  'Chia sẻ tri thức, lan tỏa yêu thương',
+                  style: TextStyle(fontSize: 12, color: Colors.white70),
+                ),
               ],
             ),
           ),
@@ -298,8 +371,7 @@ class _DonationScreenState extends State<DonationScreen>
       {
         'num': '3',
         'title': 'Gửi sách',
-        'desc':
-            'Gửi trực tiếp hoặc chúng tôi sẽ sắp xếp người đến nhận sách.',
+        'desc': 'Gửi trực tiếp hoặc chúng tôi sẽ sắp xếp người đến nhận sách.',
       },
     ];
 
@@ -308,18 +380,23 @@ class _DonationScreenState extends State<DonationScreen>
       padding: const EdgeInsets.fromLTRB(16, 18, 16, 4),
       child: Column(
         children: [
-          const Text('Quy trình quyên góp',
-              style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87)),
+          const Text(
+            'Quy trình quyên góp',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: Colors.black87,
+            ),
+          ),
           const SizedBox(height: 6),
           Container(
-              width: 36,
-              height: 3,
-              decoration: BoxDecoration(
-                  color: Colors.blueAccent,
-                  borderRadius: BorderRadius.circular(2))),
+            width: 36,
+            height: 3,
+            decoration: BoxDecoration(
+              color: Colors.blueAccent,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
           const SizedBox(height: 14),
           SizedBox(
             height: 148,
@@ -343,10 +420,11 @@ class _DonationScreenState extends State<DonationScreen>
     );
   }
 
-  Widget _buildStepCard(
-      {required String number,
-      required String title,
-      required String desc}) {
+  Widget _buildStepCard({
+    required String number,
+    required String title,
+    required String desc,
+  }) {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -354,9 +432,10 @@ class _DonationScreenState extends State<DonationScreen>
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 8,
-              offset: const Offset(0, 3))
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
         ],
       ),
       child: Column(
@@ -365,28 +444,42 @@ class _DonationScreenState extends State<DonationScreen>
             width: 32,
             height: 32,
             decoration: const BoxDecoration(
-                color: Color(0xFF1E88E5), shape: BoxShape.circle),
+              color: Color(0xFF1E88E5),
+              shape: BoxShape.circle,
+            ),
             child: Center(
-                child: Text(number,
-                    style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14))),
+              child: Text(
+                number,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                ),
+              ),
+            ),
           ),
           const SizedBox(height: 8),
-          Text(title,
-              style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 12,
-                  color: Colors.black87),
-              textAlign: TextAlign.center),
+          Text(
+            title,
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 12,
+              color: Colors.black87,
+            ),
+            textAlign: TextAlign.center,
+          ),
           const SizedBox(height: 4),
           Expanded(
-            child: Text(desc,
-                style: TextStyle(
-                    fontSize: 10, color: Colors.grey[600], height: 1.4),
-                textAlign: TextAlign.center,
-                overflow: TextOverflow.fade),
+            child: Text(
+              desc,
+              style: TextStyle(
+                fontSize: 10,
+                color: Colors.grey[600],
+                height: 1.4,
+              ),
+              textAlign: TextAlign.center,
+              overflow: TextOverflow.fade,
+            ),
           ),
         ],
       ),
@@ -403,9 +496,10 @@ class _DonationScreenState extends State<DonationScreen>
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 12,
-              offset: const Offset(0, 4))
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
         ],
       ),
       child: Form(
@@ -413,11 +507,42 @@ class _DonationScreenState extends State<DonationScreen>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Form quyên góp sách',
-                style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF1565C0))),
+            Row(
+              children: [
+                const Expanded(
+                  child: Text(
+                    'Form quyên góp sách',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF1565C0),
+                    ),
+                  ),
+                ),
+                // Nút scan thông tin sách tự động
+                TextButton.icon(
+                  onPressed: _openScanSheet,
+                  style: TextButton.styleFrom(
+                    foregroundColor: const Color(0xFF7C4DFF),
+                    backgroundColor: const Color(
+                      0xFF7C4DFF,
+                    ).withValues(alpha: 0.08),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
+                  ),
+                  icon: const Icon(Icons.auto_awesome, size: 16),
+                  label: const Text(
+                    'Scan sách',
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ],
+            ),
             const SizedBox(height: 20),
             _buildLabel('Tên sách', required: true),
             _buildTextField(
@@ -439,8 +564,9 @@ class _DonationScreenState extends State<DonationScreen>
             const SizedBox(height: 14),
             _buildLabel('Nhà xuất bản'),
             _buildTextField(
-                controller: _publisherCtrl,
-                hint: 'Nhập tên nhà xuất bản...'),
+              controller: _publisherCtrl,
+              hint: 'Nhập tên nhà xuất bản...',
+            ),
             const SizedBox(height: 14),
             _buildLabel('Năm xuất bản'),
             _buildTextField(
@@ -475,12 +601,52 @@ class _DonationScreenState extends State<DonationScreen>
               validator: (v) =>
                   v == null ? 'Vui lòng chọn hình thức quyên góp' : null,
             ),
+            if (_pickedImage != null) ...[
+              const SizedBox(height: 14),
+              _buildLabel('Ảnh bìa đã quét'),
+              const SizedBox(height: 8),
+              Stack(
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Image.file(
+                      File(_pickedImage!.path),
+                      height: 120,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                  Positioned(
+                    top: 4,
+                    right: 4,
+                    child: InkWell(
+                      onTap: () => setState(() => _pickedImage = null),
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: const BoxDecoration(
+                          color: Colors.black54,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.close,
+                          color: Colors.white,
+                          size: 16,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
             const SizedBox(height: 8),
-            Text('* Thông tin bắt buộc',
-                style: TextStyle(
-                    fontSize: 11,
-                    color: Colors.grey[500],
-                    fontStyle: FontStyle.italic)),
+            Text(
+              '* Thông tin bắt buộc',
+              style: TextStyle(
+                fontSize: 11,
+                color: Colors.grey[500],
+                fontStyle: FontStyle.italic,
+              ),
+            ),
             const SizedBox(height: 22),
             SizedBox(
               width: double.infinity,
@@ -489,10 +655,12 @@ class _DonationScreenState extends State<DonationScreen>
                 onPressed: _isSubmitting ? null : _submit,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF1E88E5),
-                  disabledBackgroundColor:
-                      const Color(0xFF1E88E5).withValues(alpha: 0.6),
+                  disabledBackgroundColor: const Color(
+                    0xFF1E88E5,
+                  ).withValues(alpha: 0.6),
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14)),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
                   elevation: 0,
                 ),
                 icon: _isSubmitting
@@ -500,15 +668,22 @@ class _DonationScreenState extends State<DonationScreen>
                         width: 18,
                         height: 18,
                         child: CircularProgressIndicator(
-                            strokeWidth: 2, color: Colors.white))
-                    : const Icon(Icons.send_outlined,
-                        color: Colors.white, size: 20),
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Icon(
+                        Icons.send_outlined,
+                        color: Colors.white,
+                        size: 20,
+                      ),
                 label: Text(
                   _isSubmitting ? 'Đang gửi...' : 'Gửi quyên góp',
                   style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600),
+                    color: Colors.white,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
             ),
@@ -528,9 +703,10 @@ class _DonationScreenState extends State<DonationScreen>
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 12,
-              offset: const Offset(0, 4))
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
         ],
       ),
       child: Column(
@@ -538,23 +714,34 @@ class _DonationScreenState extends State<DonationScreen>
           Container(
             width: 80,
             height: 80,
-            decoration:
-                BoxDecoration(color: Colors.green[50], shape: BoxShape.circle),
-            child: const Icon(Icons.check_circle,
-                color: Colors.green, size: 48),
+            decoration: BoxDecoration(
+              color: Colors.green[50],
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.check_circle,
+              color: Colors.green,
+              size: 48,
+            ),
           ),
           const SizedBox(height: 16),
-          const Text('Gửi quyên góp thành công!',
-              style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87),
-              textAlign: TextAlign.center),
+          const Text(
+            'Gửi quyên góp thành công!',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.black87,
+            ),
+            textAlign: TextAlign.center,
+          ),
           const SizedBox(height: 8),
           Text(
             'Cảm ơn bạn đã đóng góp! Chúng tôi sẽ liên hệ để xác nhận và sắp xếp nhận sách.',
             style: TextStyle(
-                fontSize: 13, color: Colors.grey[600], height: 1.5),
+              fontSize: 13,
+              color: Colors.grey[600],
+              height: 1.5,
+            ),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 20),
@@ -564,18 +751,20 @@ class _DonationScreenState extends State<DonationScreen>
               OutlinedButton.icon(
                 onPressed: () => setState(() => _submitSuccess = false),
                 style: OutlinedButton.styleFrom(
-                  side:
-                      const BorderSide(color: Color(0xFF1E88E5)),
+                  side: const BorderSide(color: Color(0xFF1E88E5)),
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10)),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 16, vertical: 10),
+                    horizontal: 16,
+                    vertical: 10,
+                  ),
                 ),
-                icon: const Icon(Icons.add,
-                    color: Color(0xFF1E88E5), size: 16),
-                label: const Text('Quyên góp thêm',
-                    style: TextStyle(
-                        color: Color(0xFF1E88E5), fontSize: 13)),
+                icon: const Icon(Icons.add, color: Color(0xFF1E88E5), size: 16),
+                label: const Text(
+                  'Quyên góp thêm',
+                  style: TextStyle(color: Color(0xFF1E88E5), fontSize: 13),
+                ),
               ),
               const SizedBox(width: 10),
               ElevatedButton.icon(
@@ -586,16 +775,23 @@ class _DonationScreenState extends State<DonationScreen>
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF1E88E5),
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10)),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 16, vertical: 10),
+                    horizontal: 16,
+                    vertical: 10,
+                  ),
                   elevation: 0,
                 ),
-                icon: const Icon(Icons.track_changes,
-                    color: Colors.white, size: 16),
-                label: const Text('Xem lịch sử',
-                    style: TextStyle(
-                        color: Colors.white, fontSize: 13)),
+                icon: const Icon(
+                  Icons.track_changes,
+                  color: Colors.white,
+                  size: 16,
+                ),
+                label: const Text(
+                  'Xem lịch sử',
+                  style: TextStyle(color: Colors.white, fontSize: 13),
+                ),
               ),
             ],
           ),
@@ -619,9 +815,11 @@ class _DonationScreenState extends State<DonationScreen>
           children: [
             const Icon(Icons.error_outline, color: Colors.red, size: 40),
             const SizedBox(height: 8),
-            Text(_historyError,
-                textAlign: TextAlign.center,
-                style: const TextStyle(color: Colors.red)),
+            Text(
+              _historyError,
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Colors.red),
+            ),
             const SizedBox(height: 12),
             TextButton.icon(
               onPressed: _fetchHistory,
@@ -638,11 +836,16 @@ class _DonationScreenState extends State<DonationScreen>
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.volunteer_activism_outlined,
-                size: 64, color: Colors.grey[300]),
+            Icon(
+              Icons.volunteer_activism_outlined,
+              size: 64,
+              color: Colors.grey[300],
+            ),
             const SizedBox(height: 12),
-            Text('Bạn chưa có đơn quyên góp nào',
-                style: TextStyle(fontSize: 15, color: Colors.grey[500])),
+            Text(
+              'Bạn chưa có đơn quyên góp nào',
+              style: TextStyle(fontSize: 15, color: Colors.grey[500]),
+            ),
             const SizedBox(height: 16),
             ElevatedButton.icon(
               onPressed: _fetchHistory,
@@ -651,7 +854,8 @@ class _DonationScreenState extends State<DonationScreen>
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.blueAccent,
                 shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10)),
+                  borderRadius: BorderRadius.circular(10),
+                ),
                 elevation: 0,
               ),
             ),
@@ -690,28 +894,37 @@ class _DonationScreenState extends State<DonationScreen>
         children: [
           Expanded(
             flex: 5,
-            child: Text('Tên sách',
-                style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13,
-                    color: Colors.black87)),
+            child: Text(
+              'Tên sách',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 13,
+                color: Colors.black87,
+              ),
+            ),
           ),
           Expanded(
             flex: 3,
-            child: Text('Hình thức',
-                style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13,
-                    color: Colors.black87)),
+            child: Text(
+              'Hình thức',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 13,
+                color: Colors.black87,
+              ),
+            ),
           ),
           Expanded(
             flex: 3,
-            child: Text('Trạng thái',
-                style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13,
-                    color: Colors.black87),
-                textAlign: TextAlign.right),
+            child: Text(
+              'Trạng thái',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 13,
+                color: Colors.black87,
+              ),
+              textAlign: TextAlign.right,
+            ),
           ),
         ],
       ),
@@ -735,9 +948,10 @@ class _DonationScreenState extends State<DonationScreen>
                 Text(
                   d.bookTitle,
                   style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 13,
-                      color: Colors.black87),
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                    color: Colors.black87,
+                  ),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -745,21 +959,21 @@ class _DonationScreenState extends State<DonationScreen>
                   Text(
                     d.bookAuthor,
                     style: const TextStyle(
-                        fontSize: 12, color: Color(0xFF1565C0)),
+                      fontSize: 12,
+                      color: Color(0xFF1565C0),
+                    ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                 const SizedBox(height: 4),
                 Row(
                   children: [
-                    Icon(Icons.access_time,
-                        size: 10, color: Colors.grey[500]),
+                    Icon(Icons.access_time, size: 10, color: Colors.grey[500]),
                     const SizedBox(width: 3),
                     Expanded(
                       child: Text(
                         _formatDateTime(d.createdAt),
-                        style: TextStyle(
-                            fontSize: 10, color: Colors.grey[500]),
+                        style: TextStyle(fontSize: 10, color: Colors.grey[500]),
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
@@ -814,13 +1028,15 @@ class _DonationScreenState extends State<DonationScreen>
     }
 
     return Container(
-      padding:
-          const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-          color: bg, borderRadius: BorderRadius.circular(12)),
-      child: Text(label,
-          style: TextStyle(
-              fontSize: 11, fontWeight: FontWeight.w600, color: fg)),
+        color: bg,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: fg),
+      ),
     );
   }
 
@@ -845,14 +1061,16 @@ class _DonationScreenState extends State<DonationScreen>
         text: TextSpan(
           text: text,
           style: const TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: Colors.black87),
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: Colors.black87,
+          ),
           children: required
               ? const [
                   TextSpan(
-                      text: ' *',
-                      style: TextStyle(color: Colors.red))
+                    text: ' *',
+                    style: TextStyle(color: Colors.red),
+                  ),
                 ]
               : [],
         ),
@@ -872,20 +1090,20 @@ class _DonationScreenState extends State<DonationScreen>
       validator: validator,
       decoration: InputDecoration(
         hintText: hint,
-        hintStyle:
-            TextStyle(fontSize: 13, color: Colors.grey[400]),
+        hintStyle: TextStyle(fontSize: 13, color: Colors.grey[400]),
         filled: true,
         fillColor: Colors.grey[50],
         contentPadding: const EdgeInsets.symmetric(
-            horizontal: 14, vertical: 12),
+          horizontal: 14,
+          vertical: 12,
+        ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
           borderSide: BorderSide(color: Colors.grey[300]!),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(
-              color: Color(0xFF1E88E5), width: 1.5),
+          borderSide: const BorderSide(color: Color(0xFF1E88E5), width: 1.5),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
@@ -893,8 +1111,7 @@ class _DonationScreenState extends State<DonationScreen>
         ),
         focusedErrorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide:
-              const BorderSide(color: Colors.red, width: 1.5),
+          borderSide: const BorderSide(color: Colors.red, width: 1.5),
         ),
       ),
       style: const TextStyle(fontSize: 14),
@@ -910,23 +1127,22 @@ class _DonationScreenState extends State<DonationScreen>
   }) {
     return DropdownButtonFormField<String>(
       initialValue: value,
-      hint: Text(hint,
-          style:
-              TextStyle(fontSize: 13, color: Colors.grey[400])),
+      hint: Text(hint, style: TextStyle(fontSize: 13, color: Colors.grey[400])),
       validator: validator,
       decoration: InputDecoration(
         filled: true,
         fillColor: Colors.grey[50],
         contentPadding: const EdgeInsets.symmetric(
-            horizontal: 14, vertical: 12),
+          horizontal: 14,
+          vertical: 12,
+        ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
           borderSide: BorderSide(color: Colors.grey[300]!),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(
-              color: Color(0xFF1E88E5), width: 1.5),
+          borderSide: const BorderSide(color: Color(0xFF1E88E5), width: 1.5),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
@@ -934,13 +1150,11 @@ class _DonationScreenState extends State<DonationScreen>
         ),
         focusedErrorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide:
-              const BorderSide(color: Colors.red, width: 1.5),
+          borderSide: const BorderSide(color: Colors.red, width: 1.5),
         ),
       ),
       borderRadius: BorderRadius.circular(12),
-      icon: const Icon(Icons.keyboard_arrow_down,
-          color: Colors.grey),
+      icon: const Icon(Icons.keyboard_arrow_down, color: Colors.grey),
       isExpanded: true,
       style: const TextStyle(fontSize: 14, color: Colors.black87),
       items: options.map((opt) {
@@ -953,4 +1167,3 @@ class _DonationScreenState extends State<DonationScreen>
     );
   }
 }
-

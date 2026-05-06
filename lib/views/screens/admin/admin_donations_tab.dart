@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 import '../../../core/constants/api_constants.dart';
 import '../../../core/network/dio_client.dart';
+import '../../widgets/custom_dialog.dart';
+
 
 // ── Model ────────────────────────────────────────────────────────────
 class AdminDonation {
@@ -468,22 +470,11 @@ class _AdminDonationsTabState extends State<AdminDonationsTab> {
   Future<void> _confirmAction(String msg, VoidCallback onConfirm) async {
     final ok = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-        title: const Text('Xác nhận'),
-        content: Text(msg),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Hủy')),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF1565C0)),
-            child: const Text('Xác nhận'),
-          ),
-        ],
+      builder: (ctx) => CustomDialog(
+        title: 'Xác nhận',
+        message: msg,
+        icon: Icons.help_outline_rounded,
+        onConfirm: () => Navigator.pop(ctx, true),
       ),
     );
     if (ok == true) onConfirm();

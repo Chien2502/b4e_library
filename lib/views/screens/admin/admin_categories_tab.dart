@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 import '../../../core/constants/api_constants.dart';
 import '../../../core/network/dio_client.dart';
+import '../../widgets/custom_dialog.dart';
+
 
 class AdminCategoriesTab extends StatefulWidget {
   const AdminCategoriesTab({super.key});
@@ -67,18 +69,14 @@ class _AdminCategoriesTabState extends State<AdminCategoriesTab> {
   Future<void> _deleteCategory(int id, String name) async {
     final ok = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-        title: const Text('Xóa thể loại'),
-        content: Text('Bạn có chắc muốn xóa thể loại "$name"?'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Hủy')),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Xóa'),
-          ),
-        ],
+      builder: (ctx) => CustomDialog(
+        title: 'Xóa thể loại',
+        message: 'Bạn có chắc muốn xóa thể loại "$name"? Hành động này có thể ảnh hưởng đến các sách thuộc thể loại này.',
+        icon: Icons.delete_outline_rounded,
+        iconColor: Colors.red,
+        confirmLabel: 'Xóa',
+        confirmColor: Colors.red,
+        onConfirm: () => Navigator.pop(ctx, true),
       ),
     );
     if (ok != true) return;
@@ -97,30 +95,30 @@ class _AdminCategoriesTabState extends State<AdminCategoriesTab> {
     final ctrl = TextEditingController();
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-        title: const Text('Thêm thể loại mới'),
+      builder: (ctx) => CustomDialog(
+        title: 'Thêm thể loại mới',
+        message: 'Nhập tên thể loại sách bạn muốn thêm vào hệ thống.',
+        icon: Icons.add_circle_outline_rounded,
+        confirmLabel: 'Thêm mới',
+        onConfirm: () {
+          if (ctrl.text.trim().isEmpty) return;
+          Navigator.pop(ctx);
+          _addCategory(ctrl.text.trim());
+        },
         content: TextField(
           controller: ctrl,
           autofocus: true,
           decoration: InputDecoration(
             hintText: 'Tên thể loại...',
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-            prefixIcon: const Icon(Icons.category_outlined),
+            filled: true,
+            fillColor: Colors.grey[100],
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: BorderSide.none,
+            ),
+            prefixIcon: const Icon(Icons.category_rounded, color: Color(0xFF1565C0)),
           ),
         ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Hủy')),
-          ElevatedButton(
-            onPressed: () {
-              if (ctrl.text.trim().isEmpty) return;
-              Navigator.pop(ctx);
-              _addCategory(ctrl.text.trim());
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF1565C0)),
-            child: const Text('Thêm'),
-          ),
-        ],
       ),
     );
   }
@@ -129,31 +127,30 @@ class _AdminCategoriesTabState extends State<AdminCategoriesTab> {
     final ctrl = TextEditingController(text: cat['name'] ?? '');
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-        title: const Text('Sửa thể loại'),
+      builder: (ctx) => CustomDialog(
+        title: 'Sửa thể loại',
+        message: 'Cập nhật tên cho thể loại này.',
+        icon: Icons.edit_note_rounded,
+        confirmLabel: 'Lưu thay đổi',
+        onConfirm: () {
+          if (ctrl.text.trim().isEmpty) return;
+          Navigator.pop(ctx);
+          _updateCategory(int.tryParse('${cat['id']}') ?? 0, ctrl.text.trim());
+        },
         content: TextField(
           controller: ctrl,
           autofocus: true,
           decoration: InputDecoration(
             hintText: 'Tên mới...',
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-            prefixIcon: const Icon(Icons.edit_outlined),
+            filled: true,
+            fillColor: Colors.grey[100],
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: BorderSide.none,
+            ),
+            prefixIcon: const Icon(Icons.category_rounded, color: Color(0xFF1565C0)),
           ),
         ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Hủy')),
-          ElevatedButton(
-            onPressed: () {
-              if (ctrl.text.trim().isEmpty) return;
-              Navigator.pop(ctx);
-              _updateCategory(
-                  int.tryParse('${cat['id']}') ?? 0, ctrl.text.trim());
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF1565C0)),
-            child: const Text('Lưu'),
-          ),
-        ],
       ),
     );
   }

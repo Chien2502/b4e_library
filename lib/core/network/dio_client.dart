@@ -1,6 +1,9 @@
-import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:provider/provider.dart';
+import '../../main.dart';
+import '../../viewmodels/auth_provider.dart';
 import '../constants/api_constants.dart';
 
 class DioClient {
@@ -39,6 +42,26 @@ class DioClient {
         },
         onError: (DioException e, handler) {
           debugPrint('Lỗi gọi API: ${e.message}');
+          
+          // Xử lý tự động đăng xuất khi token hết hạn hoặc không hợp lệ (401)
+          if (e.response?.statusCode == 401) {
+            final context = navigatorKey.currentContext;
+            if (context != null) {
+              // Gọi hàm logout
+              Provider.of<AuthProvider>(context, listen: false).logout();
+              
+              // Hiển thị thông báo (ẩn các thông báo cũ để tránh spam)
+              ScaffoldMessenger.of(context).hideCurrentSnackBar();
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại.'),
+                  backgroundColor: Colors.red,
+                  behavior: SnackBarBehavior.floating,
+                ),
+              );
+            }
+          }
+          
           return handler.next(e);
         },
       ),

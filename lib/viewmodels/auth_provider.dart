@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:dio/dio.dart';
@@ -6,7 +7,7 @@ import '../core/database/cache_keys.dart';
 import '../core/database/database_service.dart';
 import '../core/network/dio_client.dart';
 
-// ── User data model (fields từ SELECT id, username, email, phone, address, role) ──
+// ── User data model (fields từ SELECT id, username, email, phone, address, role, avatar) ──
 class UserProfile {
   final int id;
   final String username;
@@ -14,6 +15,7 @@ class UserProfile {
   final String phone;
   final String address;
   final String role; // 'user' | 'admin' | 'super-admin'
+  final String? avatar; // relative path e.g. 'avatars/avatar_1_1234.jpg'
 
   UserProfile({
     required this.id,
@@ -22,9 +24,16 @@ class UserProfile {
     required this.phone,
     required this.address,
     required this.role,
+    this.avatar,
   });
 
   bool get isAdmin => role == 'admin' || role == 'super-admin';
+
+  /// Full URL to the avatar image (or null if no avatar set)
+  String? get avatarUrl {
+    if (avatar == null || avatar!.isEmpty) return null;
+    return '${ApiConstants.uploadsUrl}/$avatar';
+  }
 
   factory UserProfile.fromJson(Map<String, dynamic> json) => UserProfile(
         id: int.tryParse(json['id']?.toString() ?? '0') ?? 0,
@@ -33,12 +42,14 @@ class UserProfile {
         phone: json['phone']?.toString() ?? '',
         address: json['address']?.toString() ?? '',
         role: json['role']?.toString() ?? 'user',
+        avatar: json['avatar']?.toString(),
       );
 
   UserProfile copyWith({
     String? username,
     String? phone,
     String? address,
+    String? avatar,
   }) =>
       UserProfile(
         id: id,
@@ -47,6 +58,7 @@ class UserProfile {
         phone: phone ?? this.phone,
         address: address ?? this.address,
         role: role,
+        avatar: avatar ?? this.avatar,
       );
 }
 
@@ -96,11 +108,7 @@ class AuthProvider with ChangeNotifier {
       if (res.statusCode == 200) {
         _userProfile = UserProfile.fromJson(res.data);
         // Cache profile
-        await _cache.writeCache(
-          CacheKeys.userProfile,
-          res.data,
-          ttlSeconds: CacheKeys.ttlLong,
-        );
+        await _cacheProfile();
         notifyListeners();
       }
     } catch (e) {
@@ -134,18 +142,7 @@ class AuthProvider with ChangeNotifier {
         );
         // Cập nhật cache
         if (_userProfile != null) {
-          await _cache.writeCache(
-            CacheKeys.userProfile,
-            {
-              'id': _userProfile!.id,
-              'username': _userProfile!.username,
-              'email': _userProfile!.email,
-              'phone': _userProfile!.phone,
-              'address': _userProfile!.address,
-              'role': _userProfile!.role,
-            },
-            ttlSeconds: CacheKeys.ttlLong,
-          );
+          await _cacheProfile();
         }
         notifyListeners();
         return null; // success
@@ -155,6 +152,58 @@ class AuthProvider with ChangeNotifier {
       return e.response?.data?['error'] ??
           'Lỗi kết nối: ${e.message ?? e.type.name}';
     }
+  }
+
+  // ── Upload avatar ──────────────────────────────────────────────
+  /// Trả về null nếu thành công, chuỗi lỗi nếu thất bại
+  Future<String?> uploadAvatar(File imageFile) async {
+    try {
+      final formData = FormData.fromMap({
+        'avatar': await MultipartFile.fromFile(
+          imageFile.path,
+          filename: 'avatar.jpg',
+        ),
+      });
+
+      final Response res = await _dioClient.dio.post(
+        ApiConstants.uploadAvatar,
+        data: formData,
+      );
+
+      if (res.statusCode == 200) {
+        final newAvatar = res.data['avatar']?.toString();
+        _userProfile = _userProfile?.copyWith(avatar: newAvatar);
+        if (_userProfile != null) {
+          await _cacheProfile();
+        }
+        notifyListeners();
+        return null; // success
+      }
+      return res.data?['error'] ?? 'Upload thất bại.';
+    } on DioException catch (e) {
+      return e.response?.data?['error'] ??
+          'Lỗi kết nối: ${e.message ?? e.type.name}';
+    } catch (e) {
+      return 'Lỗi: $e';
+    }
+  }
+
+  // ── Helper: cache profile ──────────────────────────────────────
+  Future<void> _cacheProfile() async {
+    if (_userProfile == null) return;
+    await _cache.writeCache(
+      CacheKeys.userProfile,
+      {
+        'id': _userProfile!.id,
+        'username': _userProfile!.username,
+        'email': _userProfile!.email,
+        'phone': _userProfile!.phone,
+        'address': _userProfile!.address,
+        'role': _userProfile!.role,
+        'avatar': _userProfile!.avatar,
+      },
+      ttlSeconds: CacheKeys.ttlLong,
+    );
   }
 
   // ── Đăng nhập ─────────────────────────────────────────────────

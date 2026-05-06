@@ -11,6 +11,7 @@ class ApiConstants {
   // Dio dùng đường dẫn tương đối (bỏ baseUrl phía trước)
   static const String readBooks = '/books/read.php';
   static const String readSingleBook = '/books/read_single.php';
+  static const String relatedBooks   = '/books/related.php';
   static const String readCategories = '/categories/read.php';
   static const String createBorrowing = '/borrowings/create.php';
   static const String userBorrowings = '/users/borrowings.php';
@@ -21,6 +22,7 @@ class ApiConstants {
   static const String register = '/auth/register.php';
   static const String getProfile = '/auth/get_profile.php';
   static const String updateProfile = '/auth/update_profile.php';
+  static const String uploadAvatar  = '/auth/upload_avatar.php';
 
   // ========== NOTIFICATIONS ==========
   static const String getNotifications     = '/notifications/index.php';
@@ -56,6 +58,12 @@ class ApiConstants {
   static const String createCategory = '/categories/create.php';
   static const String updateCategory = '/categories/update.php';
   static const String deleteCategory = '/categories/delete.php';
+
+  // ========== AI & BOOK RECOGNITION ==========
+  /// Tra cứu thông tin sách theo ISBN (proxy đến OpenLibrary / Google Books)
+  static const String isbnLookup    = '/books/lookup.php';
+  /// Phân tích bìa sách bằng Gemini Vision (yêu cầu Auth Admin)
+  static const String analyzeCover  = '/ai/analyze_cover.php';
 
   // ========== URL ẢNH ==========
   // URL file tĩnh (dùng cho mobile - không bị CORS)

@@ -5,6 +5,7 @@ import '../../core/constants/api_constants.dart';
 /// API trả về: b.* JOIN categories c → category_name
 class BookDetail {
   final int id;
+  final int? categoryId;
   final String title;
   final String author;
   final String categoryName;
@@ -17,6 +18,7 @@ class BookDetail {
 
   BookDetail({
     required this.id,
+    this.categoryId,
     required this.title,
     required this.author,
     required this.categoryName,
@@ -46,6 +48,9 @@ class BookDetail {
 
     return BookDetail(
       id: int.tryParse(json['id'].toString()) ?? 0,
+      categoryId: json['category_id'] != null
+          ? int.tryParse(json['category_id'].toString())
+          : null,
       title: json['title']?.toString() ?? 'Chưa có tên',
       author: json['author']?.toString() ?? 'Chưa rõ tác giả',
       categoryName: json['category_name']?.toString() ?? 'Chưa phân loại',

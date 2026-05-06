@@ -38,9 +38,9 @@ class _HomeScreenState extends State<HomeScreen> {
         return RefreshIndicator(
           onRefresh: () async {
             await Future.wait([
-              bookProvider.fetchLatestBooks(),
-              recProvider.fetchPopular(),
-              if (isLoggedIn) recProvider.fetchRecommendations(),
+              bookProvider.fetchLatestBooks(forceRefresh: true),
+              recProvider.fetchPopular(forceRefresh: true),
+              if (isLoggedIn) recProvider.fetchRecommendations(forceRefresh: true),
             ]);
           },
           child: CustomScrollView(

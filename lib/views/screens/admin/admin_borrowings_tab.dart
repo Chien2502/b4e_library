@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 import '../../../core/constants/api_constants.dart';
 import '../../../core/network/dio_client.dart';
+import '../../widgets/custom_dialog.dart';
+
 
 class AdminBorrowingsTab extends StatefulWidget {
   const AdminBorrowingsTab({super.key});
@@ -301,21 +303,16 @@ class _AdminBorrowingsTabState extends State<AdminBorrowingsTab> {
   Future<void> _showConfirmDialog(int borrowId, String? bookTitle) async {
     final ok = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-        title: const Text('Xác nhận trả sách'),
-        content: Text('Xác nhận đã nhận lại cuốn "${bookTitle ?? ''}"?\nSách sẽ được cập nhật trạng thái "Có sẵn" trong kho.'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Hủy')),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.green[600]),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Xác nhận'),
-          ),
-        ],
+      builder: (ctx) => CustomDialog(
+        title: 'Xác nhận trả sách',
+        message: 'Xác nhận đã nhận lại cuốn "${bookTitle ?? ''}"? Sách sẽ được cập nhật trạng thái "Có sẵn" trong kho.',
+        icon: Icons.check_circle_outline_rounded,
+        iconColor: Colors.green,
+        confirmLabel: 'Xác nhận',
+        confirmColor: Colors.green,
+        onConfirm: () => Navigator.pop(ctx, true),
       ),
     );
     if (ok == true) _confirmReturn(borrowId);
   }
 }
-
