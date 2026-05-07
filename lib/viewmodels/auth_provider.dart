@@ -219,7 +219,12 @@ class AuthProvider with ChangeNotifier {
 
       if (response.statusCode == 200 && response.data['token'] != null) {
         final String token = response.data['token'];
+        final String? refreshToken = response.data['refresh_token'];
         await _storage.write(key: 'jwt_token', value: token);
+        if (refreshToken != null) {
+          await _storage.write(key: 'refresh_token', value: refreshToken);
+        }
+        
         _status = AuthStatus.authenticated;
         _isLoading = false;
         notifyListeners();
@@ -275,6 +280,7 @@ class AuthProvider with ChangeNotifier {
   // ── Đăng xuất ─────────────────────────────────────────────────
   Future<void> logout() async {
     await _storage.delete(key: 'jwt_token');
+    await _storage.delete(key: 'refresh_token');
     _userProfile = null;
     _status = AuthStatus.unauthenticated;
     // Xóa các cache cá nhân khi đăng xuất

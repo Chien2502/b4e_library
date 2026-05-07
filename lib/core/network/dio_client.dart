@@ -40,11 +40,49 @@ class DioClient {
         onResponse: (response, handler) {
           return handler.next(response);
         },
-        onError: (DioException e, handler) {
+        onError: (DioException e, handler) async {
           debugPrint('Lỗi gọi API: ${e.message}');
           
-          // Xử lý tự động đăng xuất khi token hết hạn hoặc không hợp lệ (401)
+          // Xử lý tự động đăng xuất hoặc làm mới token khi token hết hạn/không hợp lệ (401)
           if (e.response?.statusCode == 401) {
+            String? refreshToken = await _storage.read(key: 'refresh_token');
+            
+            if (refreshToken != null) {
+              try {
+                // Sử dụng Dio mới để không bị loop interceptor
+                final refreshDio = Dio(BaseOptions(baseUrl: ApiConstants.baseUrl));
+                final refreshRes = await refreshDio.post(
+                  ApiConstants.refreshToken,
+                  data: {'refresh_token': refreshToken},
+                  options: Options(
+                    headers: {'ngrok-skip-browser-warning': 'true'},
+                  ),
+                );
+
+                if (refreshRes.statusCode == 200 && refreshRes.data['token'] != null) {
+                  // Lưu token mới
+                  final newToken = refreshRes.data['token'];
+                  final newRefreshToken = refreshRes.data['refresh_token'];
+                  
+                  await _storage.write(key: 'jwt_token', value: newToken);
+                  if (newRefreshToken != null) {
+                    await _storage.write(key: 'refresh_token', value: newRefreshToken);
+                  }
+
+                  // Retry request cũ với token mới
+                  final retryOptions = e.requestOptions;
+                  retryOptions.headers['Authorization'] = 'Bearer $newToken';
+                  
+                  final retryDio = Dio(BaseOptions(baseUrl: ApiConstants.baseUrl));
+                  final retryResponse = await retryDio.fetch(retryOptions);
+                  return handler.resolve(retryResponse);
+                }
+              } catch (refreshErr) {
+                debugPrint('Lỗi làm mới token: $refreshErr');
+              }
+            }
+
+            // Nếu không có refresh token hoặc làm mới thất bại -> Đăng xuất
             final context = navigatorKey.currentContext;
             if (context != null) {
               // Gọi hàm logout

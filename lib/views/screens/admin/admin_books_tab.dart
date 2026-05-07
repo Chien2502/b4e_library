@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
@@ -12,7 +13,6 @@ import '../../../viewmodels/recommendation_provider.dart';
 import '../../widgets/custom_dialog.dart';
 import 'book_scan_sheet.dart';
 
-
 class AdminBooksTab extends StatefulWidget {
   const AdminBooksTab({super.key});
   @override
@@ -26,6 +26,9 @@ class _AdminBooksTabState extends State<AdminBooksTab> {
   bool _loading = true;
   String? _error;
   String _search = '';
+  int _currentPage = 1;
+  int _totalPages = 1;
+  Timer? _debounce;
 
   @override
   void initState() {
@@ -33,37 +36,78 @@ class _AdminBooksTabState extends State<AdminBooksTab> {
     _loadAll();
   }
 
-  Future<void> _loadAll() async {
-    setState(() { _loading = true; _error = null; });
+  Future<void> _loadAll({bool resetPage = false}) async {
+    if (resetPage) _currentPage = 1;
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
     try {
       if (mounted) {
-        Provider.of<BookProvider>(context, listen: false).fetchLatestBooks(forceRefresh: true);
-        Provider.of<RecommendationProvider>(context, listen: false).fetchPopular(forceRefresh: true);
-        Provider.of<RecommendationProvider>(context, listen: false).fetchRecommendations(forceRefresh: true);
+        Future.microtask(() {
+          if (mounted) {
+            Provider.of<BookProvider>(
+              context,
+              listen: false,
+            ).fetchLatestBooks(forceRefresh: true);
+            Provider.of<RecommendationProvider>(
+              context,
+              listen: false,
+            ).fetchPopular(forceRefresh: true);
+            Provider.of<RecommendationProvider>(
+              context,
+              listen: false,
+            ).fetchRecommendations(forceRefresh: true);
+          }
+        });
       }
       final futures = await Future.wait([
-        _dio.get(ApiConstants.readBooks),
-        _dio.get(ApiConstants.readCategories),
+        _dio.get(
+          ApiConstants.readBooks,
+          queryParameters: {
+            'page': _currentPage,
+            'limit': 10,
+            if (_search.isNotEmpty) 'search': _search,
+          },
+        ),
+        _categories.isEmpty
+            ? _dio.get(ApiConstants.readCategories)
+            : Future.value(null),
       ]);
       // Books
-      final bookRaw = futures[0].data;
+      final bookRaw = futures[0]!.data;
       List<Map<String, dynamic>> books = [];
       if (bookRaw is List) {
         books = List<Map<String, dynamic>>.from(bookRaw);
       } else if (bookRaw is Map) {
         books = List<Map<String, dynamic>>.from(
-          bookRaw['data'] ?? bookRaw['records'] ?? []);
+          bookRaw['data'] ?? bookRaw['records'] ?? [],
+        );
+
+        final pagination = bookRaw['pagination'];
+        if (pagination != null) {
+          _totalPages =
+              int.tryParse(pagination['total_pages']?.toString() ?? '1') ?? 1;
+          _currentPage =
+              int.tryParse(pagination['current_page']?.toString() ?? '1') ?? 1;
+        }
       }
       // Categories
-      final catRaw = futures[1].data;
-      List<Map<String, dynamic>> cats = [];
-      if (catRaw is List) {
-        cats = List<Map<String, dynamic>>.from(catRaw);
-      } else if (catRaw is Map) {
-        cats = List<Map<String, dynamic>>.from(
-          catRaw['data'] ?? catRaw['records'] ?? []);
+      List<Map<String, dynamic>> cats = _categories;
+      if (futures[1] != null && futures[1]!.data != null) {
+        final catRaw = futures[1]!.data;
+        if (catRaw is List) {
+          cats = List<Map<String, dynamic>>.from(catRaw);
+        } else if (catRaw is Map) {
+          cats = List<Map<String, dynamic>>.from(
+            catRaw['data'] ?? catRaw['records'] ?? [],
+          );
+        }
       }
-      setState(() { _books = books; _categories = cats; });
+      setState(() {
+        _books = books;
+        _categories = cats;
+      });
     } on DioException catch (e) {
       setState(() => _error = e.response?.data?['message'] ?? e.message);
     } finally {
@@ -76,7 +120,8 @@ class _AdminBooksTabState extends State<AdminBooksTab> {
       context: context,
       builder: (ctx) => CustomDialog(
         title: 'Xóa sách',
-        message: 'Bạn có chắc muốn xóa cuốn "$title"? Hành động này không thể hoàn tác.',
+        message:
+            'Bạn có chắc muốn xóa cuốn "$title"? Hành động này không thể hoàn tác.',
         icon: Icons.delete_forever_rounded,
         iconColor: Colors.red,
         confirmLabel: 'Xóa ngay',
@@ -124,7 +169,11 @@ class _AdminBooksTabState extends State<AdminBooksTab> {
     }
   }
 
-  void _showBookForm({Map<String, dynamic>? book, BookLookupResult? prefill, File? scannedImage}) {
+  void _showBookForm({
+    Map<String, dynamic>? book,
+    BookLookupResult? prefill,
+    File? scannedImage,
+  }) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -145,13 +194,15 @@ class _AdminBooksTabState extends State<AdminBooksTab> {
 
   void _showSnack(String msg, bool err) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(msg),
-      backgroundColor: err ? Colors.red[700] : Colors.green[700],
-      behavior: SnackBarBehavior.floating,
-      margin: const EdgeInsets.all(12),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-    ));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(msg),
+        backgroundColor: err ? Colors.red[700] : Colors.green[700],
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.all(12),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      ),
+    );
   }
 
   List<Map<String, dynamic>> get _filtered {
@@ -184,22 +235,32 @@ class _AdminBooksTabState extends State<AdminBooksTab> {
           const Icon(Icons.menu_book, color: Color(0xFF1565C0), size: 22),
           const SizedBox(width: 8),
           const Expanded(
-            child: Text('Quản lý Sách',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+            child: Text(
+              'Quản lý Sách',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            ),
           ),
           ElevatedButton.icon(
             onPressed: () => _openForm(),
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF1E88E5),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               elevation: 0,
             ),
             icon: const Icon(Icons.add, size: 16, color: Colors.white),
-            label: const Text('Thêm sách', style: TextStyle(color: Colors.white, fontSize: 12)),
+            label: const Text(
+              'Thêm sách',
+              style: TextStyle(color: Colors.white, fontSize: 12),
+            ),
           ),
           const SizedBox(width: 4),
-          IconButton(icon: const Icon(Icons.refresh, size: 20), onPressed: _loadAll),
+          IconButton(
+            icon: const Icon(Icons.refresh, size: 20),
+            onPressed: _loadAll,
+          ),
         ],
       ),
     );
@@ -210,7 +271,13 @@ class _AdminBooksTabState extends State<AdminBooksTab> {
       color: Colors.white,
       padding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
       child: TextField(
-        onChanged: (v) => setState(() => _search = v),
+        onChanged: (v) {
+          setState(() => _search = v);
+          if (_debounce?.isActive ?? false) _debounce!.cancel();
+          _debounce = Timer(const Duration(milliseconds: 2000), () {
+            _loadAll(resetPage: true);
+          });
+        },
         style: const TextStyle(fontSize: 13),
         decoration: InputDecoration(
           hintText: 'Tìm kiếm theo tên sách, tác giả...',
@@ -220,8 +287,9 @@ class _AdminBooksTabState extends State<AdminBooksTab> {
           fillColor: Colors.grey[100],
           contentPadding: const EdgeInsets.symmetric(vertical: 10),
           border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide.none),
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide.none,
+          ),
         ),
       ),
     );
@@ -230,29 +298,93 @@ class _AdminBooksTabState extends State<AdminBooksTab> {
   Widget _buildBody() {
     if (_loading) return const Center(child: CircularProgressIndicator());
     if (_error != null) {
-      return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-      const Icon(Icons.error_outline, color: Colors.red, size: 48),
-      const SizedBox(height: 12),
-      Text(_error!, style: const TextStyle(color: Colors.red)),
-      const SizedBox(height: 16),
-      ElevatedButton.icon(onPressed: _loadAll, icon: const Icon(Icons.refresh), label: const Text('Thử lại')),
-    ]));
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.error_outline, color: Colors.red, size: 48),
+            const SizedBox(height: 12),
+            Text(_error!, style: const TextStyle(color: Colors.red)),
+            const SizedBox(height: 16),
+            ElevatedButton.icon(
+              onPressed: _loadAll,
+              icon: const Icon(Icons.refresh),
+              label: const Text('Thử lại'),
+            ),
+          ],
+        ),
+      );
     }
 
     final list = _filtered;
     if (list.isEmpty) {
       return Center(
-        child: Text(_search.isEmpty ? 'Chưa có sách nào' : 'Không tìm thấy kết quả',
-            style: const TextStyle(color: Colors.grey)));
+        child: Text(
+          _search.isEmpty ? 'Chưa có sách nào' : 'Không tìm thấy kết quả',
+          style: const TextStyle(color: Colors.grey),
+        ),
+      );
     }
 
-    return RefreshIndicator(
-      onRefresh: _loadAll,
-      child: ListView.separated(
-        padding: const EdgeInsets.fromLTRB(12, 12, 12, kBottomNavigationBarHeight + 12),
-        itemCount: list.length,
-        separatorBuilder: (_, a) => const SizedBox(height: 8),
-        itemBuilder: (_, i) => _buildCard(list[i]),
+    return Column(
+      children: [
+        Expanded(
+          child: RefreshIndicator(
+            onRefresh: () => _loadAll(resetPage: true),
+            child: ListView.separated(
+              padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
+              itemCount: list.length,
+              separatorBuilder: (_, a) => const SizedBox(height: 8),
+              itemBuilder: (_, i) => _buildCard(list[i]),
+            ),
+          ),
+        ),
+        _buildPagination(),
+      ],
+    );
+  }
+
+  Widget _buildPagination() {
+    if (_totalPages <= 1) return const SizedBox.shrink();
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border(top: BorderSide(color: Colors.grey[200]!)),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            IconButton(
+              icon: const Icon(Icons.chevron_left),
+              onPressed: _currentPage > 1
+                  ? () {
+                      _currentPage--;
+                      _loadAll();
+                    }
+                  : null,
+              color: const Color(0xFF1565C0),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              'Trang $_currentPage / $_totalPages',
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+            ),
+            const SizedBox(width: 8),
+            IconButton(
+              icon: const Icon(Icons.chevron_right),
+              onPressed: _currentPage < _totalPages
+                  ? () {
+                      _currentPage++;
+                      _loadAll();
+                    }
+                  : null,
+              color: const Color(0xFF1565C0),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -269,20 +401,33 @@ class _AdminBooksTabState extends State<AdminBooksTab> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
-        boxShadow: [BoxShadow(color: Colors.black.withAlpha(8), blurRadius: 5, offset: const Offset(0, 2))],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withAlpha(8),
+            blurRadius: 5,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Row(
         children: [
           // Cover
           ClipRRect(
-            borderRadius: const BorderRadius.horizontal(left: Radius.circular(14)),
+            borderRadius: const BorderRadius.horizontal(
+              left: Radius.circular(14),
+            ),
             child: SizedBox(
-              width: 64, height: 84,
+              width: 64,
+              height: 84,
               child: (book['image_url'] ?? '').toString().isNotEmpty
-                  ? Image.network(imageUrl,
+                  ? Image.network(
+                      imageUrl,
                       fit: BoxFit.cover,
-                      headers: kIsWeb ? const {'ngrok-skip-browser-warning': 'true'} : const {},
-                      errorBuilder: (_, err, stack) => _placeholder())
+                      headers: kIsWeb
+                          ? const {'ngrok-skip-browser-warning': 'true'}
+                          : const {},
+                      errorBuilder: (_, err, stack) => _placeholder(),
+                    )
                   : _placeholder(),
             ),
           ),
@@ -294,42 +439,64 @@ class _AdminBooksTabState extends State<AdminBooksTab> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title,
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                      maxLines: 2, overflow: TextOverflow.ellipsis),
-                  const SizedBox(height: 3),
-                  Text(author, style: const TextStyle(fontSize: 11, color: Colors.grey)),
-                  const SizedBox(height: 3),
-                  Row(children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFE3F2FD),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Text(catName,
-                          style: const TextStyle(fontSize: 10, color: Color(0xFF1565C0))),
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
                     ),
-                    const SizedBox(width: 6),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: status == 'available'
-                            ? Colors.green.withAlpha(20)
-                            : Colors.orange.withAlpha(20),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Text(
-                        status == 'available' ? 'Có sẵn' : 'Đã mượn',
-                        style: TextStyle(
-                          fontSize: 10,
-                          color: status == 'available'
-                              ? Colors.green[700]
-                              : Colors.orange[700],
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    author,
+                    style: const TextStyle(fontSize: 11, color: Colors.grey),
+                  ),
+                  const SizedBox(height: 3),
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFE3F2FD),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          catName,
+                          style: const TextStyle(
+                            fontSize: 10,
+                            color: Color(0xFF1565C0),
+                          ),
                         ),
                       ),
-                    ),
-                  ]),
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: status == 'available'
+                              ? Colors.green.withAlpha(20)
+                              : Colors.orange.withAlpha(20),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          status == 'available' ? 'Có sẵn' : 'Đã mượn',
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: status == 'available'
+                                ? Colors.green[700]
+                                : Colors.orange[700],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ),
@@ -339,26 +506,36 @@ class _AdminBooksTabState extends State<AdminBooksTab> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Container(
-                width: 34, height: 34,
+                width: 34,
+                height: 34,
                 decoration: BoxDecoration(
                   color: const Color(0xFF1565C0).withAlpha(15),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: IconButton(
-                  icon: const Icon(Icons.edit_outlined, size: 16, color: Color(0xFF1565C0)),
+                  icon: const Icon(
+                    Icons.edit_outlined,
+                    size: 16,
+                    color: Color(0xFF1565C0),
+                  ),
                   onPressed: () => _openForm(book: book),
                   padding: EdgeInsets.zero,
                 ),
               ),
               const SizedBox(height: 6),
               Container(
-                width: 34, height: 34,
+                width: 34,
+                height: 34,
                 decoration: BoxDecoration(
                   color: Colors.red.withAlpha(15),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: IconButton(
-                  icon: Icon(Icons.delete_outline, size: 16, color: Colors.red[600]),
+                  icon: Icon(
+                    Icons.delete_outline,
+                    size: 16,
+                    color: Colors.red[600],
+                  ),
                   onPressed: () => _deleteBook(id, title),
                   padding: EdgeInsets.zero,
                 ),
@@ -399,7 +576,6 @@ class _BookFormSheet extends StatefulWidget {
   State<_BookFormSheet> createState() => _BookFormSheetState();
 }
 
-
 class _BookFormSheetState extends State<_BookFormSheet> {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _titleCtrl;
@@ -428,14 +604,23 @@ class _BookFormSheetState extends State<_BookFormSheet> {
     final b = widget.book;
     final p = widget.prefill;
     // Nhập dữ liệu: ưu tiên book (đang sửa) → prefill (từ AI) → rỗng
-    _titleCtrl     = TextEditingController(text: b?['title']?.toString()     ?? p?.title     ?? '');
-    _authorCtrl    = TextEditingController(text: b?['author']?.toString()    ?? p?.author    ?? '');
-    _publisherCtrl = TextEditingController(text: b?['publisher']?.toString() ?? p?.publisher ?? '');
-    _yearCtrl      = TextEditingController(
-        text: b?['year']?.toString() ?? p?.publishYear?.toString() ?? '');
-    _descCtrl      = TextEditingController(text: b?['description']?.toString() ?? p?.description ?? '');
-    _categoryId    = b != null ? int.tryParse('${b['category_id']}') : null;
-    
+    _titleCtrl = TextEditingController(
+      text: b?['title']?.toString() ?? p?.title ?? '',
+    );
+    _authorCtrl = TextEditingController(
+      text: b?['author']?.toString() ?? p?.author ?? '',
+    );
+    _publisherCtrl = TextEditingController(
+      text: b?['publisher']?.toString() ?? p?.publisher ?? '',
+    );
+    _yearCtrl = TextEditingController(
+      text: b?['year']?.toString() ?? p?.publishYear?.toString() ?? '',
+    );
+    _descCtrl = TextEditingController(
+      text: b?['description']?.toString() ?? p?.description ?? '',
+    );
+    _categoryId = b != null ? int.tryParse('${b['category_id']}') : null;
+
     if (widget.scannedImage != null) {
       _pickedImage = XFile(widget.scannedImage!.path);
       _imageChanged = true;
@@ -473,7 +658,8 @@ class _BookFormSheetState extends State<_BookFormSheet> {
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
       builder: (ctx) => SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 12),
@@ -481,19 +667,26 @@ class _BookFormSheetState extends State<_BookFormSheet> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Container(
-                width: 36, height: 4,
+                width: 36,
+                height: 4,
                 margin: const EdgeInsets.only(bottom: 12),
                 decoration: BoxDecoration(
-                    color: Colors.grey[300],
-                    borderRadius: BorderRadius.circular(2)),
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2),
+                ),
               ),
-              const Text('Chọn ảnh bìa',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+              const Text(
+                'Chọn ảnh bìa',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+              ),
               const SizedBox(height: 8),
               ListTile(
                 leading: const CircleAvatar(
                   backgroundColor: Color(0xFFE3F2FD),
-                  child: Icon(Icons.photo_library_outlined, color: Color(0xFF1565C0)),
+                  child: Icon(
+                    Icons.photo_library_outlined,
+                    color: Color(0xFF1565C0),
+                  ),
                 ),
                 title: const Text('Chọn từ thư viện ảnh'),
                 onTap: () {
@@ -505,7 +698,10 @@ class _BookFormSheetState extends State<_BookFormSheet> {
                 ListTile(
                   leading: const CircleAvatar(
                     backgroundColor: Color(0xFFF3E5F5),
-                    child: Icon(Icons.camera_alt_outlined, color: Colors.purple),
+                    child: Icon(
+                      Icons.camera_alt_outlined,
+                      color: Colors.purple,
+                    ),
                   ),
                   title: const Text('Chụp ảnh mới'),
                   onTap: () {
@@ -541,15 +737,22 @@ class _BookFormSheetState extends State<_BookFormSheet> {
         final filename = _pickedImage!.name;
         if (kIsWeb) {
           final bytes = await _pickedImage!.readAsBytes();
-          data.files.add(MapEntry(
-            'image',
-            MultipartFile.fromBytes(bytes, filename: filename),
-          ));
+          data.files.add(
+            MapEntry(
+              'image',
+              MultipartFile.fromBytes(bytes, filename: filename),
+            ),
+          );
         } else {
-          data.files.add(MapEntry(
-            'image',
-            await MultipartFile.fromFile(_pickedImage!.path, filename: filename),
-          ));
+          data.files.add(
+            MapEntry(
+              'image',
+              await MultipartFile.fromFile(
+                _pickedImage!.path,
+                filename: filename,
+              ),
+            ),
+          );
         }
       }
 
@@ -560,19 +763,25 @@ class _BookFormSheetState extends State<_BookFormSheet> {
       }
 
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(_isEdit ? '✅ Cập nhật sách thành công!' : '✅ Thêm sách thành công!'),
-        backgroundColor: Colors.green,
-        behavior: SnackBarBehavior.floating,
-      ));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            _isEdit ? '✅ Cập nhật sách thành công!' : '✅ Thêm sách thành công!',
+          ),
+          backgroundColor: Colors.green,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
       widget.onSaved();
     } on DioException catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(e.response?.data?['error'] ?? 'Lỗi xử lý'),
-        backgroundColor: Colors.red,
-        behavior: SnackBarBehavior.floating,
-      ));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(e.response?.data?['error'] ?? 'Lỗi xử lý'),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -594,13 +803,24 @@ class _BookFormSheetState extends State<_BookFormSheet> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Center(child: Container(
-                width: 36, height: 4, margin: const EdgeInsets.only(bottom: 16),
-                decoration: BoxDecoration(
-                    color: Colors.grey[300], borderRadius: BorderRadius.circular(2)),
-              )),
-              Text(_isEdit ? 'Chỉnh sửa Sách' : 'Thêm Sách Mới',
-                  style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
+              Center(
+                child: Container(
+                  width: 36,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[300],
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              Text(
+                _isEdit ? 'Chỉnh sửa Sách' : 'Thêm Sách Mới',
+                style: const TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
               const SizedBox(height: 16),
 
               // ── Ảnh bìa ──────────────────────────────────────────
@@ -608,74 +828,137 @@ class _BookFormSheetState extends State<_BookFormSheet> {
               const SizedBox(height: 16),
 
               _label('Tên sách *'),
-              _field(_titleCtrl, 'Nhập tên sách...', Icons.book_outlined,
-                  validator: (v) => (v == null || v.trim().isEmpty) ? 'Bắt buộc' : null),
+              _field(
+                _titleCtrl,
+                'Nhập tên sách...',
+                Icons.book_outlined,
+                validator: (v) =>
+                    (v == null || v.trim().isEmpty) ? 'Bắt buộc' : null,
+              ),
               const SizedBox(height: 12),
               _label('Tác giả *'),
-              _field(_authorCtrl, 'Nhập tác giả...', Icons.person_outline,
-                  validator: (v) => (v == null || v.trim().isEmpty) ? 'Bắt buộc' : null),
+              _field(
+                _authorCtrl,
+                'Nhập tác giả...',
+                Icons.person_outline,
+                validator: (v) =>
+                    (v == null || v.trim().isEmpty) ? 'Bắt buộc' : null,
+              ),
               const SizedBox(height: 12),
               _label('Thể loại'),
               DropdownButtonFormField<int>(
                 initialValue: _categoryId,
-                hint: const Text('Chọn thể loại', style: TextStyle(fontSize: 13)),
+                hint: const Text(
+                  'Chọn thể loại',
+                  style: TextStyle(fontSize: 13),
+                ),
                 onChanged: (v) => setState(() => _categoryId = v),
                 decoration: _dec(Icons.category_outlined),
-                items: widget.categories.map((c) => DropdownMenuItem<int>(
-                  value: int.tryParse('${c['id']}'),
-                  child: Text(c['name'] ?? '', style: const TextStyle(fontSize: 13)),
-                )).toList(),
+                items: widget.categories
+                    .map(
+                      (c) => DropdownMenuItem<int>(
+                        value: int.tryParse('${c['id']}'),
+                        child: Text(
+                          c['name'] ?? '',
+                          style: const TextStyle(fontSize: 13),
+                        ),
+                      ),
+                    )
+                    .toList(),
                 style: const TextStyle(fontSize: 13, color: Colors.black87),
               ),
               const SizedBox(height: 12),
-              Row(children: [
-                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  _label('NXB'),
-                  _field(_publisherCtrl, 'Nhà xuất bản', Icons.business_outlined),
-                ])),
-                const SizedBox(width: 10),
-                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  _label('Năm'),
-                  _field(_yearCtrl, 'VD: 2023', Icons.calendar_today_outlined,
-                      keyboardType: TextInputType.number),
-                ])),
-              ]),
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _label('NXB'),
+                        _field(
+                          _publisherCtrl,
+                          'Nhà xuất bản',
+                          Icons.business_outlined,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _label('Năm'),
+                        _field(
+                          _yearCtrl,
+                          'VD: 2023',
+                          Icons.calendar_today_outlined,
+                          keyboardType: TextInputType.number,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
               const SizedBox(height: 12),
               _label('Mô tả'),
               TextFormField(
                 controller: _descCtrl,
                 maxLines: 3,
                 style: const TextStyle(fontSize: 13),
-                decoration: _dec(Icons.description_outlined).copyWith(hintText: 'Mô tả sách...'),
+                decoration: _dec(
+                  Icons.description_outlined,
+                ).copyWith(hintText: 'Mô tả sách...'),
               ),
               const SizedBox(height: 20),
-              Row(children: [
-                Expanded(child: OutlinedButton(
-                  onPressed: () => Navigator.pop(context),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.grey,
-                    side: BorderSide(color: Colors.grey[300]!),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    padding: const EdgeInsets.symmetric(vertical: 14),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.grey,
+                        side: BorderSide(color: Colors.grey[300]!),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                      ),
+                      child: const Text('Hủy'),
+                    ),
                   ),
-                  child: const Text('Hủy'),
-                )),
-                const SizedBox(width: 12),
-                Expanded(child: ElevatedButton(
-                  onPressed: _saving ? null : _save,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF1565C0),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    elevation: 0,
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: _saving ? null : _save,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF1565C0),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        elevation: 0,
+                      ),
+                      child: _saving
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : Text(
+                              _isEdit ? 'Lưu thay đổi' : 'Thêm sách',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                    ),
                   ),
-                  child: _saving
-                      ? const SizedBox(width: 18, height: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                      : Text(_isEdit ? 'Lưu thay đổi' : 'Thêm sách',
-                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                )),
-              ]),
+                ],
+              ),
             ],
           ),
         ),
@@ -696,59 +979,85 @@ class _BookFormSheetState extends State<_BookFormSheet> {
             border: Border.all(color: Colors.grey[300]!),
           ),
           padding: const EdgeInsets.all(12),
-          child: Row(children: [
-            // Thumbnail 80×110
-            ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: SizedBox(width: 80, height: 110, child: _buildPreview()),
-            ),
-            const SizedBox(width: 14),
-            Expanded(child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton.icon(
-                    onPressed: _showImageSourceSheet,
-                    icon: const Icon(Icons.photo_library_outlined, size: 16),
-                    label: Text(
-                      _imageChanged ? 'Đổi ảnh khác'
-                          : (_existingImageUrl.isNotEmpty ? 'Thay ảnh mới' : 'Chọn ảnh'),
-                      style: const TextStyle(fontSize: 13),
-                    ),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: const Color(0xFF1565C0),
-                      side: const BorderSide(color: Color(0xFF1565C0)),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    ),
-                  ),
-                ),
-                if (_imageChanged)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 6),
-                    child: SizedBox(
+          child: Row(
+            children: [
+              // Thumbnail 80×110
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: SizedBox(width: 80, height: 110, child: _buildPreview()),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SizedBox(
                       width: double.infinity,
-                      child: TextButton.icon(
-                        onPressed: () => setState(() {
-                          _pickedImage = null;
-                          _imageChanged = false;
-                        }),
-                        icon: const Icon(Icons.close, size: 14, color: Colors.red),
-                        label: const Text('Hủy chọn ảnh',
-                            style: TextStyle(fontSize: 12, color: Colors.red)),
-                        style: TextButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      child: OutlinedButton.icon(
+                        onPressed: _showImageSourceSheet,
+                        icon: const Icon(
+                          Icons.photo_library_outlined,
+                          size: 16,
+                        ),
+                        label: Text(
+                          _imageChanged
+                              ? 'Đổi ảnh khác'
+                              : (_existingImageUrl.isNotEmpty
+                                    ? 'Thay ảnh mới'
+                                    : 'Chọn ảnh'),
+                          style: const TextStyle(fontSize: 13),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: const Color(0xFF1565C0),
+                          side: const BorderSide(color: Color(0xFF1565C0)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                const SizedBox(height: 6),
-                Text('JPG, PNG, WEBP · Tối đa 5MB\nẢnh sẽ được nén tự động',
-                    style: TextStyle(fontSize: 10, color: Colors.grey[500])),
-              ],
-            )),
-          ]),
+                    if (_imageChanged)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 6),
+                        child: SizedBox(
+                          width: double.infinity,
+                          child: TextButton.icon(
+                            onPressed: () => setState(() {
+                              _pickedImage = null;
+                              _imageChanged = false;
+                            }),
+                            icon: const Icon(
+                              Icons.close,
+                              size: 14,
+                              color: Colors.red,
+                            ),
+                            label: const Text(
+                              'Hủy chọn ảnh',
+                              style: TextStyle(fontSize: 12, color: Colors.red),
+                            ),
+                            style: TextButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'JPG, PNG, WEBP · Tối đa 5MB\nẢnh sẽ được nén tự động',
+                      style: TextStyle(fontSize: 10, color: Colors.grey[500]),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ],
     );
@@ -776,7 +1085,9 @@ class _BookFormSheetState extends State<_BookFormSheet> {
       return Image.network(
         _existingImageUrl,
         fit: BoxFit.cover,
-        headers: kIsWeb ? const {'ngrok-skip-browser-warning': 'true'} : const {},
+        headers: kIsWeb
+            ? const {'ngrok-skip-browser-warning': 'true'}
+            : const {},
         errorBuilder: (_, err, stack) => _placeholder(),
         loadingBuilder: (_, child, progress) =>
             progress == null ? child : _placeholder(loading: true),
@@ -789,25 +1100,45 @@ class _BookFormSheetState extends State<_BookFormSheet> {
     color: Colors.grey[200],
     child: Center(
       child: loading
-          ? const SizedBox(width: 20, height: 20,
-              child: CircularProgressIndicator(strokeWidth: 2))
-          : Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-              Icon(Icons.add_photo_alternate_outlined, size: 28, color: Colors.grey[400]),
-              const SizedBox(height: 4),
-              Text('Chưa\ncó ảnh',
+          ? const SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          : Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.add_photo_alternate_outlined,
+                  size: 28,
+                  color: Colors.grey[400],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Chưa\ncó ảnh',
                   style: TextStyle(fontSize: 9, color: Colors.grey[400]),
-                  textAlign: TextAlign.center),
-            ]),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
     ),
   );
 
   Widget _label(String t) => Padding(
     padding: const EdgeInsets.only(bottom: 5),
-    child: Text(t, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+    child: Text(
+      t,
+      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+    ),
   );
 
-  Widget _field(TextEditingController ctrl, String hint, IconData icon,
-      {String? Function(String?)? validator, TextInputType? keyboardType}) {
+  Widget _field(
+    TextEditingController ctrl,
+    String hint,
+    IconData icon, {
+    String? Function(String?)? validator,
+    TextInputType? keyboardType,
+  }) {
     return TextFormField(
       controller: ctrl,
       validator: validator,
@@ -824,17 +1155,20 @@ class _BookFormSheetState extends State<_BookFormSheet> {
     fillColor: Colors.grey[50],
     contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
     enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.grey[300]!)),
+      borderRadius: BorderRadius.circular(10),
+      borderSide: BorderSide(color: Colors.grey[300]!),
+    ),
     focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFF1565C0))),
+      borderRadius: BorderRadius.circular(10),
+      borderSide: const BorderSide(color: Color(0xFF1565C0)),
+    ),
     errorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Colors.red)),
+      borderRadius: BorderRadius.circular(10),
+      borderSide: const BorderSide(color: Colors.red),
+    ),
     focusedErrorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Colors.red)),
+      borderRadius: BorderRadius.circular(10),
+      borderSide: const BorderSide(color: Colors.red),
+    ),
   );
 }
-
-
-
-
-

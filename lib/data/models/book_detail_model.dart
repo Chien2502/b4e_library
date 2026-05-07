@@ -14,7 +14,7 @@ class BookDetail {
   final String description;
   final String imageUrl;      // Mobile: file tĩnh
   final String webImageUrl;   // Web: qua proxy
-  final String status;
+  String status;
 
   BookDetail({
     required this.id,
@@ -34,6 +34,7 @@ class BookDetail {
   String get displayImageUrl => kIsWeb ? webImageUrl : imageUrl;
 
   bool get isAvailable => status == 'available';
+  set isAvailable(bool value) => status = value ? 'available' : 'borrowed';
 
   factory BookDetail.fromJson(Map<String, dynamic> json) {
     final String rawImage = json['image_url']?.toString() ?? '';

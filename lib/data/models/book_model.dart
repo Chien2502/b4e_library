@@ -8,7 +8,7 @@ class Book {
   final String category;
   final String imageUrl;   // Dùng cho mobile (static file)
   final String webImageUrl; // Dùng cho web (qua PHP proxy)
-  final String status;
+  String status;
 
   Book({
     required this.id,
@@ -22,6 +22,9 @@ class Book {
 
   // Widget sẽ gọi getter này — tự động chọn URL đúng theo platform
   String get displayImageUrl => kIsWeb ? webImageUrl : imageUrl;
+
+  bool get isAvailable => status == 'available';
+  set isAvailable(bool value) => status = value ? 'available' : 'borrowed';
 
   factory Book.fromJson(Map<String, dynamic> json) {
     final String rawImage = json['image_url']?.toString() ?? '';

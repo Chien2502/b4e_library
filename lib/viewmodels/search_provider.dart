@@ -1,9 +1,11 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 import '../core/constants/api_constants.dart';
 import '../core/network/dio_client.dart';
 import '../data/models/book_model.dart';
 import '../data/models/category_model.dart';
+import '../core/services/push_notification_service.dart';
 
 class SearchProvider with ChangeNotifier {
   final DioClient _dioClient = DioClient();
@@ -22,6 +24,33 @@ class SearchProvider with ChangeNotifier {
   int _totalPages = 1;
   int _totalItems = 0;
   static const int _limit = 12;
+
+  StreamSubscription<Map<String, dynamic>>? _fcmSubscription;
+
+  SearchProvider() {
+    _fcmSubscription = PushNotificationService().bookStatusStream.listen((data) {
+      final int bookId = data['book_id'];
+      final bool isAvail = data['is_available'];
+      _updateBookStatus(bookId, isAvail);
+    });
+  }
+
+  void _updateBookStatus(int bookId, bool isAvail) {
+    bool changed = false;
+    for (var book in _books) {
+      if (book.id == bookId && book.isAvailable != isAvail) {
+        book.isAvailable = isAvail;
+        changed = true;
+      }
+    }
+    if (changed) notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _fcmSubscription?.cancel();
+    super.dispose();
+  }
 
   // ── Bộ lọc hiện tại ────────────────────────────────────────────
   String _searchQuery = '';

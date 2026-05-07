@@ -1,9 +1,11 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 import 'package:provider/provider.dart';
 import '../../core/constants/api_constants.dart';
 import '../../core/network/dio_client.dart';
+import '../../core/services/push_notification_service.dart';
 import '../../data/models/book_model.dart';
 import '../../data/models/book_detail_model.dart';
 import '../../viewmodels/auth_provider.dart';
@@ -15,11 +17,7 @@ class BookDetailScreen extends StatefulWidget {
   final int bookId;
   final String heroTag; // Dùng cho Hero animation từ card
 
-  const BookDetailScreen({
-    super.key,
-    required this.bookId,
-    this.heroTag = '',
-  });
+  const BookDetailScreen({super.key, required this.bookId, this.heroTag = ''});
 
   @override
   State<BookDetailScreen> createState() => _BookDetailScreenState();
@@ -33,15 +31,61 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
   String _errorMessage = '';
   bool _isBorrowing = false;
 
+  StreamSubscription<Map<String, dynamic>>? _fcmSubscription;
+
   // ── Related books ──────────────────────────────────────────────
   List<Book> _relatedBooks = [];
   bool _isLoadingRelated = false;
   String _relatedType = 'random'; // 'category' hoặc 'random'
+  final ScrollController _relatedScrollController = ScrollController();
+  bool _isLoadingMoreRelated = false;
+  bool _hasMoreRelated = true;
 
   @override
   void initState() {
     super.initState();
     _fetchBookDetail();
+    _setupFCMListener();
+    _relatedScrollController.addListener(_onRelatedScroll);
+  }
+
+  void _onRelatedScroll() {
+    if (_relatedScrollController.position.pixels >=
+        _relatedScrollController.position.maxScrollExtent - 50) {
+      _loadMoreRelatedBooks();
+    }
+  }
+
+  void _setupFCMListener() {
+    _fcmSubscription = PushNotificationService().bookStatusStream.listen((
+      data,
+    ) {
+      if (data['book_id'] == widget.bookId) {
+        final bool isAvail = data['is_available'];
+
+        if (_book != null && _book!.isAvailable && !isAvail) {
+          if (mounted) {
+            _showSnackBar(
+              'Rất tiếc, ai đó vừa mượn cuốn sách này vài giây trước.',
+              isError: true,
+            );
+          }
+        }
+
+        if (mounted && _book != null && _book!.isAvailable != isAvail) {
+          setState(() {
+            _book!.isAvailable = isAvail;
+          });
+        }
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _fcmSubscription?.cancel();
+    _relatedScrollController.dispose();
+    super.dispose();
   }
 
   // ── Gọi API read_single.php?id={bookId} ────────────────────────
@@ -70,9 +114,13 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
       }
     } on DioException catch (e) {
       if (e.response?.statusCode == 404) {
-        setState(() => _errorMessage = 'Sách này không còn tồn tại hoặc đã bị xóa.');
+        setState(
+          () => _errorMessage = 'Sách này không còn tồn tại hoặc đã bị xóa.',
+        );
       } else {
-        setState(() => _errorMessage = 'Lỗi kết nối: ${e.message ?? e.type.name}');
+        setState(
+          () => _errorMessage = 'Lỗi kết nối: ${e.message ?? e.type.name}',
+        );
       }
     } catch (e) {
       setState(() => _errorMessage = 'Đã xảy ra lỗi: $e');
@@ -87,7 +135,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
     try {
       final Response res = await _dioClient.dio.get(
         ApiConstants.relatedBooks,
-        queryParameters: {'book_id': widget.bookId, 'limit': 6},
+        queryParameters: {'book_id': widget.bookId, 'limit': 10},
       );
       if (res.statusCode == 200 && res.data['data'] != null) {
         final list = (res.data['data'] as List)
@@ -96,12 +144,45 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
         setState(() {
           _relatedBooks = list;
           _relatedType = res.data['type']?.toString() ?? 'random';
+          _hasMoreRelated = list.length == 10;
         });
       }
     } catch (_) {
       // Không ảnh hưởng giao diện chính
     } finally {
       if (mounted) setState(() => _isLoadingRelated = false);
+    }
+  }
+
+  Future<void> _loadMoreRelatedBooks() async {
+    if (_isLoadingRelated || _isLoadingMoreRelated || !_hasMoreRelated) return;
+    setState(() => _isLoadingMoreRelated = true);
+    try {
+      final Response res = await _dioClient.dio.get(
+        ApiConstants.relatedBooks,
+        queryParameters: {'book_id': widget.bookId, 'limit': 10},
+      );
+      if (res.statusCode == 200 && res.data['data'] != null) {
+        final list = (res.data['data'] as List)
+            .map((j) => Book.fromJson(j))
+            .toList();
+
+        int addedCount = 0;
+        setState(() {
+          for (var book in list) {
+            if (!_relatedBooks.any((b) => b.id == book.id)) {
+              _relatedBooks.add(book);
+              addedCount++;
+            }
+          }
+          if (addedCount == 0) {
+            _hasMoreRelated = false;
+          }
+        });
+      }
+    } catch (_) {
+    } finally {
+      if (mounted) setState(() => _isLoadingMoreRelated = false);
     }
   }
 
@@ -119,7 +200,8 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
       context: context,
       builder: (ctx) => CustomDialog(
         title: 'Xác nhận mượn sách',
-        message: 'Bạn muốn mượn cuốn "${_book!.title}"?\n\nHạn trả dự kiến: 14 ngày kể từ hôm nay.',
+        message:
+            'Bạn muốn mượn cuốn "${_book!.title}"?\n\nHạn trả dự kiến: 14 ngày kể từ hôm nay.',
         icon: Icons.auto_stories_rounded,
         iconColor: Colors.blueAccent,
         confirmLabel: 'Mượn ngay',
@@ -138,8 +220,10 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
       );
 
       if (res.statusCode == 201) {
-        _showSnackBar('Mượn sách thành công! Vui lòng trả đúng hạn. 📚',
-            isError: false);
+        _showSnackBar(
+          'Mượn sách thành công! Vui lòng trả đúng hạn.',
+          isError: false,
+        );
         // Fetch ngay để badge đỏ hiện lên tức thì
         if (mounted) {
           context.read<NotificationProvider>().fetchNotifications();
@@ -180,20 +264,21 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
-            const Icon(Icons.lock_outline,
-                color: Color(0xFF1E88E5), size: 40),
+            const Icon(Icons.lock_outline, color: Color(0xFF1E88E5), size: 40),
             const SizedBox(height: 12),
             const Text(
               'Đăng nhập để mượn sách',
-              style: TextStyle(
-                  fontSize: 17, fontWeight: FontWeight.bold),
+              style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             Text(
               'Bạn cần có tài khoản B4E để có thể mượn sách.\nĐăng nhập miễn phí, nhanh chóng!',
               textAlign: TextAlign.center,
               style: TextStyle(
-                  fontSize: 13, color: Colors.grey[600], height: 1.5),
+                fontSize: 13,
+                color: Colors.grey[600],
+                height: 1.5,
+              ),
             ),
             const SizedBox(height: 24),
             SizedBox(
@@ -213,23 +298,27 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF1E88E5),
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12)),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                   elevation: 0,
                 ),
                 child: const Text(
                   'Đăng nhập ngay',
                   style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 15,
-                      fontWeight: FontWeight.bold),
+                    color: Colors.white,
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ),
             const SizedBox(height: 10),
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: Text('Để sau',
-                  style: TextStyle(color: Colors.grey[500], fontSize: 13)),
+              child: Text(
+                'Để sau',
+                style: TextStyle(color: Colors.grey[500], fontSize: 13),
+              ),
             ),
           ],
         ),
@@ -258,8 +347,11 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
         backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new,
-              color: Colors.black87, size: 20),
+          icon: const Icon(
+            Icons.arrow_back_ios_new,
+            color: Colors.black87,
+            size: 20,
+          ),
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
@@ -288,9 +380,11 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
           children: [
             const Icon(Icons.error_outline, color: Colors.red, size: 48),
             const SizedBox(height: 12),
-            Text(_errorMessage,
-                textAlign: TextAlign.center,
-                style: const TextStyle(color: Colors.red)),
+            Text(
+              _errorMessage,
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Colors.red),
+            ),
             const SizedBox(height: 16),
             ElevatedButton.icon(
               onPressed: _fetchBookDetail,
@@ -360,9 +454,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
         children: [
           // Ảnh bìa sách
           Hero(
-            tag: widget.heroTag.isNotEmpty
-                ? widget.heroTag
-                : 'book_${book.id}',
+            tag: widget.heroTag.isNotEmpty ? widget.heroTag : 'book_${book.id}',
             child: ClipRRect(
               borderRadius: BorderRadius.circular(12),
               child: SizedBox(
@@ -375,7 +467,8 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                         headers: kIsWeb
                             ? const {'ngrok-skip-browser-warning': 'true'}
                             : const {},
-                        errorBuilder: (_, err, stack) => _buildImagePlaceholder(),
+                        errorBuilder: (_, err, stack) =>
+                            _buildImagePlaceholder(),
                       )
                     : _buildImagePlaceholder(),
               ),
@@ -407,16 +500,16 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                 // Badge trạng thái
                 Container(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 12, vertical: 5),
+                    horizontal: 12,
+                    vertical: 5,
+                  ),
                   decoration: BoxDecoration(
                     color: book.isAvailable
                         ? const Color(0xFFE8F5E9)
                         : const Color(0xFFFFF3E0),
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(
-                      color: book.isAvailable
-                          ? Colors.green
-                          : Colors.orange,
+                      color: book.isAvailable ? Colors.green : Colors.orange,
                       width: 1,
                     ),
                   ),
@@ -578,7 +671,11 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
   Widget _buildBottomAction(BookDetail book, bool isAvailable) {
     return Container(
       padding: EdgeInsets.fromLTRB(
-          20, 12, 20, MediaQuery.of(context).padding.bottom + 12),
+        20,
+        12,
+        20,
+        MediaQuery.of(context).padding.bottom + 12,
+      ),
       decoration: BoxDecoration(
         color: Colors.white,
         boxShadow: [
@@ -597,7 +694,9 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                 onPressed: _isBorrowing ? null : _handleBorrow,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.blueAccent,
-                  disabledBackgroundColor: Colors.blueAccent.withValues(alpha: 0.6),
+                  disabledBackgroundColor: Colors.blueAccent.withValues(
+                    alpha: 0.6,
+                  ),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(14),
                   ),
@@ -612,8 +711,11 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                           color: Colors.white,
                         ),
                       )
-                    : const Icon(Icons.book_outlined,
-                        color: Colors.white, size: 20),
+                    : const Icon(
+                        Icons.book_outlined,
+                        color: Colors.white,
+                        size: 20,
+                      ),
                 label: Text(
                   _isBorrowing ? 'Đang xử lý...' : 'Mượn sách này',
                   style: const TextStyle(
@@ -631,8 +733,11 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                     borderRadius: BorderRadius.circular(14),
                   ),
                 ),
-                icon: Icon(Icons.access_time,
-                    color: Colors.orange[400], size: 20),
+                icon: Icon(
+                  Icons.access_time,
+                  color: Colors.orange[400],
+                  size: 20,
+                ),
                 label: Text(
                   'Sách đang được mượn',
                   style: TextStyle(
@@ -668,7 +773,8 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Container(
-              width: 140, height: 16,
+              width: 140,
+              height: 16,
               decoration: BoxDecoration(
                 color: Colors.grey[200],
                 borderRadius: BorderRadius.circular(8),
@@ -732,11 +838,22 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
           SizedBox(
             height: 210,
             child: ListView.separated(
+              controller: _relatedScrollController,
               scrollDirection: Axis.horizontal,
               physics: const BouncingScrollPhysics(),
-              itemCount: _relatedBooks.length,
+              itemCount: _relatedBooks.length + (_isLoadingMoreRelated ? 1 : 0),
               separatorBuilder: (_, __) => const SizedBox(width: 12),
-              itemBuilder: (_, i) => _buildRelatedBookCard(_relatedBooks[i]),
+              itemBuilder: (_, i) {
+                if (i == _relatedBooks.length) {
+                  return const SizedBox(
+                    width: 50,
+                    child: Center(
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  );
+                }
+                return _buildRelatedBookCard(_relatedBooks[i]);
+              },
             ),
           ),
         ],
@@ -770,7 +887,8 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                 child: SizedBox(
                   width: 120,
                   height: 155,
-                  child: book.displayImageUrl.isNotEmpty &&
+                  child:
+                      book.displayImageUrl.isNotEmpty &&
                           !book.displayImageUrl.contains('placeholder')
                       ? Image.network(
                           book.displayImageUrl,
@@ -778,8 +896,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                           headers: kIsWeb
                               ? const {'ngrok-skip-browser-warning': 'true'}
                               : const {},
-                          errorBuilder: (_, __, ___) =>
-                              _buildMiniPlaceholder(),
+                          errorBuilder: (_, __, ___) => _buildMiniPlaceholder(),
                         )
                       : _buildMiniPlaceholder(),
                 ),
@@ -809,9 +926,12 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
     return Container(
       color: Colors.grey[200],
       child: Center(
-        child: Icon(Icons.menu_book_outlined, size: 30, color: Colors.grey[400]),
+        child: Icon(
+          Icons.menu_book_outlined,
+          size: 30,
+          color: Colors.grey[400],
+        ),
       ),
     );
   }
 }
-

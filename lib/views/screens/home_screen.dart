@@ -6,6 +6,7 @@ import '../../viewmodels/book_provider.dart';
 import '../../viewmodels/recommendation_provider.dart';
 import '../../data/models/book_model.dart';
 import 'book_detail_screen.dart';
+import 'book_list_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -207,6 +208,7 @@ class _HomeScreenState extends State<HomeScreen> {
     String? subtitle,
     required List<Book> books,
   }) {
+    final displayBooks = books.take(3).toList();
     return [
       SliverToBoxAdapter(
         child: Padding(
@@ -236,148 +238,39 @@ class _HomeScreenState extends State<HomeScreen> {
                   ],
                 ),
               ),
+              TextButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => BookListScreen(
+                        title: title,
+                        books: books,
+                      ),
+                    ),
+                  );
+                },
+                style: TextButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+                child: Text('Xem thêm', style: TextStyle(fontSize: 13, color: color, fontWeight: FontWeight.bold)),
+              ),
             ],
           ),
         ),
       ),
-      SliverToBoxAdapter(
-        child: SizedBox(
-          height: 220,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            itemCount: books.length,
-            itemBuilder: (context, i) =>
-                _BookCard(book: books[i]),
-          ),
+      SliverList(
+        delegate: SliverChildBuilderDelegate(
+          (context, i) => BookListCard(book: displayBooks[i]),
+          childCount: displayBooks.length,
         ),
       ),
     ];
   }
 }
 
-// ════════════════════════════════════════════════════════════════
-// Book Card — hiển thị trong horizontal scroll
-// ════════════════════════════════════════════════════════════════
-class _BookCard extends StatelessWidget {
-  final Book book;
-  const _BookCard({required this.book});
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () => Navigator.push(
-        context,
-        MaterialPageRoute(
-            builder: (_) => BookDetailScreen(bookId: book.id)),
-      ),
-      child: Container(
-        width: 130,
-        margin: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(14),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.08),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // ── Cover ────────────────────────────────────────────
-            ClipRRect(
-              borderRadius:
-                  const BorderRadius.vertical(top: Radius.circular(14)),
-              child: SizedBox(
-                height: 140,
-                width: double.infinity,
-                child: book.displayImageUrl.isNotEmpty
-                    ? Image.network(
-                        book.displayImageUrl,
-                        fit: BoxFit.cover,
-                        headers: kIsWeb
-                            ? const {
-                                'ngrok-skip-browser-warning': 'true'
-                              }
-                            : const {},
-                        errorBuilder: (context, error, stack) =>
-                            _placeholder(),
-                      )
-                    : _placeholder(),
-              ),
-            ),
-            // ── Info ─────────────────────────────────────────────
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(8, 6, 8, 4),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      book.title,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.black87,
-                        height: 1.3,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      book.author,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                          fontSize: 10, color: Colors.grey[500]),
-                    ),
-                    const Spacer(),
-                    // Status badge
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: book.status == 'available'
-                            ? Colors.green.withValues(alpha: 0.12)
-                            : Colors.red.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Text(
-                        book.status == 'available'
-                            ? 'Còn sách'
-                            : 'Đang mượn',
-                        style: TextStyle(
-                          fontSize: 9,
-                          fontWeight: FontWeight.w600,
-                          color: book.status == 'available'
-                              ? Colors.green[700]
-                              : Colors.red[700],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _placeholder() => Container(
-        color: Colors.grey[200],
-        child: const Center(
-          child: Icon(Icons.menu_book_outlined,
-              size: 36, color: Colors.grey),
-        ),
-      );
-}
 
 // ════════════════════════════════════════════════════════════════
 // Shimmer placeholder khi đang tải
@@ -389,13 +282,12 @@ class _SectionShimmer extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      child: Row(
+      child: Column(
         children: List.generate(
           3,
           (_) => Container(
-            width: 130,
-            height: 185,
-            margin: const EdgeInsets.only(right: 10),
+            height: 120,
+            margin: const EdgeInsets.only(bottom: 12),
             decoration: BoxDecoration(
               color: Colors.grey[200],
               borderRadius: BorderRadius.circular(14),

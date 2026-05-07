@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "555685478848",
+    "project_id": "b4e-library-adbea43b",
+    "storage_bucket": "b4e-library-adbea43b.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:555685478848:android:e8daf7b511eab6930a4825",
+        "android_client_info": {
+          "package_name": "com.example.b4e_library"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBvjVeCl1Ry0WAMGH-Phu9LIH2IxNxy3I0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

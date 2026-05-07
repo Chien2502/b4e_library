@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
@@ -6,6 +7,7 @@ import '../core/database/cache_keys.dart';
 import '../core/database/database_service.dart';
 import '../core/network/dio_client.dart';
 import '../data/models/book_model.dart';
+import '../core/services/push_notification_service.dart';
 
 class BookProvider with ChangeNotifier {
   final DioClient _dioClient = DioClient();
@@ -17,9 +19,44 @@ class BookProvider with ChangeNotifier {
   bool _isLoading = false;
   String _errorMessage = '';
 
+  StreamSubscription<Map<String, dynamic>>? _fcmSubscription;
+
   List<Book> get books => _filteredBooks;
   bool get isLoading => _isLoading;
   String get errorMessage => _errorMessage;
+
+  BookProvider() {
+    _fcmSubscription = PushNotificationService().bookStatusStream.listen((data) {
+      final int bookId = data['book_id'];
+      final bool isAvail = data['is_available'];
+      _updateBookStatus(bookId, isAvail);
+    });
+  }
+
+  void _updateBookStatus(int bookId, bool isAvail) {
+    bool changed = false;
+    for (var book in _books) {
+      if (book.id == bookId && book.isAvailable != isAvail) {
+        book.isAvailable = isAvail;
+        changed = true;
+      }
+    }
+    for (var book in _filteredBooks) {
+      if (book.id == bookId && book.isAvailable != isAvail) {
+        book.isAvailable = isAvail;
+        changed = true;
+      }
+    }
+    if (changed) {
+      notifyListeners();
+    }
+  }
+
+  @override
+  void dispose() {
+    _fcmSubscription?.cancel();
+    super.dispose();
+  }
 
   /// Trả về Map (thể loại, danh sách sách) với:
   /// - Số thể loại = 1/4 tổng số thể loại hiện có, tối đa 8.

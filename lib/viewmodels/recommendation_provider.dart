@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
@@ -7,10 +8,46 @@ import '../core/database/database_service.dart';
 import '../core/network/dio_client.dart';
 import '../data/models/book_model.dart';
 import '../data/models/recommendation_model.dart';
+import '../core/services/push_notification_service.dart';
 
 class RecommendationProvider with ChangeNotifier {
   final DioClient _dioClient = DioClient();
   final _cache = DatabaseService.instance;
+
+  StreamSubscription<Map<String, dynamic>>? _fcmSubscription;
+
+  RecommendationProvider() {
+    _fcmSubscription = PushNotificationService().bookStatusStream.listen((data) {
+      final int bookId = data['book_id'];
+      final bool isAvail = data['is_available'];
+      _updateBookStatus(bookId, isAvail);
+    });
+  }
+
+  void _updateBookStatus(int bookId, bool isAvail) {
+    bool changed = false;
+    for (var book in _popular) {
+      if (book.id == bookId && book.isAvailable != isAvail) {
+        book.isAvailable = isAvail;
+        changed = true;
+      }
+    }
+    if (_result != null) {
+      for (var book in _result!.recommendations) {
+        if (book.id == bookId && book.isAvailable != isAvail) {
+          book.isAvailable = isAvail;
+          changed = true;
+        }
+      }
+    }
+    if (changed) notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _fcmSubscription?.cancel();
+    super.dispose();
+  }
 
   // ── Popular books (public) ─────────────────────────────────────
   List<Book> _popular = [];

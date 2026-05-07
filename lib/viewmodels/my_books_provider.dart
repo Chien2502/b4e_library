@@ -1,8 +1,10 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 import '../core/constants/api_constants.dart';
 import '../core/network/dio_client.dart';
 import '../data/models/borrowing_model.dart';
+import '../core/services/push_notification_service.dart';
 
 class MyBooksProvider with ChangeNotifier {
   final DioClient _dioClient = DioClient();
@@ -11,8 +13,22 @@ class MyBooksProvider with ChangeNotifier {
   bool _isLoading = false;
   String _errorMessage = '';
 
-  // Tập ID đang trong quá trình gửi trả (hiển thị "Đang xử lý...")
   final Set<int> _returningIds = {};
+  
+  StreamSubscription<Map<String, dynamic>>? _fcmSubscription;
+
+  MyBooksProvider() {
+    _fcmSubscription = PushNotificationService().bookStatusStream.listen((data) {
+      // Re-fetch borrowings when any book status changes
+      fetchMyBorrowings();
+    });
+  }
+
+  @override
+  void dispose() {
+    _fcmSubscription?.cancel();
+    super.dispose();
+  }
 
   // ── Getters ────────────────────────────────────────────────────
   List<Borrowing> get borrowings => _borrowings;

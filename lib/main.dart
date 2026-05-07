@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'core/database/database_service.dart';
 import 'core/database/static_content_seeder.dart';
 import 'viewmodels/auth_provider.dart';
@@ -9,9 +10,17 @@ import 'viewmodels/my_books_provider.dart';
 import 'viewmodels/notification_provider.dart';
 import 'viewmodels/recommendation_provider.dart';
 import 'main_wrapper.dart';
+import 'core/services/push_notification_service.dart';
+import 'firebase_options.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+
+  // Khởi tạo FCM
+  await PushNotificationService().init();
 
   // Khởi tạo SQLite local cache
   await DatabaseService.instance.init();

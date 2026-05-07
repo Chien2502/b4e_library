@@ -23,6 +23,7 @@ class ApiConstants {
   static const String getProfile = '/auth/get_profile.php';
   static const String updateProfile = '/auth/update_profile.php';
   static const String uploadAvatar  = '/auth/upload_avatar.php';
+  static const String refreshToken  = '/auth/refresh.php';
 
   // ========== NOTIFICATIONS ==========
   static const String getNotifications     = '/notifications/index.php';
