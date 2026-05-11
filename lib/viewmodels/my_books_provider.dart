@@ -107,8 +107,7 @@ class MyBooksProvider with ChangeNotifier {
         return msg;
       }
     } on DioException catch (e) {
-      final serverMsg = e.response?.data?['error'];
-      return serverMsg ?? 'Lỗi kết nối: ${e.message}';
+      return NetworkErrorHandler.getFriendlyMessage(e);
     } finally {
       _returningIds.remove(borrowId);
       notifyListeners();

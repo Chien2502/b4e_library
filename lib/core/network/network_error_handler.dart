@@ -1,4 +1,4 @@
-import 'package:dio/dio';
+import 'package:dio/dio.dart';
 
 class NetworkErrorHandler {
   /// Chuyển đổi các Exception/Error từ hệ thống thành thông báo thân thiện với người dùng.
@@ -72,7 +72,6 @@ class NetworkErrorHandler {
           return 'Kết nối không an toàn (Lỗi chứng chỉ bảo mật).';
           
         case DioExceptionType.unknown:
-        default:
           final errorMessage = error.message ?? '';
           if (errorMessage.contains('SocketException') || errorMessage.contains('NetworkIsUnreachable')) {
             return 'Không có kết nối mạng. Vui lòng kiểm tra Wi-Fi hoặc dữ liệu di động.';

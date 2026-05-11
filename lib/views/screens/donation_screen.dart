@@ -6,6 +6,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import '../../core/constants/api_constants.dart';
 import '../../core/network/dio_client.dart';
+import '../../core/network/network_error_handler.dart';
 import '../../viewmodels/notification_provider.dart';
 import '../../data/models/donation_record_model.dart';
 import 'admin/book_scan_sheet.dart'; // BookScanSheet + BookLookupResult
@@ -136,8 +137,7 @@ class _DonationScreenState extends State<DonationScreen>
       }
     } on DioException catch (e) {
       _showSnackBar(
-        e.response?.data?['error'] ??
-            'Lỗi kết nối: ${e.message ?? e.type.name}',
+        NetworkErrorHandler.getFriendlyMessage(e),
         isError: true,
       );
     } finally {
@@ -165,7 +165,7 @@ class _DonationScreenState extends State<DonationScreen>
       }
     } on DioException catch (e) {
       setState(
-        () => _historyError = 'Lỗi kết nối: ${e.message ?? e.type.name}',
+        () => _historyError = NetworkErrorHandler.getFriendlyMessage(e),
       );
     } finally {
       setState(() => _isHistoryLoading = false);

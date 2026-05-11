@@ -116,8 +116,7 @@ class RecommendationProvider with ChangeNotifier {
         );
       }
     } on DioException catch (e) {
-      _popularError =
-          e.response?.data?['error'] ?? 'Không tải được sách phổ biến.';
+      _popularError = NetworkErrorHandler.getFriendlyMessage(e);
     } finally {
       _isPopularLoading = false;
       notifyListeners();
@@ -167,7 +166,7 @@ class RecommendationProvider with ChangeNotifier {
         }
       }
     } on DioException catch (e) {
-      _recError = e.response?.data?['error'] ?? 'Không tải được gợi ý.';
+      _recError = NetworkErrorHandler.getFriendlyMessage(e);
       _result = null;
     } finally {
       _isRecLoading = false;

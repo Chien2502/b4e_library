@@ -7,6 +7,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import '../../../core/constants/api_constants.dart';
 import '../../../core/network/dio_client.dart';
+import '../../../core/network/network_error_handler.dart';
 import '../../../core/services/book_ai_service.dart';
 import '../../../viewmodels/book_provider.dart';
 import '../../../viewmodels/recommendation_provider.dart';
@@ -117,7 +118,7 @@ class _AdminBooksTabState extends State<AdminBooksTab> {
         _categories = cats;
       });
     } on DioException catch (e) {
-      setState(() => _error = e.response?.data?['message'] ?? e.message);
+      setState(() => _error = NetworkErrorHandler.getFriendlyMessage(e));
     } finally {
       setState(() => _loading = false);
     }

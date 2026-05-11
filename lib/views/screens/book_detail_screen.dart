@@ -5,6 +5,7 @@ import 'package:dio/dio.dart';
 import 'package:provider/provider.dart';
 import '../../core/constants/api_constants.dart';
 import '../../core/network/dio_client.dart';
+import '../../core/network/network_error_handler.dart';
 import '../../core/services/push_notification_service.dart';
 import '../../data/models/book_model.dart';
 import '../../data/models/book_detail_model.dart';
@@ -121,11 +122,11 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
         );
       } else {
         setState(
-          () => _errorMessage = 'Lỗi kết nối: ${e.message ?? e.type.name}',
+          () => _errorMessage = NetworkErrorHandler.getFriendlyMessage(e),
         );
       }
     } catch (e) {
-      setState(() => _errorMessage = 'Đã xảy ra lỗi: $e');
+      setState(() => _errorMessage = NetworkErrorHandler.getFriendlyMessage(e));
     } finally {
       setState(() => _isLoading = false);
     }
@@ -237,8 +238,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
         SnackBarUtils.showError(context, msg);
       }
     } on DioException catch (e) {
-      final serverMsg = e.response?.data?['error'];
-      SnackBarUtils.showError(context, serverMsg ?? 'Lỗi kết nối: ${e.message}');
+      SnackBarUtils.showError(context, NetworkErrorHandler.getFriendlyMessage(e));
     } finally {
       setState(() => _isBorrowing = false);
     }

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 import '../../../core/constants/api_constants.dart';
 import '../../../core/network/dio_client.dart';
+import '../../../core/network/network_error_handler.dart';
 import '../../widgets/custom_dialog.dart';
 import '../../../core/utils/snackbar_utils.dart';
 
@@ -33,7 +34,7 @@ class _AdminBorrowingsTabState extends State<AdminBorrowingsTab> {
       final list = List<Map<String, dynamic>>.from(res.data['data'] ?? []);
       setState(() => _items = list);
     } on DioException catch (e) {
-      setState(() => _error = e.response?.data?['error'] ?? e.message);
+      setState(() => _error = NetworkErrorHandler.getFriendlyMessage(e));
     } finally {
       setState(() => _loading = false);
     }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 import '../../../core/constants/api_constants.dart';
 import '../../../core/network/dio_client.dart';
+import '../../../core/network/network_error_handler.dart';
 import '../../widgets/custom_dialog.dart';
 import '../../../core/utils/snackbar_utils.dart';
 
@@ -111,12 +112,11 @@ class _AdminDonationsTabState extends State<AdminDonationsTab> {
 
       setState(() => _items = list);
     } on DioException catch (e) {
-      final msg = _parseDioError(e);
-      setState(() => _error = msg);
-    } on TypeError catch (e) {
-      setState(() => _error = 'Lỗi phân tích dữ liệu: $e');
+      setState(() => _error = NetworkErrorHandler.getFriendlyMessage(e));
+    } on TypeError {
+      setState(() => _error = 'Lỗi phân tích dữ liệu. Vui lòng thử lại.');
     } catch (e) {
-      setState(() => _error = e.toString().replaceAll('Exception: ', ''));
+      setState(() => _error = NetworkErrorHandler.getFriendlyMessage(e));
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -136,9 +136,9 @@ class _AdminDonationsTabState extends State<AdminDonationsTab> {
       _showSnack('✅ Đã tiếp nhận sách vào kho thành công!', false);
       _load();
     } on DioException catch (e) {
-      _showSnack(_parseDioError(e), true);
+      _showSnack(NetworkErrorHandler.getFriendlyMessage(e), true);
     } catch (e) {
-      _showSnack(e.toString(), true);
+      _showSnack(NetworkErrorHandler.getFriendlyMessage(e), true);
     }
   }
 
@@ -154,24 +154,13 @@ class _AdminDonationsTabState extends State<AdminDonationsTab> {
       _showSnack('Đã từ chối yêu cầu quyên góp.', false);
       _load();
     } on DioException catch (e) {
-      _showSnack(_parseDioError(e), true);
+      _showSnack(NetworkErrorHandler.getFriendlyMessage(e), true);
     } catch (e) {
-      _showSnack(e.toString(), true);
+      _showSnack(NetworkErrorHandler.getFriendlyMessage(e), true);
     }
   }
 
   // ── Helpers ───────────────────────────────────────────────────────
-  String _parseDioError(DioException e) {
-    try {
-      final data = e.response?.data;
-      if (data is Map) {
-        return data['error']?.toString() ??
-            data['message']?.toString() ??
-            'Lỗi server ${e.response?.statusCode}';
-      }
-    } catch (_) {}
-    return e.message ?? 'Lỗi kết nối';
-  }
 
   void _showSnack(String msg, bool isError) {
     if (!mounted) return;

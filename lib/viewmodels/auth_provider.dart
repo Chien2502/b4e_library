@@ -6,6 +6,7 @@ import '../core/constants/api_constants.dart';
 import '../core/database/cache_keys.dart';
 import '../core/database/database_service.dart';
 import '../core/network/dio_client.dart';
+import '../core/network/network_error_handler.dart';
 
 // ── User data model (fields từ SELECT id, username, email, phone, address, role, avatar) ──
 class UserProfile {
@@ -149,8 +150,7 @@ class AuthProvider with ChangeNotifier {
       }
       return res.data?['error'] ?? 'Cập nhật thất bại.';
     } on DioException catch (e) {
-      return e.response?.data?['error'] ??
-          'Lỗi kết nối: ${e.message ?? e.type.name}';
+      return NetworkErrorHandler.getFriendlyMessage(e);
     }
   }
 
@@ -181,10 +181,9 @@ class AuthProvider with ChangeNotifier {
       }
       return res.data?['error'] ?? 'Upload thất bại.';
     } on DioException catch (e) {
-      return e.response?.data?['error'] ??
-          'Lỗi kết nối: ${e.message ?? e.type.name}';
+      return NetworkErrorHandler.getFriendlyMessage(e);
     } catch (e) {
-      return 'Lỗi: $e';
+      return NetworkErrorHandler.getFriendlyMessage(e);
     }
   }
 

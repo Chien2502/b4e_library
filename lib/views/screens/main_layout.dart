@@ -28,12 +28,15 @@ class _MainLayoutState extends State<MainLayout> {
   // Tab nào yêu cầu đăng nhập:  2 = Sách của tôi, 3 = Quyên góp, 4 = Hồ sơ
   static const _protectedTabs = {2, 3, 4};
 
-  final List<Widget> _screens = const [
-    HomeScreen(),
-    SearchScreen(),
-    MyBooksScreen(),
-    DonationScreen(),
-    ProfileScreen(),
+  // Mỗi màn hình bọc bởi RepaintBoundary (tránh vẽ lại màn hình ẩn) và
+  // SafeArea(bottom: false) cho tab 1-4 (HomeScreen đã có AppBar xử lý).
+  // Danh sách static final → tạo một lần duy nhất, không bao giờ rebuild.
+  static final List<Widget> _screens = [
+    const RepaintBoundary(child: HomeScreen()),
+    const RepaintBoundary(child: SafeArea(bottom: false, child: SearchScreen())),
+    const RepaintBoundary(child: SafeArea(bottom: false, child: MyBooksScreen())),
+    const RepaintBoundary(child: SafeArea(bottom: false, child: DonationScreen())),
+    const RepaintBoundary(child: SafeArea(bottom: false, child: ProfileScreen())),
   ];
 
   @override
@@ -50,24 +53,23 @@ class _MainLayoutState extends State<MainLayout> {
     super.didChangeDependencies();
     final status = context.read<AuthProvider>().status;
 
-    if (status == AuthStatus.authenticated && _lastStatus != AuthStatus.authenticated) {
+    if (status == AuthStatus.authenticated &&
+        _lastStatus != AuthStatus.authenticated) {
       // Defer ra sau frame hiện tại để tránh setState-during-build
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
           context.read<NotificationProvider>().fetchNotifications();
-          // Fetch recommendations khi đăng nhập
           context.read<RecommendationProvider>().fetchRecommendations();
           context.read<RecommendationProvider>().fetchPopular();
         }
       });
     }
-    if (status == AuthStatus.unauthenticated && _lastStatus == AuthStatus.authenticated) {
+    if (status == AuthStatus.unauthenticated &&
+        _lastStatus == AuthStatus.authenticated) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
           context.read<NotificationProvider>().clear();
-          // Xóa dữ liệu cá nhân khi đăng xuất
           context.read<RecommendationProvider>().clearPersonalized();
-          // Reset về trang chủ sau khi đăng xuất
           setState(() => _currentIndex = 0);
         }
       });
@@ -87,6 +89,8 @@ class _MainLayoutState extends State<MainLayout> {
       final guard = AuthGuard.requireLogin(context, returnTabIndex: index);
       if (!guard) return; // đã push LoginScreen, không chuyển tab
     }
+    // Early-return: không setState nếu nhấn lại tab đang active
+    if (_currentIndex == index) return;
     setState(() => _currentIndex = index);
   }
 
@@ -98,7 +102,10 @@ class _MainLayoutState extends State<MainLayout> {
     return Scaffold(
       backgroundColor: Colors.grey[50],
 
-      // ── Top App Bar (chỉ hiển thị ở Trang chủ) ──────────────────
+      // ── Top App Bar ────────────────────────────────────────────────
+      // Chỉ hiển thị AppBar ở tab Trang chủ (tab 0).
+      // Dùng conditional null thay vì PreferredSize(Size.zero) để tránh
+      // lỗi layout body trên một số phiên bản Flutter.
       appBar: _currentIndex == 0
           ? AppBar(
               backgroundColor: Colors.white,
@@ -114,7 +121,6 @@ class _MainLayoutState extends State<MainLayout> {
               ),
               centerTitle: true,
               actions: [
-                // Nút chuông thông báo (chỉ hiện khi đã đăng nhập)
                 if (isLoggedIn)
                   Consumer<NotificationProvider>(
                     builder: (ctx, notifProv, _) {
@@ -131,12 +137,10 @@ class _MainLayoutState extends State<MainLayout> {
                               Navigator.push(
                                 ctx,
                                 FadeSlideRoute(
-                                  page: const NotificationScreen(),
-                                ),
+                                    page: const NotificationScreen()),
                               );
                             },
                           ),
-                          // Badge đỏ chỉ hiện khi có thông báo chưa đọc
                           if (notifProv.hasUnread)
                             Positioned(
                               top: 8,
@@ -171,30 +175,17 @@ class _MainLayoutState extends State<MainLayout> {
             )
           : null,
 
-      // ── Body ─────────────────────────────────────────────────────
-      // Khi không có AppBar (tab != 0), bọc SafeArea để tránh bị
-      // che bởi status bar của hệ thống.
-      body: AnimatedSwitcher(
-        duration: const Duration(milliseconds: 300),
-        switchInCurve: Curves.easeOutCubic,
-        child: KeyedSubtree(
-          key: ValueKey<int>(_currentIndex),
-          child: _currentIndex == 0
-              ? IndexedStack(
-                  index: _currentIndex,
-                  children: _screens,
-                )
-              : SafeArea(
-                  bottom: false,
-                  child: IndexedStack(
-                    index: _currentIndex,
-                    children: _screens,
-                  ),
-                ),
-        ),
+      // ── Body ───────────────────────────────────────────────────────
+      // IndexedStack giữ tất cả màn hình trong bộ nhớ và chỉ hiển thị
+      // tab đang active. KHÔNG bọc AnimatedSwitcher bên ngoài — vì
+      // ValueKey thay đổi sẽ destroy/recreate toàn bộ widget tree,
+      // phá vỡ hoàn toàn mục đích của IndexedStack.
+      body: IndexedStack(
+        index: _currentIndex,
+        children: _screens,
       ),
 
-      // ── Bottom Navigation Bar ─────────────────────────────────────
+      // ── Bottom Navigation Bar ──────────────────────────────────────
       bottomNavigationBar: LiquidNavBar(
         currentIndex: _currentIndex,
         onTap: _onTabTapped,
@@ -229,4 +220,3 @@ class _MainLayoutState extends State<MainLayout> {
     );
   }
 }
-

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 import '../../../core/constants/api_constants.dart';
 import '../../../core/network/dio_client.dart';
+import '../../../core/network/network_error_handler.dart';
 
 class AdminDashboardTab extends StatefulWidget {
   /// Callback chuyển tab trong AdminScreen.
@@ -34,12 +35,9 @@ class _AdminDashboardTabState extends State<AdminDashboardTab> {
       final res = await _dio.get(ApiConstants.adminStats);
       setState(() => _stats = Map<String, dynamic>.from(res.data));
     } on DioException catch (e) {
-      final data = e.response?.data;
-      setState(() => _error = data is Map
-          ? data['error']?.toString() ?? data['message']?.toString()
-          : e.message);
+      setState(() => _error = NetworkErrorHandler.getFriendlyMessage(e));
     } catch (e) {
-      setState(() => _error = e.toString());
+      setState(() => _error = NetworkErrorHandler.getFriendlyMessage(e));
     } finally {
       if (mounted) setState(() => _loading = false);
     }
