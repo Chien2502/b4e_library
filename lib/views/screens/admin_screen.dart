@@ -8,7 +8,7 @@ import 'admin/admin_borrowings_tab.dart';
 import 'admin/admin_donations_tab.dart';
 import 'admin/admin_users_tab.dart';
 import '../widgets/custom_dialog.dart';
-
+import '../widgets/liquid_nav_bar.dart';
 
 class AdminScreen extends StatefulWidget {
   const AdminScreen({super.key});
@@ -20,23 +20,75 @@ class AdminScreen extends StatefulWidget {
 class _AdminScreenState extends State<AdminScreen> {
   int _currentIndex = 0;
 
-  final List<_NavItem> _navItems = const [
-    _NavItem(Icons.dashboard_outlined, Icons.dashboard, 'Tổng quan'),
-    _NavItem(Icons.menu_book_outlined, Icons.menu_book, 'Sách'),
-    _NavItem(Icons.category_outlined, Icons.category, 'Thể loại'),
-    _NavItem(Icons.volunteer_activism_outlined, Icons.volunteer_activism, 'Quyên góp'),
-    _NavItem(Icons.swap_horiz_outlined, Icons.swap_horiz, 'Mượn/Trả'),
-    _NavItem(Icons.people_outlined, Icons.people, 'Người dùng'),
+  // Lazy build: chỉ tạo tab khi lần đầu được visit
+  final Set<int> _visitedTabs = {0};
+  final Map<int, Widget> _tabCache = {};
+
+  static const List<LiquidNavItem> _navItems = [
+    LiquidNavItem(
+      icon: Icons.dashboard_outlined,
+      activeIcon: Icons.dashboard,
+      label: 'Tổng quan',
+    ),
+    LiquidNavItem(
+      icon: Icons.menu_book_outlined,
+      activeIcon: Icons.menu_book,
+      label: 'Sách',
+    ),
+    LiquidNavItem(
+      icon: Icons.category_outlined,
+      activeIcon: Icons.category,
+      label: 'Thể loại',
+    ),
+    LiquidNavItem(
+      icon: Icons.volunteer_activism_outlined,
+      activeIcon: Icons.volunteer_activism,
+      label: 'Quyên góp',
+    ),
+    LiquidNavItem(
+      icon: Icons.swap_horiz_outlined,
+      activeIcon: Icons.swap_horiz,
+      label: 'Mượn/Trả',
+    ),
+    LiquidNavItem(
+      icon: Icons.people_outlined,
+      activeIcon: Icons.people,
+      label: 'Người dùng',
+    ),
   ];
 
-  List<Widget> _buildTabs() => [
-        AdminDashboardTab(onNavigate: (i) => setState(() => _currentIndex = i)),
-        const AdminBooksTab(),
-        const AdminCategoriesTab(),
-        const AdminDonationsTab(),
-        const AdminBorrowingsTab(),
-        const AdminUsersTab(),
-      ];
+  Widget _getTab(int index) {
+    return _tabCache.putIfAbsent(index, () {
+      switch (index) {
+        case 0:
+          return AdminDashboardTab(
+            onNavigate: (i) => setState(() {
+              _visitedTabs.add(i);
+              _currentIndex = i;
+            }),
+          );
+        case 1:
+          return const AdminBooksTab();
+        case 2:
+          return const AdminCategoriesTab();
+        case 3:
+          return const AdminDonationsTab();
+        case 4:
+          return const AdminBorrowingsTab();
+        case 5:
+        default:
+          return const AdminUsersTab();
+      }
+    });
+  }
+
+  void _onTabTapped(int index) {
+    if (_currentIndex == index) return;
+    setState(() {
+      _visitedTabs.add(index);
+      _currentIndex = index;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -49,11 +101,11 @@ class _AdminScreenState extends State<AdminScreen> {
         backgroundColor: const Color(0xFF1565C0),
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.white),
-        title: Row(
+        title: const Row(
           children: [
-            const Icon(Icons.local_library, color: Colors.white, size: 22),
-            const SizedBox(width: 8),
-            const Text(
+            Icon(Icons.local_library, color: Colors.white, size: 22),
+            SizedBox(width: 8),
+            Text(
               'B4E Admin',
               style: TextStyle(
                 color: Colors.white,
@@ -79,9 +131,10 @@ class _AdminScreenState extends State<AdminScreen> {
                       : Text(
                           username.isNotEmpty ? username[0].toUpperCase() : '?',
                           style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold),
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                 ),
                 const SizedBox(width: 6),
@@ -95,15 +148,29 @@ class _AdminScreenState extends State<AdminScreen> {
         ],
       ),
       drawer: _buildDrawer(context),
-      body: IndexedStack(
-        index: _currentIndex,
-        children: _buildTabs(),
+
+      // ── Body: Lazy Offstage stack (giống main_layout) ──────────────
+      body: Stack(
+        children: List.generate(6, (i) {
+          return Offstage(
+            offstage: _currentIndex != i,
+            child: _visitedTabs.contains(i)
+                ? _getTab(i)
+                : const SizedBox.shrink(),
+          );
+        }),
       ),
-      bottomNavigationBar: _buildMobileBottomNav(),
+
+      // ── Bottom nav: LiquidNavBar ───────────────────────────────────
+      bottomNavigationBar: LiquidNavBar(
+        currentIndex: _currentIndex,
+        onTap: _onTabTapped,
+        items: _navItems,
+      ),
     );
   }
 
-  // ── Drawer sidebar (như web) ─────────────────────────────────────
+  // ── Drawer sidebar ───────────────────────────────────────────────
   Widget _buildDrawer(BuildContext context) {
     final user = context.watch<AuthProvider>().userProfile;
     final username = user?.username ?? 'Admin';
@@ -180,21 +247,21 @@ class _AdminScreenState extends State<AdminScreen> {
                       color: selected
                           ? const Color(0xFF1565C0)
                           : Colors.grey[800],
-                      fontWeight: selected
-                          ? FontWeight.bold
-                          : FontWeight.normal,
+                      fontWeight:
+                          selected ? FontWeight.bold : FontWeight.normal,
                       fontSize: 14,
                     ),
                   ),
                   selected: selected,
-                  selectedTileColor: const Color(0xFF1565C0).withAlpha(15),
+                  selectedTileColor:
+                      const Color(0xFF1565C0).withAlpha(15),
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8)),
                   horizontalTitleGap: 8,
                   contentPadding: const EdgeInsets.symmetric(
                       horizontal: 16, vertical: 2),
                   onTap: () {
-                    setState(() => _currentIndex = i);
+                    _onTabTapped(i);
                     Navigator.pop(context);
                   },
                 );
@@ -208,34 +275,35 @@ class _AdminScreenState extends State<AdminScreen> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 const Divider(height: 1),
-
                 // Quay về trang chủ
                 ListTile(
                   leading: const Icon(Icons.home_outlined,
                       color: Color(0xFF1565C0), size: 22),
                   title: const Text('Trang chủ',
-                      style: TextStyle(fontSize: 14, color: Color(0xFF1565C0))),
+                      style: TextStyle(
+                          fontSize: 14, color: Color(0xFF1565C0))),
                   onTap: () {
                     Navigator.pop(context);
                     Navigator.popUntil(context, (route) => route.isFirst);
                   },
-                  contentPadding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+                  contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16, vertical: 2),
                 ),
-
                 // Đăng xuất
                 ListTile(
-                  leading:
-                      const Icon(Icons.logout, color: Colors.red, size: 22),
+                  leading: const Icon(Icons.logout,
+                      color: Colors.red, size: 22),
                   title: const Text('Đăng xuất',
-                      style: TextStyle(fontSize: 14, color: Colors.red)),
+                      style:
+                          TextStyle(fontSize: 14, color: Colors.red)),
                   onTap: () async {
                     Navigator.pop(context);
                     final confirm = await showDialog<bool>(
                       context: context,
                       builder: (ctx) => CustomDialog(
                         title: 'Đăng xuất',
-                        message: 'Bạn có chắc muốn đăng xuất khỏi tài khoản Quản trị?',
+                        message:
+                            'Bạn có chắc muốn đăng xuất khỏi tài khoản Quản trị?',
                         icon: Icons.admin_panel_settings_rounded,
                         iconColor: Colors.red,
                         confirmLabel: 'Đăng xuất',
@@ -246,12 +314,13 @@ class _AdminScreenState extends State<AdminScreen> {
                     if (confirm == true && context.mounted) {
                       await context.read<AuthProvider>().logout();
                       if (context.mounted) {
-                        Navigator.popUntil(context, (route) => route.isFirst);
+                        Navigator.popUntil(
+                            context, (route) => route.isFirst);
                       }
                     }
                   },
-                  contentPadding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+                  contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16, vertical: 2),
                 ),
               ],
             ),
@@ -260,46 +329,4 @@ class _AdminScreenState extends State<AdminScreen> {
       ),
     );
   }
-
-  // ── Mobile bottom nav (6 icon nhỏ) ──────────────────────────────
-  Widget _buildMobileBottomNav() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-              color: Colors.black.withAlpha(15),
-              blurRadius: 8,
-              offset: const Offset(0, -2))
-        ],
-      ),
-      child: BottomNavigationBar(
-        currentIndex: _currentIndex,
-        onTap: (i) => setState(() => _currentIndex = i),
-        type: BottomNavigationBarType.fixed,
-        backgroundColor: Colors.white,
-        selectedItemColor: const Color(0xFF1565C0),
-        unselectedItemColor: Colors.grey[500],
-        selectedFontSize: 9.5,
-        unselectedFontSize: 9.5,
-        selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold),
-        elevation: 0,
-        items: _navItems
-            .map((e) => BottomNavigationBarItem(
-                  icon: Icon(e.icon, size: 22),
-                  activeIcon: Icon(e.activeIcon, size: 22),
-                  label: e.label,
-                ))
-            .toList(),
-      ),
-    );
-  }
 }
-
-class _NavItem {
-  final IconData icon;
-  final IconData activeIcon;
-  final String label;
-  const _NavItem(this.icon, this.activeIcon, this.label);
-}
-

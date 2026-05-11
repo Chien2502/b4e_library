@@ -114,6 +114,51 @@ class MyBooksProvider with ChangeNotifier {
     }
   }
 
+  // ────────────────────────────────────────────────────────────────
+  // 3. Xin gia hạn mượn sách
+  //    → POST /api/borrowings/renew.php { borrow_id, renew_days }
+  // ────────────────────────────────────────────────────────────────
+  Future<String?> renewBorrowing(int borrowId, int days) async {
+    try {
+      final Response res = await _dioClient.dio.post(
+        ApiConstants.userRenewBorrowing,
+        data: {
+          'borrow_id': borrowId,
+          'renew_days': days,
+        },
+      );
+
+      if (res.statusCode == 200) {
+        // Cập nhật local: renew_status -> 'pending'
+        _borrowings = _borrowings.map((b) {
+          if (b.id == borrowId) {
+            return Borrowing(
+              id: b.id,
+              bookId: b.bookId,
+              title: b.title,
+              author: b.author,
+              imageUrl: b.imageUrl,
+              webImageUrl: b.webImageUrl,
+              status: b.status,
+              borrowDate: b.borrowDate,
+              dueDate: b.dueDate,
+              returnDate: b.returnDate,
+              renewStatus: 'pending',
+              renewDays: days,
+            );
+          }
+          return b;
+        }).toList();
+        notifyListeners();
+        return null;
+      } else {
+        return res.data?['error'] ?? 'Không thể gia hạn.';
+      }
+    } on DioException catch (e) {
+      return NetworkErrorHandler.getFriendlyMessage(e);
+    }
+  }
+
   void clear() {
     _borrowings = [];
     _errorMessage = '';

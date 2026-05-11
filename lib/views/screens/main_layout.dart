@@ -28,16 +28,38 @@ class _MainLayoutState extends State<MainLayout> {
   // Tab nào yêu cầu đăng nhập:  2 = Sách của tôi, 3 = Quyên góp, 4 = Hồ sơ
   static const _protectedTabs = {2, 3, 4};
 
-  // Mỗi màn hình bọc bởi RepaintBoundary (tránh vẽ lại màn hình ẩn) và
-  // SafeArea(bottom: false) cho tab 1-4 (HomeScreen đã có AppBar xử lý).
-  // Danh sách static final → tạo một lần duy nhất, không bao giờ rebuild.
-  static final List<Widget> _screens = [
-    const RepaintBoundary(child: HomeScreen()),
-    const RepaintBoundary(child: SafeArea(bottom: false, child: SearchScreen())),
-    const RepaintBoundary(child: SafeArea(bottom: false, child: MyBooksScreen())),
-    const RepaintBoundary(child: SafeArea(bottom: false, child: DonationScreen())),
-    const RepaintBoundary(child: SafeArea(bottom: false, child: ProfileScreen())),
-  ];
+  // Lazy build: chỉ tạo màn hình khi lần đầu được ghé thăm.
+  // Tab 0 (HomeScreen) luôn được tạo sẵn vì là màn hình mặc định.
+  final Set<int> _visitedTabs = {0};
+  // Cache các widget đã build — mỗi màn hình chỉ được tạo đúng 1 lần.
+  final Map<int, Widget> _screenCache = {};
+
+  // Factory cho từng tab — chỉ gọi khi cần
+  Widget _getScreen(int index) {
+    return _screenCache.putIfAbsent(index, () {
+      switch (index) {
+        case 0:
+          return const RepaintBoundary(child: HomeScreen());
+        case 1:
+          return const RepaintBoundary(
+            child: SafeArea(bottom: false, child: SearchScreen()),
+          );
+        case 2:
+          return const RepaintBoundary(
+            child: SafeArea(bottom: false, child: MyBooksScreen()),
+          );
+        case 3:
+          return const RepaintBoundary(
+            child: SafeArea(bottom: false, child: DonationScreen()),
+          );
+        case 4:
+        default:
+          return const RepaintBoundary(
+            child: SafeArea(bottom: false, child: ProfileScreen()),
+          );
+      }
+    });
+  }
 
   @override
   void initState() {
@@ -91,7 +113,10 @@ class _MainLayoutState extends State<MainLayout> {
     }
     // Early-return: không setState nếu nhấn lại tab đang active
     if (_currentIndex == index) return;
-    setState(() => _currentIndex = index);
+    setState(() {
+      _visitedTabs.add(index); // đánh dấu đã visit để lazy-build
+      _currentIndex = index;
+    });
   }
 
   @override
@@ -175,14 +200,18 @@ class _MainLayoutState extends State<MainLayout> {
             )
           : null,
 
-      // ── Body ───────────────────────────────────────────────────────
-      // IndexedStack giữ tất cả màn hình trong bộ nhớ và chỉ hiển thị
-      // tab đang active. KHÔNG bọc AnimatedSwitcher bên ngoài — vì
-      // ValueKey thay đổi sẽ destroy/recreate toàn bộ widget tree,
-      // phá vỡ hoàn toàn mục đích của IndexedStack.
-      body: IndexedStack(
-        index: _currentIndex,
-        children: _screens,
+      // ── Body (Lazy IndexedStack) ───────────────────────────────────
+      // Chỉ build màn hình khi lần đầu được chọn (_visitedTabs).
+      // Màn hình đã build được giữ alive trong stack, giống IndexedStack
+      // chuẩn nhưng không build tất cả 5 màn hình ngay lúc khởi động.
+      body: Stack(
+        children: List.generate(5, (i) {
+          final visited = _visitedTabs.contains(i);
+          return Offstage(
+            offstage: _currentIndex != i,
+            child: visited ? _getScreen(i) : const SizedBox.shrink(),
+          );
+        }),
       ),
 
       // ── Bottom Navigation Bar ──────────────────────────────────────

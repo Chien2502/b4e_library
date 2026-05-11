@@ -199,27 +199,22 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
       return;
     }
 
-    final confirm = await showDialog<bool>(
+    final selectedDays = await showDialog<int>(
       context: context,
-      builder: (ctx) => CustomDialog(
-        title: 'Xác nhận mượn sách',
-        message:
-            'Bạn muốn mượn cuốn "${_book!.title}"?\n\nHạn trả dự kiến: 14 ngày kể từ hôm nay.',
-        icon: Icons.auto_stories_rounded,
-        iconColor: Colors.blueAccent,
-        confirmLabel: 'Mượn ngay',
-        onConfirm: () => Navigator.pop(ctx, true),
-      ),
+      builder: (ctx) => _BorrowConfirmDialog(bookTitle: _book!.title),
     );
 
-    if (confirm != true) return;
+    if (selectedDays == null) return;
 
     setState(() => _isBorrowing = true);
 
     try {
       final Response res = await _dioClient.dio.post(
         ApiConstants.createBorrowing,
-        data: {'book_id': widget.bookId},
+        data: {
+          'book_id': widget.bookId,
+          'borrow_days': selectedDays,
+        },
       );
 
       if (res.statusCode == 201) {
@@ -921,6 +916,80 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
           size: 30,
           color: Colors.grey[400],
         ),
+      ),
+    );
+  }
+}
+
+class _BorrowConfirmDialog extends StatefulWidget {
+  final String bookTitle;
+
+  const _BorrowConfirmDialog({required this.bookTitle});
+
+  @override
+  State<_BorrowConfirmDialog> createState() => _BorrowConfirmDialogState();
+}
+
+class _BorrowConfirmDialogState extends State<_BorrowConfirmDialog> {
+  int _borrowDays = 14;
+
+  @override
+  Widget build(BuildContext context) {
+    final returnDate = DateTime.now().add(Duration(days: _borrowDays));
+    final returnDateStr = "${returnDate.day.toString().padLeft(2, '0')}/${returnDate.month.toString().padLeft(2, '0')}/${returnDate.year}";
+
+    return CustomDialog(
+      title: 'Tùy chọn mượn sách',
+      message: 'Bạn muốn mượn cuốn "${widget.bookTitle}" trong bao lâu?',
+      icon: Icons.calendar_month_rounded,
+      iconColor: Colors.blueAccent,
+      confirmLabel: 'Xác nhận mượn',
+      onConfirm: () => Navigator.pop(context, _borrowDays),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text('Số ngày mượn:', style: TextStyle(fontWeight: FontWeight.bold)),
+              Text('$_borrowDays ngày', style: const TextStyle(color: Color(0xFF1565C0), fontWeight: FontWeight.bold)),
+            ],
+          ),
+          Slider(
+            value: _borrowDays.toDouble(),
+            min: 1,
+            max: 15,
+            divisions: 14,
+            activeColor: const Color(0xFF1565C0),
+            label: '$_borrowDays ngày',
+            onChanged: (val) => setState(() => _borrowDays = val.toInt()),
+          ),
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.blue.withValues(alpha: 0.05),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.blue.withValues(alpha: 0.1)),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.event_available, color: Color(0xFF1565C0), size: 20),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Hạn trả: $returnDateStr',
+                    style: const TextStyle(
+                      color: Color(0xFF1565C0),
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

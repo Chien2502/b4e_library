@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:dio/dio.dart';
-import '../../../core/constants/api_constants.dart';
-import '../../../core/network/dio_client.dart';
-import '../../../core/network/network_error_handler.dart';
+import 'package:provider/provider.dart';
+import '../../../viewmodels/admin_data_provider.dart';
 
 class AdminDashboardTab extends StatefulWidget {
   /// Callback chuyển tab trong AdminScreen.
@@ -15,51 +13,41 @@ class AdminDashboardTab extends StatefulWidget {
 }
 
 class _AdminDashboardTabState extends State<AdminDashboardTab> {
-  final _dio = DioClient().dio;
-  bool _loading = true;
-  Map<String, dynamic> _stats = {};
-  String? _error;
-
   @override
   void initState() {
     super.initState();
-    _load();
-  }
-
-  Future<void> _load() async {
-    setState(() {
-      _loading = true;
-      _error = null;
+    // Fetch sau frame đầu (tránh context-in-initState)
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        context.read<AdminDataProvider>().fetchStats();
+      }
     });
-    try {
-      final res = await _dio.get(ApiConstants.adminStats);
-      setState(() => _stats = Map<String, dynamic>.from(res.data));
-    } on DioException catch (e) {
-      setState(() => _error = NetworkErrorHandler.getFriendlyMessage(e));
-    } catch (e) {
-      setState(() => _error = NetworkErrorHandler.getFriendlyMessage(e));
-    } finally {
-      if (mounted) setState(() => _loading = false);
-    }
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_loading) {
+    final statsState = context.watch<AdminDataProvider>().stats;
+    final loading = statsState.isLoading && !statsState.hasData;
+    final error = statsState.error;
+    final stats = statsState.data ?? {};
+
+    if (loading) {
       return const Center(child: CircularProgressIndicator());
     }
-    if (_error != null) {
-      return _buildError();
+    if (error != null && !statsState.hasData) {
+      return _buildError(error, () =>
+          context.read<AdminDataProvider>().fetchStats(forceRefresh: true));
     }
     return RefreshIndicator(
-      onRefresh: _load,
+      onRefresh: () =>
+          context.read<AdminDataProvider>().fetchStats(forceRefresh: true),
       child: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(16, 16, 16, kBottomNavigationBarHeight + 16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildHeader(),
+            _buildHeader(stats),
             const SizedBox(height: 20),
             const Text(
               'Thống kê & Quản lý',
@@ -75,7 +63,7 @@ class _AdminDashboardTabState extends State<AdminDashboardTab> {
               style: TextStyle(fontSize: 11, color: Colors.grey),
             ),
             const SizedBox(height: 12),
-            _buildNavCards(),
+            _buildNavCards(stats),
             const SizedBox(height: 24),
           ],
         ),
@@ -84,7 +72,7 @@ class _AdminDashboardTabState extends State<AdminDashboardTab> {
   }
 
   // ── Header banner ────────────────────────────────────────────────
-  Widget _buildHeader() {
+  Widget _buildHeader(Map<String, dynamic> stats) {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
@@ -122,7 +110,7 @@ class _AdminDashboardTabState extends State<AdminDashboardTab> {
           ),
           IconButton(
             icon: const Icon(Icons.refresh, color: Colors.white70),
-            onPressed: _load,
+            onPressed: () => context.read<AdminDataProvider>().fetchStats(forceRefresh: true),
             tooltip: 'Làm mới',
           ),
         ],
@@ -131,11 +119,10 @@ class _AdminDashboardTabState extends State<AdminDashboardTab> {
   }
 
   // ── Stat + Nav cards gộp lại ─────────────────────────────────────
-  Widget _buildNavCards() {
-    final cards = _cards();
+  Widget _buildNavCards(Map<String, dynamic> stats) {
+    final cards = _cards(stats);
     return Column(
       children: [
-        // Hàng 1: 2 card lớn nhiều quan trọng
         Row(
           children: [
             Expanded(child: _buildCard(cards[0])),
@@ -144,7 +131,6 @@ class _AdminDashboardTabState extends State<AdminDashboardTab> {
           ],
         ),
         const SizedBox(height: 12),
-        // Hàng 2: 2 card alert (màu cam, đỏ)
         Row(
           children: [
             Expanded(child: _buildCard(cards[2])),
@@ -153,20 +139,19 @@ class _AdminDashboardTabState extends State<AdminDashboardTab> {
           ],
         ),
         const SizedBox(height: 12),
-        // Hàng 3: card thể loại (chiếm full width, ít dữ liệu số)
         _buildCard(cards[4], fullWidth: true),
       ],
     );
   }
 
   // ── Dữ liệu từng card ────────────────────────────────────────────
-  List<_NavCard> _cards() => [
+  List<_NavCard> _cards(Map<String, dynamic> stats) => [
         _NavCard(
           tabIndex: 1,
           icon: Icons.menu_book_rounded,
           color: const Color(0xFF1565C0),
           label: 'Kho sách',
-          value: '${_stats['books'] ?? 0}',
+          value: '${stats['books'] ?? 0}',
           unit: 'đầu sách',
           action: 'Quản lý sách →',
           badge: null,
@@ -176,7 +161,7 @@ class _AdminDashboardTabState extends State<AdminDashboardTab> {
           icon: Icons.people_rounded,
           color: Colors.teal,
           label: 'Người dùng',
-          value: '${_stats['users'] ?? 0}',
+          value: '${stats['users'] ?? 0}',
           unit: 'tài khoản',
           action: 'Quản lý users →',
           badge: null,
@@ -186,11 +171,11 @@ class _AdminDashboardTabState extends State<AdminDashboardTab> {
           icon: Icons.volunteer_activism_rounded,
           color: Colors.orange,
           label: 'Chờ duyệt quyên góp',
-          value: '${_stats['pending_donations'] ?? 0}',
+          value: '${stats['pending_donations'] ?? 0}',
           unit: 'yêu cầu',
           action: 'Duyệt ngay →',
-          badge: int.tryParse('${_stats['pending_donations'] ?? 0}') != null &&
-                  (int.tryParse('${_stats['pending_donations'] ?? 0}') ?? 0) > 0
+          badge: int.tryParse('${stats['pending_donations'] ?? 0}') != null &&
+                  (int.tryParse('${stats['pending_donations'] ?? 0}') ?? 0) > 0
               ? '!'
               : null,
         ),
@@ -199,11 +184,11 @@ class _AdminDashboardTabState extends State<AdminDashboardTab> {
           icon: Icons.assignment_return_rounded,
           color: Colors.redAccent,
           label: 'Chờ xác nhận trả',
-          value: '${_stats['returning_books'] ?? 0}',
+          value: '${stats['returning_books'] ?? 0}',
           unit: 'lượt trả',
           action: 'Xác nhận →',
-          badge: int.tryParse('${_stats['returning_books'] ?? 0}') != null &&
-                  (int.tryParse('${_stats['returning_books'] ?? 0}') ?? 0) > 0
+          badge: int.tryParse('${stats['returning_books'] ?? 0}') != null &&
+                  (int.tryParse('${stats['returning_books'] ?? 0}') ?? 0) > 0
               ? '!'
               : null,
         ),
@@ -212,7 +197,7 @@ class _AdminDashboardTabState extends State<AdminDashboardTab> {
           icon: Icons.category_rounded,
           color: Colors.deepPurple,
           label: 'Thể loại sách',
-          value: '${_stats['categories'] ?? '—'}',
+          value: '${stats['categories'] ?? '—'}',
           unit: 'thể loại',
           action: 'Quản lý thể loại →',
           badge: null,
@@ -384,7 +369,7 @@ class _AdminDashboardTabState extends State<AdminDashboardTab> {
   }
 
   // ── Error state ───────────────────────────────────────────────────
-  Widget _buildError() {
+  Widget _buildError(String msg, VoidCallback onRetry) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -394,13 +379,13 @@ class _AdminDashboardTabState extends State<AdminDashboardTab> {
             const Icon(Icons.cloud_off, color: Colors.red, size: 56),
             const SizedBox(height: 12),
             Text(
-              _error ?? 'Lỗi không xác định',
+              msg,
               textAlign: TextAlign.center,
               style: const TextStyle(color: Colors.red, fontSize: 13),
             ),
             const SizedBox(height: 20),
             ElevatedButton.icon(
-              onPressed: _load,
+              onPressed: onRetry,
               icon: const Icon(Icons.refresh),
               label: const Text('Thử lại'),
               style: ElevatedButton.styleFrom(

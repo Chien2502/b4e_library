@@ -1,4 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="ic_launcher_background">#1565C0</color>
+    <!-- Màu nền native splash — khớp với gradient Flutter splash (#0D47A1 → #1565C0 → #1E88E5)
+         Dùng màu giữa để trông đồng nhất nhất với gradient -->
+    <color name="splashBackground">#1565C0</color>
 </resources>

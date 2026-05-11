@@ -382,30 +382,91 @@ class _MyBooksScreenState extends State<MyBooksScreen>
       );
     }
 
-    // Đang mượn / quá hạn → nút "Gửi trả sách"
+    // Đang mượn / quá hạn → nút "Gửi trả sách" và "Gia hạn"
     if (b.canReturn) {
-      return ElevatedButton(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.orange,
-          foregroundColor: Colors.white,
-          padding:
-              const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          minimumSize: Size.zero,
-          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          if (b.renewStatus == 'pending')
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.blue.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: const Text(
+                'Đang chờ gia hạn',
+                style: TextStyle(fontSize: 10, color: Colors.blue, fontWeight: FontWeight.bold),
+              ),
+            )
+          else if (b.renewStatus == 'none' || b.renewStatus == 'rejected')
+            OutlinedButton(
+              style: OutlinedButton.styleFrom(
+                foregroundColor: const Color(0xFF1565C0),
+                side: const BorderSide(color: Color(0xFF1565C0)),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              onPressed: () => _handleRenew(context, b, provider),
+              child: const Text(
+                'Gia hạn',
+                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
+              ),
+            ),
+          const SizedBox(height: 6),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.orange,
+              foregroundColor: Colors.white,
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              minimumSize: Size.zero,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+              elevation: 0,
+            ),
+            onPressed: () => _handleReturn(context, b, provider),
+            child: const Text(
+              'Gửi trả',
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+            ),
           ),
-          elevation: 0,
-        ),
-        onPressed: () => _handleReturn(context, b, provider),
-        child: const Text(
-          'Gửi trả sách',
-          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
-        ),
+        ],
       );
     }
 
     return const SizedBox.shrink();
+  }
+
+  // ── Xử lý gia hạn sách ──
+  Future<void> _handleRenew(
+    BuildContext context,
+    Borrowing b,
+    MyBooksProvider provider,
+  ) async {
+    final selectedDays = await showDialog<int>(
+      context: context,
+      builder: (ctx) => _RenewConfirmDialog(bookTitle: b.title),
+    );
+
+    if (selectedDays == null) return;
+    if (!context.mounted) return;
+
+    final error = await provider.renewBorrowing(b.id, selectedDays);
+
+    if (!context.mounted) return;
+
+    if (error == null) {
+      SnackBarUtils.showSuccess(context, 'Đã gửi yêu cầu gia hạn $selectedDays ngày! Thủ thư sẽ phê duyệt sớm. ⏳');
+    } else {
+      SnackBarUtils.showError(context, error);
+    }
   }
 
   // ── Xử lý trả sách — tương tự handleReturn trong borrowings.js ──
@@ -457,5 +518,52 @@ class _MyBooksScreenState extends State<MyBooksScreen>
   }
 
   bool _isOverdue(Borrowing b) => b.status == 'overdue';
+}
+
+class _RenewConfirmDialog extends StatefulWidget {
+  final String bookTitle;
+
+  const _RenewConfirmDialog({required this.bookTitle});
+
+  @override
+  State<_RenewConfirmDialog> createState() => _RenewConfirmDialogState();
+}
+
+class _RenewConfirmDialogState extends State<_RenewConfirmDialog> {
+  int _renewDays = 7;
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomDialog(
+      title: 'Gia hạn mượn sách',
+      message: 'Bạn muốn xin gia hạn cuốn "${widget.bookTitle}" thêm bao nhiêu ngày?',
+      icon: Icons.more_time_rounded,
+      iconColor: Colors.blueAccent,
+      confirmLabel: 'Gửi yêu cầu',
+      onConfirm: () => Navigator.pop(context, _renewDays),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text('Số ngày gia hạn:', style: TextStyle(fontWeight: FontWeight.bold)),
+              Text('$_renewDays ngày', style: const TextStyle(color: Color(0xFF1565C0), fontWeight: FontWeight.bold)),
+            ],
+          ),
+          Slider(
+            value: _renewDays.toDouble(),
+            min: 1,
+            max: 15,
+            divisions: 14,
+            activeColor: const Color(0xFF1565C0),
+            label: '$_renewDays ngày',
+            onChanged: (val) => setState(() => _renewDays = val.toInt()),
+          ),
+        ],
+      ),
+    );
+  }
 }
 

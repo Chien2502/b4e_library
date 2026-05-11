@@ -1,12 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Modify this file to customize your launch splash screen -->
+<!-- Màu nền native splash khớp với màu Flutter splash screen.
+     Hiển thị ngay khi Android mở app (trước khi Flutter engine khởi động).
+     Tự động bị thay thế khi Flutter vẽ frame đầu tiên. -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <item android:drawable="@android:color/white" />
-
-    <!-- You can insert your own image assets here -->
-    <!-- <item>
-        <bitmap
-            android:gravity="center"
-            android:src="@mipmap/launch_image" />
-    </item> -->
+    <!-- Màu nền gradient xanh — khớp với _SplashContent trong Flutter -->
+    <item android:drawable="@color/splashBackground" />
 </layer-list>

@@ -101,6 +101,13 @@ class AuthProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  /// Dùng khi init thất bại để không bị kẹt ở trạng thái uninitialized.
+  void forceUnauthenticated() {
+    _status = AuthStatus.unauthenticated;
+    notifyListeners();
+  }
+
+
   // ── Lấy profile từ server ──────────────────────────────────────
   Future<void> fetchProfile() async {
     try {

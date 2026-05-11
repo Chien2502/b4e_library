@@ -43,7 +43,7 @@ class BorrowingGuideScreen extends StatelessWidget {
               children: [
                 _buildBullet('Là thành viên đã đăng ký tài khoản trên hệ thống B4E.'),
                 _buildBullet('Mỗi tài khoản được mượn tối đa 3 quyển sách cùng lúc.'),
-                _buildBullet('Thời hạn mượn tối đa là 14 ngày kể từ ngày nhận sách.'),
+                _buildBullet('Thời hạn mượn tối đa là 15 ngày kể từ ngày nhận sách.'),
                 _buildBullet('Sách phải được trả về trong tình trạng nguyên vẹn, không bị rách, ướt hoặc mất trang.'),
               ],
             ),

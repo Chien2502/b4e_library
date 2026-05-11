@@ -16,6 +16,7 @@ class ApiConstants {
   static const String createBorrowing = '/borrowings/create.php';
   static const String userBorrowings = '/users/borrowings.php';
   static const String userReturn = '/users/return.php';
+  static const String userRenewBorrowing = '/borrowings/renew.php';
   static const String createDonation = '/donations/create.php';
   static const String userDonations = '/users/donations.php';
   static const String login = '/auth/login.php';
@@ -46,6 +47,7 @@ class ApiConstants {
   static const String adminDeleteUser = '/admin/delete_user.php';
   static const String adminBorrowings = '/admin/borrowings.php';
   static const String adminConfirmReturn = '/admin/confirm_return.php';
+  static const String adminHandleRenewal = '/admin/handle_renewal.php';
   static const String adminDonations = '/admin/donations.php';
   static const String adminApproveDonation = '/admin/approve_donation.php';
   static const String adminRejectDonation = '/admin/reject_donation.php';

@@ -14,6 +14,8 @@ class Borrowing {
   final String borrowDate;
   final String dueDate;
   final String? returnDate;
+  final String renewStatus; // 'none', 'pending', 'approved', 'rejected'
+  final int renewDays;
 
   Borrowing({
     required this.id,
@@ -26,6 +28,8 @@ class Borrowing {
     required this.borrowDate,
     required this.dueDate,
     this.returnDate,
+    this.renewStatus = 'none',
+    this.renewDays = 0,
   });
 
   String get displayImageUrl => kIsWeb ? webImageUrl : imageUrl;
@@ -71,6 +75,8 @@ class Borrowing {
       borrowDate: json['borrow_date']?.toString() ?? '',
       dueDate: json['due_date']?.toString() ?? '',
       returnDate: json['return_date']?.toString(),
+      renewStatus: json['renew_status']?.toString() ?? 'none',
+      renewDays: int.tryParse(json['renew_days']?.toString() ?? '0') ?? 0,
     );
   }
 }

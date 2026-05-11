@@ -1,42 +1,31 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'core/database/database_service.dart';
-import 'core/database/static_content_seeder.dart';
 import 'viewmodels/auth_provider.dart';
 import 'viewmodels/book_provider.dart';
 import 'viewmodels/search_provider.dart';
 import 'viewmodels/my_books_provider.dart';
 import 'viewmodels/notification_provider.dart';
 import 'viewmodels/recommendation_provider.dart';
+import 'viewmodels/admin_data_provider.dart';
 import 'main_wrapper.dart';
-import 'core/services/push_notification_service.dart';
-import 'firebase_options.dart';
 
-Future<void> main() async {
+/// main() chỉ làm 2 việc: bind Flutter và gọi runApp ngay lập tức.
+/// Mọi async init (Firebase, FCM, SQLite, auth check) đều chuyển vào
+/// MainWrapper.initState() để splash screen có thể render ngay frame đầu.
+void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
-
-  // Khởi tạo FCM
-  await PushNotificationService().init();
-
-  // Khởi tạo SQLite local cache
-  await DatabaseService.instance.init();
-  await StaticContentSeeder.seed();
-
   runApp(
     MultiProvider(
       providers: [
-        ChangeNotifierProvider(
-          create: (_) => AuthProvider()..checkAuthStatus(),
-        ),
+        ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => BookProvider()),
         ChangeNotifierProvider(create: (_) => SearchProvider()),
         ChangeNotifierProvider(create: (_) => MyBooksProvider()),
         ChangeNotifierProvider(create: (_) => NotificationProvider()),
         ChangeNotifierProvider(create: (_) => RecommendationProvider()),
+        // AdminDataProvider sống ở cấp app → cache tồn tại suốt session
+        // dù AdminScreen bị push/pop nhiều lần
+        ChangeNotifierProvider(create: (_) => AdminDataProvider()),
       ],
       child: const MyApp(),
     ),
@@ -47,14 +36,18 @@ final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       navigatorKey: navigatorKey,
       debugShowCheckedModeBanner: false,
       title: 'B4E Library',
-      theme: ThemeData(primarySwatch: Colors.blue),
-      home: const MainWrapper(), // Sử dụng Wrapper làm điểm bắt đầu
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+        splashFactory: InkRipple.splashFactory,
+      ),
+      home: const MainWrapper(),
     );
   }
 }

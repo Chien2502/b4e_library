@@ -6,6 +6,8 @@ import '../../../core/network/dio_client.dart';
 import '../../../core/network/network_error_handler.dart';
 import '../../widgets/custom_dialog.dart';
 import '../../../core/utils/snackbar_utils.dart';
+import 'package:provider/provider.dart';
+import '../../../viewmodels/admin_data_provider.dart';
 
 
 class AdminBorrowingsTab extends StatefulWidget {
@@ -287,6 +289,32 @@ class _AdminBorrowingsTabState extends State<AdminBorrowingsTab> {
                       ),
                   ],
                 ),
+                if (item['renew_status'] == 'pending')
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(color: Colors.blue.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
+                      child: Row(
+                        children: [
+                          Expanded(child: Text('Yêu cầu gia hạn thêm: ${item['renew_days']} ngày', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.blue))),
+                          Row(
+                            children: [
+                              InkWell(
+                                onTap: () => _handleRenewalAction(borrowId, 'approve'),
+                                child: Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), decoration: BoxDecoration(color: Colors.blue, borderRadius: BorderRadius.circular(4)), child: const Text('Duyệt', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold))),
+                              ),
+                              const SizedBox(width: 6),
+                              InkWell(
+                                onTap: () => _handleRenewalAction(borrowId, 'reject'),
+                                child: Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), decoration: BoxDecoration(color: Colors.red.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(4)), child: const Text('Từ chối', style: TextStyle(color: Colors.red, fontSize: 10, fontWeight: FontWeight.bold))),
+                              ),
+                            ]
+                          )
+                        ]
+                      )
+                    )
+                  ),
               ],
             ),
           ),
@@ -314,5 +342,25 @@ class _AdminBorrowingsTabState extends State<AdminBorrowingsTab> {
       ),
     );
     if (ok == true) _confirmReturn(borrowId);
+  }
+
+  Future<void> _handleRenewalAction(int borrowId, String action) async {
+    final provider = context.read<AdminDataProvider>();
+    final error = await provider.handleRenewal(borrowId, action);
+    if (!mounted) return;
+    
+    if (error == null) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(action == 'approve' ? 'Đã duyệt gia hạn sách' : 'Đã từ chối gia hạn'),
+        backgroundColor: action == 'approve' ? Colors.green : Colors.orange,
+      ));
+      // Refresh list
+      _load();
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(error),
+        backgroundColor: Colors.red,
+      ));
+    }
   }
 }
