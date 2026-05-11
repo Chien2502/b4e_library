@@ -5,6 +5,7 @@ import '../../viewmodels/my_books_provider.dart';
 import '../../viewmodels/notification_provider.dart';
 import '../../data/models/borrowing_model.dart';
 import '../widgets/custom_dialog.dart';
+import '../../core/utils/snackbar_utils.dart';
 
 class MyBooksScreen extends StatefulWidget {
   const MyBooksScreen({super.key});
@@ -438,17 +439,11 @@ class _MyBooksScreenState extends State<MyBooksScreen>
       context.read<NotificationProvider>().fetchNotifications();
     }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          error ?? 'Đã gửi yêu cầu trả sách! Thủ thư sẽ xác nhận sớm. 📬',
-        ),
-        backgroundColor: error == null ? Colors.green[700] : Colors.red[700],
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        margin: const EdgeInsets.all(12),
-      ),
-    );
+    if (error == null) {
+      SnackBarUtils.showSuccess(context, 'Đã gửi yêu cầu trả sách! Thủ thư sẽ xác nhận sớm. 📬');
+    } else {
+      SnackBarUtils.showError(context, error);
+    }
   }
 
   // ── Helper: Rút gọn ngày "2026-04-02" → "02/04/2026" ──────────

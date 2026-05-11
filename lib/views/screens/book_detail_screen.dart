@@ -10,8 +10,10 @@ import '../../data/models/book_model.dart';
 import '../../data/models/book_detail_model.dart';
 import '../../viewmodels/auth_provider.dart';
 import '../../viewmodels/notification_provider.dart';
+import '../../core/utils/snackbar_utils.dart';
 import '../widgets/custom_dialog.dart';
 import 'login_screen.dart';
+import '../../core/utils/page_transitions.dart';
 
 class BookDetailScreen extends StatefulWidget {
   final int bookId;
@@ -65,9 +67,9 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
 
         if (_book != null && _book!.isAvailable && !isAvail) {
           if (mounted) {
-            _showSnackBar(
+            SnackBarUtils.showError(
+              context,
               'Rất tiếc, ai đó vừa mượn cuốn sách này vài giây trước.',
-              isError: true,
             );
           }
         }
@@ -220,9 +222,9 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
       );
 
       if (res.statusCode == 201) {
-        _showSnackBar(
+        SnackBarUtils.showSuccess(
+          context,
           'Mượn sách thành công! Vui lòng trả đúng hạn.',
-          isError: false,
         );
         // Fetch ngay để badge đỏ hiện lên tức thì
         if (mounted) {
@@ -232,11 +234,11 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
         if (mounted) Navigator.pop(context, true);
       } else {
         final msg = res.data?['error'] ?? 'Không thể mượn sách.';
-        _showSnackBar(msg, isError: true);
+        SnackBarUtils.showError(context, msg);
       }
     } on DioException catch (e) {
       final serverMsg = e.response?.data?['error'];
-      _showSnackBar(serverMsg ?? 'Lỗi kết nối: ${e.message}', isError: true);
+      SnackBarUtils.showError(context, serverMsg ?? 'Lỗi kết nối: ${e.message}');
     } finally {
       setState(() => _isBorrowing = false);
     }
@@ -290,8 +292,8 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                   // Push LoginScreen, sau khi login chỉ pop về book detail
                   Navigator.push(
                     context,
-                    MaterialPageRoute(
-                      builder: (_) => const LoginScreen(popOnSuccess: true),
+                    FadeSlideRoute(
+                      page: const LoginScreen(popOnSuccess: true),
                     ),
                   );
                 },
@@ -326,18 +328,6 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
     );
   }
 
-  void _showSnackBar(String message, {required bool isError}) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: isError ? Colors.red[700] : Colors.green[700],
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        margin: const EdgeInsets.all(12),
-      ),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {

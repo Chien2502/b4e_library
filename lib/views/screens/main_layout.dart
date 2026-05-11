@@ -10,6 +10,8 @@ import 'donation_screen.dart';
 import 'profile_screen.dart';
 import 'auth_guard.dart';
 import 'notification_screen.dart';
+import '../../core/utils/page_transitions.dart';
+import '../widgets/liquid_nav_bar.dart';
 
 class MainLayout extends StatefulWidget {
   /// Nếu được truyền vào (từ LoginScreen sau đăng nhập), tự động chuyển tab.
@@ -128,8 +130,8 @@ class _MainLayoutState extends State<MainLayout> {
                             onPressed: () {
                               Navigator.push(
                                 ctx,
-                                MaterialPageRoute(
-                                  builder: (_) => const NotificationScreen(),
+                                FadeSlideRoute(
+                                  page: const NotificationScreen(),
                                 ),
                               );
                             },
@@ -172,70 +174,57 @@ class _MainLayoutState extends State<MainLayout> {
       // ── Body ─────────────────────────────────────────────────────
       // Khi không có AppBar (tab != 0), bọc SafeArea để tránh bị
       // che bởi status bar của hệ thống.
-      body: _currentIndex == 0
-          ? IndexedStack(
-              index: _currentIndex,
-              children: _screens,
-            )
-          : SafeArea(
-              bottom: false, // BottomNav đã tự xử lý phần dưới
-              child: IndexedStack(
-                index: _currentIndex,
-                children: _screens,
-              ),
-            ),
+      body: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 300),
+        switchInCurve: Curves.easeOutCubic,
+        child: KeyedSubtree(
+          key: ValueKey<int>(_currentIndex),
+          child: _currentIndex == 0
+              ? IndexedStack(
+                  index: _currentIndex,
+                  children: _screens,
+                )
+              : SafeArea(
+                  bottom: false,
+                  child: IndexedStack(
+                    index: _currentIndex,
+                    children: _screens,
+                  ),
+                ),
+        ),
+      ),
 
       // ── Bottom Navigation Bar ─────────────────────────────────────
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.06),
-              blurRadius: 12,
-              offset: const Offset(0, -4),
-            ),
-          ],
-        ),
-        child: BottomNavigationBar(
-          currentIndex: _currentIndex,
-          onTap: _onTabTapped,
-          type: BottomNavigationBarType.fixed,
-          backgroundColor: Colors.white,
-          selectedItemColor: Colors.blueAccent,
-          unselectedItemColor: Colors.grey[500],
-          selectedFontSize: 11,
-          unselectedFontSize: 11,
-          selectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600),
-          elevation: 0,
-          items: const [
-            BottomNavigationBarItem(
-              icon: Icon(Icons.home_outlined),
-              activeIcon: Icon(Icons.home),
-              label: 'Trang chủ',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.search_outlined),
-              activeIcon: Icon(Icons.search),
-              label: 'Tìm kiếm',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.library_books_outlined),
-              activeIcon: Icon(Icons.library_books),
-              label: 'Sách của tôi',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.volunteer_activism_outlined),
-              activeIcon: Icon(Icons.volunteer_activism),
-              label: 'Quyên góp',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.person_outline),
-              activeIcon: Icon(Icons.person),
-              label: 'Hồ sơ',
-            ),
-          ],
-        ),
+      bottomNavigationBar: LiquidNavBar(
+        currentIndex: _currentIndex,
+        onTap: _onTabTapped,
+        items: const [
+          LiquidNavItem(
+            icon: Icons.home_outlined,
+            activeIcon: Icons.home,
+            label: 'Trang chủ',
+          ),
+          LiquidNavItem(
+            icon: Icons.search_outlined,
+            activeIcon: Icons.search,
+            label: 'Tìm kiếm',
+          ),
+          LiquidNavItem(
+            icon: Icons.library_books_outlined,
+            activeIcon: Icons.library_books,
+            label: 'Sách của tôi',
+          ),
+          LiquidNavItem(
+            icon: Icons.volunteer_activism_outlined,
+            activeIcon: Icons.volunteer_activism,
+            label: 'Quyên góp',
+          ),
+          LiquidNavItem(
+            icon: Icons.person_outline,
+            activeIcon: Icons.person,
+            label: 'Hồ sơ',
+          ),
+        ],
       ),
     );
   }

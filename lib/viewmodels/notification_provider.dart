@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 import '../core/constants/api_constants.dart';
 import '../core/network/dio_client.dart';
+import '../core/network/network_error_handler.dart';
 import '../data/models/notification_model.dart';
 
 class NotificationProvider with ChangeNotifier {
@@ -39,9 +40,9 @@ class NotificationProvider with ChangeNotifier {
         _errorMessage = 'Lỗi server: ${res.statusCode}';
       }
     } on DioException catch (e) {
-      _errorMessage = 'Lỗi kết nối: ${e.message ?? e.type.name}';
+      _errorMessage = NetworkErrorHandler.getFriendlyMessage(e);
     } catch (e) {
-      _errorMessage = 'Đã xảy ra lỗi: $e';
+      _errorMessage = NetworkErrorHandler.getFriendlyMessage(e);
     } finally {
       _isLoading = false;
       notifyListeners();

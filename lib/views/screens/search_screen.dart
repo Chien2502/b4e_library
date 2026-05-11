@@ -5,6 +5,8 @@ import 'package:provider/provider.dart';
 import '../../viewmodels/search_provider.dart';
 import '../../data/models/book_model.dart';
 import 'book_detail_screen.dart';
+import '../widgets/staggered_list_item.dart';
+import '../../core/utils/page_transitions.dart';
 
 class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key});
@@ -316,7 +318,10 @@ class _SearchScreenState extends State<SearchScreen> {
       ),
       itemCount: provider.books.length,
       itemBuilder: (context, index) {
-        return _buildBookCard(provider.books[index]);
+        return StaggeredListItem(
+          index: index,
+          child: _buildBookCard(provider.books[index]),
+        );
       },
     );
   }
@@ -333,8 +338,8 @@ class _SearchScreenState extends State<SearchScreen> {
       onTap: () async {
         final didBorrow = await Navigator.push<bool>(
           context,
-          MaterialPageRoute(
-            builder: (_) => BookDetailScreen(
+          FadeSlideRoute(
+            page: BookDetailScreen(
               bookId: book.id,
               heroTag: 'search_book_${book.id}',
             ),

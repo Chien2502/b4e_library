@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 import '../core/constants/api_constants.dart';
 import '../core/network/dio_client.dart';
+import '../core/network/network_error_handler.dart';
 import '../data/models/book_model.dart';
 import '../data/models/category_model.dart';
 import '../core/services/push_notification_service.dart';
@@ -145,9 +146,9 @@ class SearchProvider with ChangeNotifier {
         _errorMessage = 'Lỗi server: ${response.statusCode}';
       }
     } on DioException catch (e) {
-      _errorMessage = 'Lỗi kết nối: ${e.message ?? e.type.name}';
+      _errorMessage = NetworkErrorHandler.getFriendlyMessage(e);
     } catch (e) {
-      _errorMessage = 'Đã xảy ra lỗi: $e';
+      _errorMessage = NetworkErrorHandler.getFriendlyMessage(e);
     } finally {
       _isLoading = false;
       notifyListeners();

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../core/services/barcode_service.dart';
 import '../../../core/services/book_ai_service.dart';
+import '../../../core/utils/snackbar_utils.dart';
 
 /// Bottom sheet để chọn phương thức nhập thông tin sách tự động.
 ///
@@ -52,7 +53,6 @@ class _BookScanSheetState extends State<BookScanSheet> {
   Future<void> _analyzeWithSource(ImageSource source) async {
     if (!mounted) return;
     // Capture trước khi bất kỳ await nào
-    final messenger = ScaffoldMessenger.of(context);
     final nav = Navigator.of(context);
     final rootNav = Navigator.of(context, rootNavigator: true);
 
@@ -65,13 +65,9 @@ class _BookScanSheetState extends State<BookScanSheet> {
         maxWidth: 600,    // Giới hạn chiều ngang 600px để file siêu nhẹ (< 100KB)
       );
     } catch (e) {
-      messenger.showSnackBar(SnackBar(
-        content: Text(source == ImageSource.camera
-            ? 'Không thể mở camera: $e'
-            : 'Không thể mở thư viện ảnh: $e'),
-        backgroundColor: Colors.red[700],
-        behavior: SnackBarBehavior.floating,
-      ));
+      SnackBarUtils.showError(context, source == ImageSource.camera
+          ? 'Không thể mở camera: $e'
+          : 'Không thể mở thư viện ảnh: $e');
       return;
     }
 

@@ -9,6 +9,7 @@ import 'borrowing_guide_screen.dart';
 import 'support_screen.dart';
 import 'privacy_policy_screen.dart';
 import '../widgets/custom_dialog.dart';
+import '../../core/utils/snackbar_utils.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -69,15 +70,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (err == null) _isEditing = false;
     });
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(err ?? 'Cập nhật thành công!'),
-        backgroundColor: err == null ? Colors.green[700] : Colors.red[700],
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        margin: const EdgeInsets.all(12),
-      ),
-    );
+    if (err == null) {
+      SnackBarUtils.showSuccess(context, 'Cập nhật thành công!');
+    } else {
+      SnackBarUtils.showError(context, err);
+    }
   }
 
   // ── Chọn ảnh và upload avatar ──────────────────────────────────
@@ -150,15 +147,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (!mounted) return;
     setState(() => _isUploadingAvatar = false);
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(err ?? 'Cập nhật ảnh đại diện thành công! ✓'),
-        backgroundColor: err == null ? Colors.green[700] : Colors.red[700],
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        margin: const EdgeInsets.all(12),
-      ),
-    );
+    if (err == null) {
+      SnackBarUtils.showSuccess(context, 'Cập nhật ảnh đại diện thành công! ✓');
+    } else {
+      SnackBarUtils.showError(context, err);
+    }
   }
 
   Widget _buildAvatarOption({

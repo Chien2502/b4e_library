@@ -9,6 +9,7 @@ import '../../core/network/dio_client.dart';
 import '../../viewmodels/notification_provider.dart';
 import '../../data/models/donation_record_model.dart';
 import 'admin/book_scan_sheet.dart'; // BookScanSheet + BookLookupResult
+import '../../core/utils/snackbar_utils.dart';
 
 // ── Các lựa chọn dropdown ──────────────────────────────────────────
 const List<Map<String, String>> _conditionOptions = [
@@ -227,15 +228,11 @@ class _DonationScreenState extends State<DonationScreen>
 
   void _showSnackBar(String msg, {required bool isError}) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(msg),
-        backgroundColor: isError ? Colors.red[700] : Colors.green[700],
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        margin: const EdgeInsets.all(12),
-      ),
-    );
+    if (isError) {
+      SnackBarUtils.showError(context, msg);
+    } else {
+      SnackBarUtils.showSuccess(context, msg);
+    }
   }
 
   // ════════════════════════════════════════════════════════════════

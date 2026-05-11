@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../viewmodels/auth_provider.dart';
+import '../../core/utils/snackbar_utils.dart';
 import 'register_screen.dart';
 import 'main_layout.dart';
 
@@ -23,14 +24,43 @@ class LoginScreen extends StatefulWidget {
   State<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _LoginScreenState extends State<LoginScreen>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _animCtrl;
+  late final Animation<double> _fadeAnim;
+  late final Animation<Offset> _headerSlide;
+  late final Animation<Offset> _formSlide;
   final _formKey = GlobalKey<FormState>();
   final _emailCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
   bool _obscurePass = true;
 
   @override
+  void initState() {
+    super.initState();
+    _animCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    );
+    final curve = CurvedAnimation(parent: _animCtrl, curve: Curves.easeOutCubic);
+    _fadeAnim = Tween<double>(begin: 0, end: 1).animate(curve);
+    _headerSlide = Tween<Offset>(
+      begin: const Offset(0, -0.3),
+      end: Offset.zero,
+    ).animate(curve);
+    _formSlide = Tween<Offset>(
+      begin: const Offset(0, 0.15),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(
+      parent: _animCtrl,
+      curve: const Interval(0.2, 1.0, curve: Curves.easeOutCubic),
+    ));
+    _animCtrl.forward();
+  }
+
+  @override
   void dispose() {
+    _animCtrl.dispose();
     _emailCtrl.dispose();
     _passCtrl.dispose();
     super.dispose();
@@ -67,23 +97,7 @@ class _LoginScreenState extends State<LoginScreen> {
         );
       }
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Row(
-            children: [
-              Icon(Icons.error_outline, color: Colors.white, size: 18),
-              SizedBox(width: 8),
-              Expanded(
-                  child: Text('Email hoặc mật khẩu không đúng!')),
-            ],
-          ),
-          backgroundColor: Colors.red[700],
-          behavior: SnackBarBehavior.floating,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-          margin: const EdgeInsets.all(12),
-        ),
-      );
+      SnackBarUtils.showError(context, 'Email hoặc mật khẩu không đúng!');
     }
   }
 
@@ -99,11 +113,21 @@ class _LoginScreenState extends State<LoginScreen> {
           child: Column(
             children: [
               // ── Header gradient ────────────────────────────────
-              _buildHeader(),
+              SlideTransition(
+                position: _headerSlide,
+                child: FadeTransition(
+                  opacity: _fadeAnim,
+                  child: _buildHeader(),
+                ),
+              ),
 
               // ── Form card ──────────────────────────────────────
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+              SlideTransition(
+                position: _formSlide,
+                child: FadeTransition(
+                  opacity: _fadeAnim,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
                 child: Form(
                   key: _formKey,
                   child: Column(
@@ -279,7 +303,9 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                     ],
                   ),
+                  ),
                 ),
+              ),
               ),
             ],
           ),

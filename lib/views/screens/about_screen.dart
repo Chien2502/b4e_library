@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
 
 class AboutScreen extends StatelessWidget {
   const AboutScreen({super.key});
@@ -510,41 +512,83 @@ class AboutScreen extends StatelessWidget {
 
           const SizedBox(height: 16),
 
-          // Map banner → mở Google Maps
-          InkWell(
-            onTap: () => _launch(
-                'https://maps.google.com/?q=470+Trần+Đại+Nghĩa,+Ngũ+Hành+Sơn,+Đà+Nẵng'),
+          // Bản đồ vị trí văn phòng (Google Maps)
+          ClipRRect(
             borderRadius: BorderRadius.circular(12),
             child: Container(
-              height: 120,
+              height: 220,
               decoration: BoxDecoration(
-                color: Colors.blue[50],
+                border: Border.all(color: Colors.grey[300]!),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.blue[100]!),
               ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
+              child: Stack(
                 children: [
-                  Icon(Icons.map_outlined, size: 36, color: Colors.blue[300]),
-                  const SizedBox(width: 12),
-                  Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Xem trên Google Maps',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                          color: Color(0xFF1565C0),
-                        ),
+                  FlutterMap(
+                    options: MapOptions(
+                      initialCenter: const LatLng(15.9753, 108.2523), // Tọa độ 470 Trần Đại Nghĩa
+                      initialZoom: 15.0,
+                      interactionOptions: const InteractionOptions(
+                        flags: InteractiveFlag.none, // Vô hiệu hóa thao tác (scroll/zoom)
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        '470 Trần Đại Nghĩa, Đà Nẵng',
-                        style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                    ),
+                    children: [
+                      TileLayer(
+                        urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                        userAgentPackageName: 'com.example.b4e_library',
+                      ),
+                      MarkerLayer(
+                        markers: [
+                          Marker(
+                            point: const LatLng(15.9753, 108.2523),
+                            width: 80,
+                            height: 80,
+                            child: const Icon(Icons.location_on, color: Colors.red, size: 40),
+                          ),
+                        ],
                       ),
                     ],
+                  ),
+                  // Lớp phủ để bắt sự kiện mở Google Maps external
+                  Positioned.fill(
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: () => _launch('https://maps.google.com/?q=15.9753,108.2523'),
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    bottom: 12,
+                    right: 12,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.1),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.map, size: 14, color: Colors.blue[700]),
+                          const SizedBox(width: 6),
+                          Text(
+                            'Chỉ đường',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.blue[700],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ],
               ),

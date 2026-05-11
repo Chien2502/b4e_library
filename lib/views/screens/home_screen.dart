@@ -1,12 +1,13 @@
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../viewmodels/auth_provider.dart';
 import '../../viewmodels/book_provider.dart';
 import '../../viewmodels/recommendation_provider.dart';
 import '../../data/models/book_model.dart';
-import 'book_detail_screen.dart';
 import 'book_list_screen.dart';
+import '../widgets/staggered_list_item.dart';
+import '../widgets/shimmer_widget.dart';
+import '../../core/utils/page_transitions.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -242,8 +243,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 onPressed: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(
-                      builder: (_) => BookListScreen(
+                    FadeSlideRoute(
+                      page: BookListScreen(
                         title: title,
                         books: books,
                       ),
@@ -263,7 +264,10 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       SliverList(
         delegate: SliverChildBuilderDelegate(
-          (context, i) => BookListCard(book: displayBooks[i]),
+          (context, i) => StaggeredListItem(
+            index: i,
+            child: BookListCard(book: displayBooks[i]),
+          ),
           childCount: displayBooks.length,
         ),
       ),
@@ -285,13 +289,9 @@ class _SectionShimmer extends StatelessWidget {
       child: Column(
         children: List.generate(
           3,
-          (_) => Container(
-            height: 120,
-            margin: const EdgeInsets.only(bottom: 12),
-            decoration: BoxDecoration(
-              color: Colors.grey[200],
-              borderRadius: BorderRadius.circular(14),
-            ),
+          (_) => const Padding(
+            padding: EdgeInsets.only(bottom: 8),
+            child: BookCardShimmer(),
           ),
         ),
       ),

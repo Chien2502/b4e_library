@@ -4,6 +4,7 @@ import 'package:dio/dio.dart';
 import '../../../core/constants/api_constants.dart';
 import '../../../core/network/dio_client.dart';
 import '../../widgets/custom_dialog.dart';
+import '../../../core/utils/snackbar_utils.dart';
 
 
 class AdminBorrowingsTab extends StatefulWidget {
@@ -56,13 +57,11 @@ class _AdminBorrowingsTabState extends State<AdminBorrowingsTab> {
 
   void _showSnack(String msg, bool err) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(msg),
-      backgroundColor: err ? Colors.red[700] : Colors.green[700],
-      behavior: SnackBarBehavior.floating,
-      margin: const EdgeInsets.all(12),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-    ));
+    if (err) {
+      SnackBarUtils.showError(context, msg);
+    } else {
+      SnackBarUtils.showSuccess(context, msg);
+    }
   }
 
   @override

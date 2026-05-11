@@ -12,6 +12,7 @@ import '../../../viewmodels/book_provider.dart';
 import '../../../viewmodels/recommendation_provider.dart';
 import '../../widgets/custom_dialog.dart';
 import 'book_scan_sheet.dart';
+import '../../../core/utils/snackbar_utils.dart';
 
 class AdminBooksTab extends StatefulWidget {
   const AdminBooksTab({super.key});
@@ -29,6 +30,10 @@ class _AdminBooksTabState extends State<AdminBooksTab> {
   int _currentPage = 1;
   int _totalPages = 1;
   Timer? _debounce;
+
+  // ── Bộ lọc ──────────────────────────────────────────────────
+  String? _selectedStatus;        // null = tất cả, 'available', 'borrowed'
+  int? _selectedCategoryId;       // null = tất cả thể loại
 
   @override
   void initState() {
@@ -68,6 +73,9 @@ class _AdminBooksTabState extends State<AdminBooksTab> {
             'page': _currentPage,
             'limit': 10,
             if (_search.isNotEmpty) 'search': _search,
+            if (_selectedStatus != null) 'status': _selectedStatus!,
+            if (_selectedCategoryId != null)
+              'category_id': _selectedCategoryId!,
           },
         ),
         _categories.isEmpty
@@ -194,25 +202,43 @@ class _AdminBooksTabState extends State<AdminBooksTab> {
 
   void _showSnack(String msg, bool err) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(msg),
-        backgroundColor: err ? Colors.red[700] : Colors.green[700],
-        behavior: SnackBarBehavior.floating,
-        margin: const EdgeInsets.all(12),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      ),
-    );
+    if (err) {
+      SnackBarUtils.showError(context, msg);
+    } else {
+      SnackBarUtils.showSuccess(context, msg);
+    }
   }
 
   List<Map<String, dynamic>> get _filtered {
-    if (_search.isEmpty) return _books;
-    final q = _search.toLowerCase();
-    return _books.where((b) {
-      final title = (b['title'] ?? '').toLowerCase();
-      final author = (b['author'] ?? '').toLowerCase();
-      return title.contains(q) || author.contains(q);
-    }).toList();
+    var result = _books;
+
+    // Lọc theo trạng thái (client-side fallback)
+    if (_selectedStatus != null) {
+      result = result.where((b) {
+        final s = (b['status'] ?? 'available').toString();
+        return s == _selectedStatus;
+      }).toList();
+    }
+
+    // Lọc theo thể loại (client-side fallback)
+    if (_selectedCategoryId != null) {
+      result = result.where((b) {
+        final cId = int.tryParse('${b['category_id'] ?? ''}');
+        return cId == _selectedCategoryId;
+      }).toList();
+    }
+
+    // Lọc theo search text
+    if (_search.isNotEmpty) {
+      final q = _search.toLowerCase();
+      result = result.where((b) {
+        final title = (b['title'] ?? '').toLowerCase();
+        final author = (b['author'] ?? '').toLowerCase();
+        return title.contains(q) || author.contains(q);
+      }).toList();
+    }
+
+    return result;
   }
 
   @override
@@ -221,6 +247,7 @@ class _AdminBooksTabState extends State<AdminBooksTab> {
       children: [
         _buildTitleBar(),
         _buildSearchBar(),
+        _buildFilterRow(),
         Expanded(child: _buildBody()),
       ],
     );
@@ -290,6 +317,129 @@ class _AdminBooksTabState extends State<AdminBooksTab> {
             borderRadius: BorderRadius.circular(12),
             borderSide: BorderSide.none,
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFilterRow() {
+    return Container(
+      color: Colors.white,
+      padding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ── Trạng thái: Tất cả / Có sẵn / Đã mượn ──
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                _statusChip(null, 'Tất cả', Icons.library_books_outlined),
+                const SizedBox(width: 8),
+                _statusChip('available', 'Có sẵn', Icons.check_circle_outline),
+                const SizedBox(width: 8),
+                _statusChip('borrowed', 'Đã mượn', Icons.access_time),
+                const SizedBox(width: 12),
+                // ── Dropdown thể loại ──
+                Container(
+                  height: 34,
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  decoration: BoxDecoration(
+                    color: _selectedCategoryId != null
+                        ? const Color(0xFF1565C0).withAlpha(20)
+                        : Colors.grey[100],
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: _selectedCategoryId != null
+                          ? const Color(0xFF1565C0)
+                          : Colors.grey[300]!,
+                    ),
+                  ),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<int?>(
+                      value: _selectedCategoryId,
+                      isDense: true,
+                      icon: Icon(
+                        Icons.arrow_drop_down,
+                        size: 18,
+                        color: _selectedCategoryId != null
+                            ? const Color(0xFF1565C0)
+                            : Colors.grey[600],
+                      ),
+                      hint: Text(
+                        'Thể loại',
+                        style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                      ),
+                      style: const TextStyle(fontSize: 12, color: Color(0xFF1565C0)),
+                      items: [
+                        const DropdownMenuItem<int?>(
+                          value: null,
+                          child: Text('Tất cả thể loại',
+                              style: TextStyle(fontSize: 12, color: Colors.black87)),
+                        ),
+                        ..._categories.map((cat) {
+                          final catId = int.tryParse('${cat['id']}') ?? 0;
+                          final catName = cat['name'] ?? '---';
+                          return DropdownMenuItem<int?>(
+                            value: catId,
+                            child: Text(catName,
+                                style: const TextStyle(fontSize: 12, color: Colors.black87)),
+                          );
+                        }),
+                      ],
+                      onChanged: (v) {
+                        setState(() => _selectedCategoryId = v);
+                        _loadAll(resetPage: true);
+                      },
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _statusChip(String? status, String label, IconData icon) {
+    final isSelected = _selectedStatus == status;
+    return GestureDetector(
+      onTap: () {
+        setState(() => _selectedStatus = status);
+        _loadAll(resetPage: true);
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        height: 34,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? const Color(0xFF1565C0).withAlpha(20)
+              : Colors.grey[100],
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isSelected ? const Color(0xFF1565C0) : Colors.grey[300]!,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: 14,
+              color: isSelected ? const Color(0xFF1565C0) : Colors.grey[600],
+            ),
+            const SizedBox(width: 4),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                color: isSelected ? const Color(0xFF1565C0) : Colors.grey[600],
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -763,25 +913,14 @@ class _BookFormSheetState extends State<_BookFormSheet> {
       }
 
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            _isEdit ? '✅ Cập nhật sách thành công!' : '✅ Thêm sách thành công!',
-          ),
-          backgroundColor: Colors.green,
-          behavior: SnackBarBehavior.floating,
-        ),
+      SnackBarUtils.showSuccess(
+        context,
+        _isEdit ? '✅ Cập nhật sách thành công!' : '✅ Thêm sách thành công!',
       );
       widget.onSaved();
     } on DioException catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(e.response?.data?['error'] ?? 'Lỗi xử lý'),
-          backgroundColor: Colors.red,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+      SnackBarUtils.showError(context, e.response?.data?['error'] ?? 'Lỗi xử lý');
     } finally {
       if (mounted) setState(() => _saving = false);
     }

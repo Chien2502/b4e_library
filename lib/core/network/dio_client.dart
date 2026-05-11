@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../../main.dart';
 import '../../viewmodels/auth_provider.dart';
 import '../constants/api_constants.dart';
+import '../utils/snackbar_utils.dart';
 
 class DioClient {
   late Dio _dio;
@@ -89,14 +90,7 @@ class DioClient {
               Provider.of<AuthProvider>(context, listen: false).logout();
               
               // Hiển thị thông báo (ẩn các thông báo cũ để tránh spam)
-              ScaffoldMessenger.of(context).hideCurrentSnackBar();
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại.'),
-                  backgroundColor: Colors.red,
-                  behavior: SnackBarBehavior.floating,
-                ),
-              );
+              SnackBarUtils.showError(context, 'Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại.');
             }
           }
           

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../data/models/notification_model.dart';
 import '../../viewmodels/notification_provider.dart';
+import '../widgets/staggered_list_item.dart';
 
 class NotificationScreen extends StatefulWidget {
   const NotificationScreen({super.key});
@@ -177,7 +178,10 @@ class _NotificationScreenState extends State<NotificationScreen> {
               itemCount: prov.notifications.length,
               separatorBuilder: (context, index) =>
                   const Divider(height: 1, indent: 72, endIndent: 16),
-              itemBuilder: (_, i) => _buildItem(prov.notifications[i], prov),
+              itemBuilder: (_, i) => StaggeredListItem(
+                index: i,
+                child: _buildItem(prov.notifications[i], prov),
+              ),
             ),
           );
         },

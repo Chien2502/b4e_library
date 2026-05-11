@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../viewmodels/auth_provider.dart';
+import '../../core/utils/snackbar_utils.dart';
 
 class RegisterScreen extends StatefulWidget {
   /// Truyền xuống từ LoginScreen để sau khi đăng ký xong, pop về Login
@@ -41,40 +42,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (!mounted) return;
 
     if (ok) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Row(
-            children: [
-              Icon(Icons.check_circle_outline, color: Colors.white, size: 18),
-              SizedBox(width: 8),
-              Text('Đăng ký thành công! Hãy đăng nhập.'),
-            ],
-          ),
-          backgroundColor: Colors.green[700],
-          behavior: SnackBarBehavior.floating,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-          margin: const EdgeInsets.all(12),
-        ),
-      );
+      SnackBarUtils.showSuccess(context, 'Đăng ký thành công! Hãy đăng nhập.');
       Navigator.pop(context); // Quay về LoginScreen
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Row(
-            children: [
-              Icon(Icons.error_outline, color: Colors.white, size: 18),
-              SizedBox(width: 8),
-              Expanded(child: Text('Đăng ký thất bại. Email có thể đã tồn tại!')),
-            ],
-          ),
-          backgroundColor: Colors.red[700],
-          behavior: SnackBarBehavior.floating,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-          margin: const EdgeInsets.all(12),
-        ),
-      );
+      SnackBarUtils.showError(context, 'Đăng ký thất bại. Email có thể đã tồn tại!');
     }
   }
 

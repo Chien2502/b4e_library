@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import '../../data/models/book_model.dart';
 import 'book_detail_screen.dart';
+import '../widgets/staggered_list_item.dart';
+import '../../core/utils/page_transitions.dart';
 
 class BookListScreen extends StatelessWidget {
   final String title;
@@ -28,7 +30,10 @@ class BookListScreen extends StatelessWidget {
               padding: const EdgeInsets.symmetric(vertical: 12),
               itemCount: books.length,
               itemBuilder: (context, index) {
-                return BookListCard(book: books[index]);
+                return StaggeredListItem(
+                  index: index,
+                  child: BookListCard(book: books[index]),
+                );
               },
             ),
     );
@@ -41,11 +46,12 @@ class BookListCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final heroTag = 'book_cover_${book.id}';
     return GestureDetector(
       onTap: () => Navigator.push(
         context,
-        MaterialPageRoute(
-            builder: (_) => BookDetailScreen(bookId: book.id)),
+        FadeSlideRoute(
+            page: BookDetailScreen(bookId: book.id, heroTag: heroTag)),
       ),
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
@@ -63,13 +69,15 @@ class BookListCard extends StatelessWidget {
         child: Row(
           children: [
             // Cover
-            ClipRRect(
-              borderRadius:
-                  const BorderRadius.horizontal(left: Radius.circular(14)),
-              child: SizedBox(
-                height: 110,
-                width: 80,
-                child: book.displayImageUrl.isNotEmpty
+            Hero(
+              tag: heroTag,
+              child: ClipRRect(
+                borderRadius:
+                    const BorderRadius.horizontal(left: Radius.circular(14)),
+                child: SizedBox(
+                  height: 110,
+                  width: 80,
+                  child: book.displayImageUrl.isNotEmpty
                     ? Image.network(
                         book.displayImageUrl,
                         fit: BoxFit.cover,
@@ -82,6 +90,7 @@ class BookListCard extends StatelessWidget {
                             _placeholder(),
                       )
                     : _placeholder(),
+                ),
               ),
             ),
             // Info
