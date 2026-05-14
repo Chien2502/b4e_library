@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
@@ -343,29 +344,23 @@ class _AdminBooksTabState extends State<AdminBooksTab> {
                 const SizedBox(width: 12),
                 // ── Dropdown thể loại ──
                 Container(
-                  height: 34,
+                  height: 44,
                   padding: const EdgeInsets.symmetric(horizontal: 10),
                   decoration: BoxDecoration(
-                    color: _selectedCategoryId != null
-                        ? const Color(0xFF1565C0).withAlpha(20)
-                        : Colors.grey[100],
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: _selectedCategoryId != null
-                          ? const Color(0xFF1565C0)
-                          : Colors.grey[300]!,
-                    ),
+                    color: Colors.grey[100],
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.grey[300]!),
                   ),
                   child: DropdownButtonHideUnderline(
                     child: DropdownButton<int?>(
                       value: _selectedCategoryId,
                       isDense: true,
-                      icon: Icon(
-                        Icons.arrow_drop_down,
+                      dropdownColor: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      icon: const Icon(
+                        Icons.keyboard_arrow_down,
                         size: 18,
-                        color: _selectedCategoryId != null
-                            ? const Color(0xFF1565C0)
-                            : Colors.grey[600],
+                        color: Colors.blueAccent,
                       ),
                       hint: Text(
                         'Thể loại',
@@ -571,13 +566,14 @@ class _AdminBooksTabState extends State<AdminBooksTab> {
               width: 64,
               height: 84,
               child: (book['image_url'] ?? '').toString().isNotEmpty
-                  ? Image.network(
-                      imageUrl,
+                  ? CachedNetworkImage(
+                      imageUrl: imageUrl,
                       fit: BoxFit.cover,
-                      headers: kIsWeb
+                      httpHeaders: kIsWeb
                           ? const {'ngrok-skip-browser-warning': 'true'}
                           : const {},
-                      errorBuilder: (_, err, stack) => _placeholder(),
+                      placeholder: (context, url) => _placeholder(),
+                      errorWidget: (context, url, error) => _placeholder(),
                     )
                   : _placeholder(),
             ),
@@ -986,26 +982,32 @@ class _BookFormSheetState extends State<_BookFormSheet> {
               ),
               const SizedBox(height: 12),
               _label('Thể loại'),
-              DropdownButtonFormField<int>(
-                initialValue: _categoryId,
-                hint: const Text(
-                  'Chọn thể loại',
-                  style: TextStyle(fontSize: 13),
+              Container(
+                height: 44,
+                padding: const EdgeInsets.symmetric(horizontal: 10),
+                decoration: BoxDecoration(
+                  color: Colors.grey[100],
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey[300]!),
                 ),
-                onChanged: (v) => setState(() => _categoryId = v),
-                decoration: _dec(Icons.category_outlined),
-                items: widget.categories
-                    .map(
-                      (c) => DropdownMenuItem<int>(
-                        value: int.tryParse('${c['id']}'),
-                        child: Text(
-                          c['name'] ?? '',
-                          style: const TextStyle(fontSize: 13),
-                        ),
-                      ),
-                    )
-                    .toList(),
-                style: const TextStyle(fontSize: 13, color: Colors.black87),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<int>(
+                    value: _categoryId,
+                    isExpanded: true,
+                    dropdownColor: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    hint: const Text('Chọn thể loại', style: TextStyle(fontSize: 13, color: Colors.black54)),
+                    icon: const Icon(Icons.keyboard_arrow_down, size: 18, color: Colors.blueAccent),
+                    style: const TextStyle(fontSize: 13, color: Colors.black87, fontWeight: FontWeight.w500),
+                    items: widget.categories
+                        .map((c) => DropdownMenuItem<int>(
+                              value: int.tryParse('${c['id']}'),
+                              child: Text(c['name'] ?? ''),
+                            ))
+                        .toList(),
+                    onChanged: (v) => setState(() => _categoryId = v),
+                  ),
+                ),
               ),
               const SizedBox(height: 12),
               Row(
@@ -1222,15 +1224,14 @@ class _BookFormSheetState extends State<_BookFormSheet> {
     }
     // Ảnh cũ từ server (khi chỉnh sửa)
     if (_existingImageUrl.isNotEmpty) {
-      return Image.network(
-        _existingImageUrl,
+      return CachedNetworkImage(
+        imageUrl: _existingImageUrl,
         fit: BoxFit.cover,
-        headers: kIsWeb
+        httpHeaders: kIsWeb
             ? const {'ngrok-skip-browser-warning': 'true'}
             : const {},
-        errorBuilder: (_, err, stack) => _placeholder(),
-        loadingBuilder: (_, child, progress) =>
-            progress == null ? child : _placeholder(loading: true),
+        placeholder: (context, url) => _placeholder(loading: true),
+        errorWidget: (context, url, error) => _placeholder(),
       );
     }
     return _placeholder();

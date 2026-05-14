@@ -162,7 +162,8 @@ class _MainLayoutState extends State<MainLayout> {
                               Navigator.push(
                                 ctx,
                                 FadeSlideRoute(
-                                    page: const NotificationScreen()),
+                                  page: const NotificationScreen(),
+                                ),
                               );
                             },
                           ),
@@ -173,7 +174,9 @@ class _MainLayoutState extends State<MainLayout> {
                               child: Container(
                                 padding: const EdgeInsets.all(2),
                                 constraints: const BoxConstraints(
-                                    minWidth: 16, minHeight: 16),
+                                  minWidth: 16,
+                                  minHeight: 16,
+                                ),
                                 decoration: const BoxDecoration(
                                   color: Colors.red,
                                   shape: BoxShape.circle,

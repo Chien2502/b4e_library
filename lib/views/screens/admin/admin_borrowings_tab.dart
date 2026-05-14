@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
@@ -8,6 +9,7 @@ import '../../widgets/custom_dialog.dart';
 import '../../../core/utils/snackbar_utils.dart';
 import 'package:provider/provider.dart';
 import '../../../viewmodels/admin_data_provider.dart';
+import '../../../core/network/connectivity_service.dart';
 
 
 class AdminBorrowingsTab extends StatefulWidget {
@@ -48,6 +50,10 @@ class _AdminBorrowingsTabState extends State<AdminBorrowingsTab> {
   }
 
   Future<void> _confirmReturn(int borrowId) async {
+    if (!ConnectivityService().isOnline) {
+      _showSnack('Tính năng này cần kết nối internet. Vui lòng kiểm tra lại mạng!', true);
+      return;
+    }
     try {
       await _dio.post(ApiConstants.adminConfirmReturn, data: {'borrow_id': borrowId});
       if (!mounted) return;
@@ -214,12 +220,15 @@ class _AdminBorrowingsTabState extends State<AdminBorrowingsTab> {
             child: SizedBox(
               width: 56, height: 72,
               child: (item['image_url'] ?? '').toString().isNotEmpty
-                  ? Image.network(imageUrl,
+                  ? CachedNetworkImage(
+                      imageUrl: imageUrl,
                       fit: BoxFit.cover,
-                      headers: kIsWeb
+                      httpHeaders: kIsWeb
                           ? const {'ngrok-skip-browser-warning': 'true'}
                           : const {},
-                      errorBuilder: (_, err, stack) => _imgPlaceholder())
+                      placeholder: (context, url) => _imgPlaceholder(),
+                      errorWidget: (context, url, error) => _imgPlaceholder(),
+                    )
                   : _imgPlaceholder(),
             ),
           ),

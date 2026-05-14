@@ -1,17 +1,21 @@
 import 'package:flutter/material.dart';
+import '../../main.dart';
 
 class SnackBarUtils {
   static void showSuccess(BuildContext context, String message) {
-    _showSnackBar(context, message, false);
+    _showSnackBar(message, false);
   }
 
   static void showError(BuildContext context, String message) {
-    _showSnackBar(context, message, true);
+    _showSnackBar(message, true);
   }
 
-  static void _showSnackBar(BuildContext context, String message, bool isError) {
-    ScaffoldMessenger.of(context).hideCurrentSnackBar();
-    ScaffoldMessenger.of(context).showSnackBar(
+  static void _showSnackBar(String message, bool isError) {
+    final messenger = scaffoldMessengerKey.currentState;
+    if (messenger == null) return;
+    
+    messenger.hideCurrentSnackBar();
+    messenger.showSnackBar(
       SnackBar(
         content: Row(
           children: [

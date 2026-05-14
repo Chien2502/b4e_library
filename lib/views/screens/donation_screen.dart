@@ -1124,34 +1124,36 @@ class _DonationScreenState extends State<DonationScreen>
   }) {
     return DropdownButtonFormField<String>(
       initialValue: value,
+      dropdownColor: Colors.white,
+      borderRadius: BorderRadius.circular(12),
       hint: Text(hint, style: TextStyle(fontSize: 13, color: Colors.grey[400])),
       validator: validator,
       decoration: InputDecoration(
         filled: true,
-        fillColor: Colors.grey[50],
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 14,
-          vertical: 12,
+        fillColor: Colors.grey[100],
+        contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 11),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.grey[300]!),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: Colors.grey[300]!),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: Color(0xFF1E88E5), width: 1.5),
         ),
         errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: Colors.red),
         ),
         focusedErrorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: Colors.red, width: 1.5),
         ),
       ),
-      borderRadius: BorderRadius.circular(12),
-      icon: const Icon(Icons.keyboard_arrow_down, color: Colors.grey),
+      icon: const Icon(Icons.keyboard_arrow_down, size: 18, color: Colors.blueAccent),
       isExpanded: true,
       style: const TextStyle(fontSize: 14, color: Colors.black87),
       items: options.map((opt) {

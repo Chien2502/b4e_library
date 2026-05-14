@@ -6,8 +6,8 @@ import '../../viewmodels/search_provider.dart';
 import '../../data/models/book_model.dart';
 import 'book_detail_screen.dart';
 import '../widgets/staggered_list_item.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../core/utils/page_transitions.dart';
-
 class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key});
 
@@ -154,6 +154,8 @@ class _SearchScreenState extends State<SearchScreen> {
             child: DropdownButtonHideUnderline(
               child: DropdownButton<String>(
                 value: provider.selectedStatus,
+                dropdownColor: Colors.white,
+                borderRadius: BorderRadius.circular(12),
                 icon: const Icon(Icons.keyboard_arrow_down,
                     size: 18, color: Colors.blueAccent),
                 style: const TextStyle(
@@ -375,13 +377,19 @@ class _SearchScreenState extends State<SearchScreen> {
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
-                    Image.network(
-                      book.displayImageUrl,
+                    CachedNetworkImage(
+                      imageUrl: book.displayImageUrl,
                       fit: BoxFit.cover,
-                      headers: kIsWeb
+                      httpHeaders: kIsWeb
                           ? const {'ngrok-skip-browser-warning': 'true'}
                           : const {},
-                      errorBuilder: (_, err, stack) => Container(
+                      placeholder: (context, url) => Container(
+                        color: Colors.grey[200],
+                        child: const Center(
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                      ),
+                      errorWidget: (context, url, error) => Container(
                         color: Colors.grey[200],
                         child: const Icon(Icons.broken_image,
                             size: 50, color: Colors.grey),

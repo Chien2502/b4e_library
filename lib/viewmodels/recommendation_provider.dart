@@ -5,6 +5,7 @@ import 'package:dio/dio.dart';
 import '../core/constants/api_constants.dart';
 import '../core/database/cache_keys.dart';
 import '../core/database/database_service.dart';
+import '../core/network/connectivity_service.dart';
 import '../core/network/dio_client.dart';
 import '../core/network/network_error_handler.dart';
 import '../data/models/book_model.dart';
@@ -78,7 +79,7 @@ class RecommendationProvider with ChangeNotifier {
   Future<void> fetchPopular({int limit = 10, bool forceRefresh = false}) async {
     if (_isPopularLoading) return;
 
-    // 1. Đọc cache trước nếu không force refresh
+    // 1. Đọc cache trước — luôn hoạt động dù online hay offline
     if (!forceRefresh) {
       final cached = await _cache.readCache<List<Book>>(
         CacheKeys.homePopular,
@@ -91,6 +92,13 @@ class RecommendationProvider with ChangeNotifier {
         notifyListeners();
         return;
       }
+    }
+
+    // 2. Không có cache → kiểm tra mạng
+    if (!ConnectivityService().isOnline) {
+      _isPopularLoading = false;
+      notifyListeners();
+      return; // Im lặng — HomeScreen sẽ hiển thị phần rỗng thay vì treo
     }
 
     _isPopularLoading = true;
@@ -108,7 +116,7 @@ class RecommendationProvider with ChangeNotifier {
             .map((j) => Book.fromJson(j as Map<String, dynamic>))
             .toList();
 
-        // 2. Ghi vào cache
+        // 3. Ghi vào cache để dùng khi offline lần sau
         await _cache.writeCache(
           CacheKeys.homePopular,
           data,
@@ -142,6 +150,13 @@ class RecommendationProvider with ChangeNotifier {
       }
     }
 
+    // 2. Không có cache → kiểm tra mạng
+    if (!ConnectivityService().isOnline) {
+      _isRecLoading = false;
+      notifyListeners();
+      return; // Im lặng — HomeScreen hiển thị banner "mượn sách đầu tiên"
+    }
+
     _isRecLoading = true;
     _recError = '';
     notifyListeners();
@@ -156,7 +171,7 @@ class RecommendationProvider with ChangeNotifier {
         final map = data as Map<String, dynamic>;
         _result = RecommendationResult.fromJson(map);
 
-        // 2. Ghi vào cache (chỉ khi có history để tránh cache "rỗng")
+        // 3. Ghi vào cache (chỉ khi có history để tránh cache “rỗng”)
         if (_result!.hasHistory) {
           await _cache.writeCache(
             CacheKeys.homeRecommendations,

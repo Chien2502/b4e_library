@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
@@ -446,13 +447,14 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                 width: 130,
                 height: 180,
                 child: book.displayImageUrl.isNotEmpty
-                    ? Image.network(
-                        book.displayImageUrl,
+                    ? CachedNetworkImage(
+                        imageUrl: book.displayImageUrl,
                         fit: BoxFit.cover,
-                        headers: kIsWeb
+                        httpHeaders: kIsWeb
                             ? const {'ngrok-skip-browser-warning': 'true'}
                             : const {},
-                        errorBuilder: (_, err, stack) =>
+                        placeholder: (context, url) => _buildImagePlaceholder(),
+                        errorWidget: (context, url, error) =>
                             _buildImagePlaceholder(),
                       )
                     : _buildImagePlaceholder(),
@@ -875,13 +877,14 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                   child:
                       book.displayImageUrl.isNotEmpty &&
                           !book.displayImageUrl.contains('placeholder')
-                      ? Image.network(
-                          book.displayImageUrl,
+                      ? CachedNetworkImage(
+                          imageUrl: book.displayImageUrl,
                           fit: BoxFit.cover,
-                          headers: kIsWeb
+                          httpHeaders: kIsWeb
                               ? const {'ngrok-skip-browser-warning': 'true'}
                               : const {},
-                          errorBuilder: (_, __, ___) => _buildMiniPlaceholder(),
+                          placeholder: (context, url) => _buildMiniPlaceholder(),
+                          errorWidget: (context, url, error) => _buildMiniPlaceholder(),
                         )
                       : _buildMiniPlaceholder(),
                 ),

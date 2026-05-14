@@ -405,16 +405,30 @@ class _EditUserSheetState extends State<_EditUserSheet> {
             const SizedBox(height: 12),
             // Role
             _label('Phân quyền (Role)'),
-            DropdownButtonFormField<String>(
-              initialValue: _role,
-              onChanged: (v) { if (v != null) setState(() => _role = v); },
-              decoration: _dec(hint: '', icon: Icons.shield_outlined),
-              items: const [
-                DropdownMenuItem(value: 'user', child: Text('User (Thành viên)')),
-                DropdownMenuItem(value: 'admin', child: Text('Admin (Quản trị viên)')),
-                DropdownMenuItem(value: 'super-admin', child: Text('Super Admin')),
-              ],
-              style: const TextStyle(fontSize: 13, color: Colors.black87),
+            Container(
+              height: 44,
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+              decoration: BoxDecoration(
+                color: Colors.grey[100],
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.grey[300]!),
+              ),
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton<String>(
+                  value: _role,
+                  isExpanded: true,
+                  dropdownColor: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  icon: const Icon(Icons.keyboard_arrow_down, size: 18, color: Colors.blueAccent),
+                  style: const TextStyle(fontSize: 13, color: Colors.black87, fontWeight: FontWeight.w500),
+                  items: const [
+                    DropdownMenuItem(value: 'user', child: Text('User (Thành viên)')),
+                    DropdownMenuItem(value: 'admin', child: Text('Admin (Quản trị viên)')),
+                    DropdownMenuItem(value: 'super-admin', child: Text('Super Admin')),
+                  ],
+                  onChanged: (v) { if (v != null) setState(() => _role = v); },
+                ),
+              ),
             ),
             const SizedBox(height: 12),
             // SĐT

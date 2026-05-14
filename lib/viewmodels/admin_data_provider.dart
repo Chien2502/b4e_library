@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import '../../core/constants/api_constants.dart';
 import '../../core/network/dio_client.dart';
 import '../../core/network/network_error_handler.dart';
+import '../../core/network/connectivity_service.dart';
 
 /// Trạng thái của một nguồn dữ liệu admin.
 class AdminDataState<T> {
@@ -217,6 +218,7 @@ class AdminDataProvider with ChangeNotifier {
 
   // ── Handle Renewal ───────────────────────────────────────────────
   Future<String?> handleRenewal(int borrowId, String action) async {
+    if (!ConnectivityService().isOnline) return 'Tính năng này cần kết nối internet. Vui lòng kiểm tra lại mạng!';
     try {
       final res = await _dio.post(
         ApiConstants.adminHandleRenewal,

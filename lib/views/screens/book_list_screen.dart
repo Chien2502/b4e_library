@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import '../../data/models/book_model.dart';
@@ -78,15 +79,16 @@ class BookListCard extends StatelessWidget {
                   height: 110,
                   width: 80,
                   child: book.displayImageUrl.isNotEmpty
-                    ? Image.network(
-                        book.displayImageUrl,
+                    ? CachedNetworkImage(
+                        imageUrl: book.displayImageUrl,
                         fit: BoxFit.cover,
-                        headers: kIsWeb
+                        httpHeaders: kIsWeb
                             ? const {
                                 'ngrok-skip-browser-warning': 'true'
                               }
                             : const {},
-                        errorBuilder: (context, error, stack) =>
+                        placeholder: (context, url) => _placeholder(),
+                        errorWidget: (context, url, error) =>
                             _placeholder(),
                       )
                     : _placeholder(),

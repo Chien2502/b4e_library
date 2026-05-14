@@ -267,20 +267,7 @@ class _SupportScreenState extends State<SupportScreen> {
 
             // Chủ đề
             _buildLabel('Chủ đề', required: true),
-            DropdownButtonFormField<String>(
-              initialValue: _selectedTopic,
-              items: _topics
-                  .map((t) =>
-                      DropdownMenuItem(value: t, child: Text(t)))
-                  .toList(),
-              onChanged: (v) =>
-                  setState(() => _selectedTopic = v ?? _topics[0]),
-              decoration: _fieldDecoration('-- Chọn chủ đề --'),
-              style: const TextStyle(fontSize: 14, color: Colors.black87),
-              borderRadius: BorderRadius.circular(12),
-              icon: const Icon(Icons.keyboard_arrow_down, color: Colors.grey),
-              isExpanded: true,
-            ),
+            _buildTopicDropdown(),
             const SizedBox(height: 12),
 
             // Nội dung
@@ -480,6 +467,33 @@ class _SupportScreenState extends State<SupportScreen> {
       validator: validator,
       decoration: _fieldDecoration(hint),
       style: const TextStyle(fontSize: 14),
+    );
+  }
+
+  Widget _buildTopicDropdown() {
+    return Container(
+      height: 44,
+      padding: const EdgeInsets.symmetric(horizontal: 10),
+      decoration: BoxDecoration(
+        color: Colors.grey[100],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[300]!),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: _selectedTopic,
+          isExpanded: true,
+          dropdownColor: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          icon: const Icon(Icons.keyboard_arrow_down, size: 18, color: Colors.blueAccent),
+          style: const TextStyle(fontSize: 13, color: Colors.black87, fontWeight: FontWeight.w500),
+          items: _topics
+              .map((t) => DropdownMenuItem(value: t, child: Text(t)))
+              .toList(),
+          onChanged: (v) =>
+              setState(() => _selectedTopic = v ?? _topics[0]),
+        ),
+      ),
     );
   }
 

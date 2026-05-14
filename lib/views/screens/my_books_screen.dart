@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -283,12 +284,13 @@ class _MyBooksScreenState extends State<MyBooksScreen>
         width: 50,
         height: 68,
         child: b.displayImageUrl.isNotEmpty
-            ? Image.network(
-                b.displayImageUrl,
+            ? CachedNetworkImage(
+                imageUrl: b.displayImageUrl,
                 fit: BoxFit.cover,
-                headers:
+                httpHeaders:
                     kIsWeb ? const {'ngrok-skip-browser-warning': 'true'} : const {},
-                errorBuilder: (_, err, stack) => _placeholder(),
+                placeholder: (context, url) => _placeholder(),
+                errorWidget: (context, url, error) => _placeholder(),
               )
             : _placeholder(),
       ),

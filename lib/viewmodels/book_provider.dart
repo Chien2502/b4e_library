@@ -5,6 +5,7 @@ import 'package:dio/dio.dart';
 import '../core/constants/api_constants.dart';
 import '../core/database/cache_keys.dart';
 import '../core/database/database_service.dart';
+import '../core/network/connectivity_service.dart';
 import '../core/network/dio_client.dart';
 import '../core/network/network_error_handler.dart';
 import '../data/models/book_model.dart';
@@ -86,7 +87,7 @@ class BookProvider with ChangeNotifier {
 
   // --- Dùng cho HomeScreen: Lấy 12 cuốn mới nhất (sắp xếp DESC theo id) ---
   Future<void> fetchLatestBooks({bool forceRefresh = false}) async {
-    // 1. Đọc cache trước
+    // 1. Đọc cache trước — luôn hoạt động dù online hay offline
     if (!forceRefresh) {
       final cached = await _cache.readCache<List<Book>>(
         CacheKeys.homeLatest,
@@ -100,8 +101,18 @@ class BookProvider with ChangeNotifier {
         _books = cached;
         _filteredBooks = List.from(_books);
         notifyListeners();
-        return;
+        return; // có cache → dùng ngay, không cần network
       }
+    }
+
+    // 2. Không có cache → kiểm tra mạng trước khi gọi API
+    // ignore: import_of_legacy_library_into_null_safe
+    final isOnline = ConnectivityService().isOnline;
+    if (!isOnline) {
+      _isLoading = false;
+      _errorMessage = 'Không có kết nối mạng. Vui lòng kiểm tra lại.';
+      notifyListeners();
+      return;
     }
 
     _isLoading = true;
@@ -116,7 +127,7 @@ class BookProvider with ChangeNotifier {
 
       if (response.statusCode == 200) {
         _parseAndStore(response.data);
-        // 2. Ghi vào cache
+        // 3. Ghi vào cache để dùng khi offline lần sau
         await _cache.writeCache(
           CacheKeys.homeLatest,
           response.data,

@@ -7,6 +7,8 @@ import '../core/database/cache_keys.dart';
 import '../core/database/database_service.dart';
 import '../core/network/dio_client.dart';
 import '../core/network/network_error_handler.dart';
+import '../core/network/connectivity_service.dart';
+import '../main.dart';
 
 // ── User data model (fields từ SELECT id, username, email, phone, address, role, avatar) ──
 class UserProfile {
@@ -84,7 +86,7 @@ class AuthProvider with ChangeNotifier {
     final String? token = await _storage.read(key: 'jwt_token');
     if (token != null) {
       _status = AuthStatus.authenticated;
-      // 1. Load profile từ cache trước (hiển thị tức thì)
+      // 1. Luôn load profile từ cache trước (hoạt động cả offline)
       final cached = await _cache.readCache<UserProfile>(
         CacheKeys.userProfile,
         (json) => UserProfile.fromJson(json as Map<String, dynamic>),
@@ -93,8 +95,12 @@ class AuthProvider with ChangeNotifier {
         _userProfile = cached;
         notifyListeners();
       }
-      // 2. Sau đó fetch mới từ server (nều có thay đổi)
-      fetchProfile();
+      // 2. Chỉ fetch từ server khi có mạng (tránh treo splash khi offline)
+      if (ConnectivityService().isOnline) {
+        fetchProfile();
+      } else {
+        debugPrint('[Auth] Offline — skipping fetchProfile, using cached profile');
+      }
     } else {
       _status = AuthStatus.unauthenticated;
     }
@@ -107,15 +113,18 @@ class AuthProvider with ChangeNotifier {
     notifyListeners();
   }
 
-
-  // ── Lấy profile từ server ──────────────────────────────────────
+  // ── Lấy profile từ server (chỉ gọi khi có mạng) ───────────────
   Future<void> fetchProfile() async {
+    if (!ConnectivityService().isOnline) {
+      debugPrint('[Auth] fetchProfile skipped — offline');
+      return;
+    }
     try {
       final Response res =
           await _dioClient.dio.get(ApiConstants.getProfile);
       if (res.statusCode == 200) {
         _userProfile = UserProfile.fromJson(res.data);
-        // Cache profile
+        // Cache profile để dùng khi offline lần sau
         await _cacheProfile();
         notifyListeners();
       }
@@ -131,6 +140,7 @@ class AuthProvider with ChangeNotifier {
     required String phone,
     required String address,
   }) async {
+    if (!ConnectivityService().isOnline) return 'Tính năng này cần kết nối internet. Vui lòng kiểm tra lại mạng!';
     try {
       final Response res = await _dioClient.dio.post(
         ApiConstants.updateProfile,
@@ -164,6 +174,7 @@ class AuthProvider with ChangeNotifier {
   // ── Upload avatar ──────────────────────────────────────────────
   /// Trả về null nếu thành công, chuỗi lỗi nếu thất bại
   Future<String?> uploadAvatar(File imageFile) async {
+    if (!ConnectivityService().isOnline) return 'Tính năng này cần kết nối internet. Vui lòng kiểm tra lại mạng!';
     try {
       final formData = FormData.fromMap({
         'avatar': await MultipartFile.fromFile(
@@ -214,6 +225,11 @@ class AuthProvider with ChangeNotifier {
 
   // ── Đăng nhập ─────────────────────────────────────────────────
   Future<bool> login(String email, String password) async {
+    if (!ConnectivityService().isOnline) {
+      final messenger = scaffoldMessengerKey.currentState;
+      messenger?.showSnackBar(const SnackBar(content: Text('Cần kết nối mạng để đăng nhập'), backgroundColor: Colors.red));
+      return false;
+    }
     _isLoading = true;
     notifyListeners();
 
@@ -253,6 +269,11 @@ class AuthProvider with ChangeNotifier {
   // ── Đăng ký ──────────────────────────────────────────────────
   Future<bool> register(
       String username, String email, String password) async {
+    if (!ConnectivityService().isOnline) {
+      final messenger = scaffoldMessengerKey.currentState;
+      messenger?.showSnackBar(const SnackBar(content: Text('Cần kết nối mạng để đăng ký'), backgroundColor: Colors.red));
+      return false;
+    }
     _isLoading = true;
     notifyListeners();
 

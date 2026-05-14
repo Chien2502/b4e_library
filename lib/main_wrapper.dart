@@ -1,13 +1,15 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
 import 'core/database/database_service.dart';
 import 'core/database/static_content_seeder.dart';
 import 'core/services/push_notification_service.dart';
+import 'core/network/connectivity_service.dart';
 import 'firebase_options.dart';
 import 'viewmodels/auth_provider.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'views/screens/main_layout.dart';
-
 /// MainWrapper quản lý toàn bộ luồng khởi động:
 ///
 /// Frame 1 → Splash render ngay (gradient + logo + dots animation)
@@ -29,8 +31,8 @@ class _MainWrapperState extends State<MainWrapper>
   late final Animation<double> _fadeOut; // splash fade ra
   late final Animation<double> _fadeIn; // main layout fade vào
 
-  bool _initDone = false;      // tất cả init xong chưa
-  bool _minTimeDone = false;   // thời gian tối thiểu đã đủ chưa
+  bool _initDone = false; // tất cả init xong chưa
+  bool _minTimeDone = false; // thời gian tối thiểu đã đủ chưa
   bool _transitioning = false; // đang fade transition
   bool _transitionDone = false; // transition hoàn tất → remove splash khỏi tree
 
@@ -77,33 +79,68 @@ class _MainWrapperState extends State<MainWrapper>
 
   /// Chạy toàn bộ init song song, không block UI thread.
   Future<void> _runAllInit() async {
-    // Cache provider ref trước await để tránh context-across-async-gap
-    final auth = context.read<AuthProvider>();
-
     try {
-      // Bước 1: Firebase + SQLite phải init trước (các bước sau phụ thuộc vào chúng)
-      await Future.wait([
-        Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform),
-        DatabaseService.instance.init(),
-      ]);
+      debugPrint('[Splash] Step 1: Loading .env and checking connectivity...');
+      await dotenv.load(fileName: ".env");
 
-      // Bước 2: Mọi thứ còn lại chạy song song sau khi deps đã sẵn sàng
+      // Kiểm tra mạng TRƯỚC TIÊN — kết quả này quyết định các bước sau
+      final bool isOnline = await ConnectivityService().checkStatus();
+      ConnectivityService().initialize(); // bắt đầu lắng nghe thay đổi mạng
+      debugPrint('[Splash] Connectivity: ${isOnline ? "ONLINE" : "OFFLINE"}');
+
+      // Bước 1: Firebase & SQLite
+      // Khi offline, Firebase.initializeApp() vẫn OK (dùng config local)
+      // Tách thành Future<void> để timeout không conflict với return type
+      debugPrint('[Splash] Step 1: Starting Firebase and SQLite init...');
+      Future<void> firebaseInit() async {
+        try {
+          await Firebase.initializeApp(
+                  options: DefaultFirebaseOptions.currentPlatform)
+              .timeout(const Duration(seconds: 5));
+          debugPrint('[Splash] Firebase initialized');
+        } on TimeoutException {
+          debugPrint('[Splash] Firebase init timeout — continuing anyway');
+        }
+      }
+
       await Future.wait([
-        // Auth check: đọc token + profile từ SQLite cache (nhanh, không cần network)
-        auth.checkAuthStatus(),
-        // FCM setup (cần Firebase đã init ở bước 1)
-        PushNotificationService().init(),
-        // Seed dữ liệu tĩnh (cần SQLite đã init ở bước 1)
-        StaticContentSeeder.seed(),
+        firebaseInit(),
+        DatabaseService.instance
+            .init()
+            .then((_) => debugPrint('[Splash] Database initialized')),
       ]);
+      debugPrint('[Splash] Step 1 completed.');
+
+      // FCM chỉ khởi động khi online (FCM cần internet để đăng ký token)
+      if (isOnline) {
+        PushNotificationService().init().catchError((e) {
+          debugPrint('[FCM] Init error: $e');
+        });
+      }
+
+      debugPrint('[Splash] Step 2: Auth check and seeder...');
+      // Lấy auth trước await để tránh BuildContext-across-async-gap warning
+      if (!mounted) return;
+      final auth = Provider.of<AuthProvider>(context, listen: false);
+      await Future.wait([
+        // Auth: đọc token → load cache → chỉ gọi server nếu online
+        auth.checkAuthStatus().then((_) => debugPrint('[Splash] Auth check completed')),
+        // Seed dữ liệu tĩnh (chỉ đọc từ assets → luôn ok kể cả offline)
+        StaticContentSeeder.seed().then((_) => debugPrint('[Splash] StaticContentSeeder completed')),
+      ]);
+      debugPrint('[Splash] Step 2 completed.');
+
     } catch (e) {
       debugPrint('[MainWrapper] Init error (non-fatal): $e');
-      // Đảm bảo auth status không bị kẹt ở uninitialized
-      if (auth.status == AuthStatus.uninitialized) {
-        auth.forceUnauthenticated();
+      if (mounted) {
+        final auth = context.read<AuthProvider>();
+        if (auth.status == AuthStatus.uninitialized) {
+          auth.forceUnauthenticated();
+        }
       }
     } finally {
       if (mounted) {
+        debugPrint('[Splash] Setting _initDone = true');
         _initDone = true;
         _tryTransition();
       }
@@ -113,9 +150,13 @@ class _MainWrapperState extends State<MainWrapper>
   /// Bắt đầu transition chỉ khi CẢ HAI điều kiện thoả:
   /// init xong VÀ đã hiển thị tối thiểu _minSplashMs ms
   void _tryTransition() {
+    debugPrint('[Splash] _tryTransition: _initDone=$_initDone, _minTimeDone=$_minTimeDone, _transitioning=$_transitioning, mounted=$mounted');
     if (_initDone && _minTimeDone && !_transitioning && mounted) {
-      setState(() => _transitioning = true);
-      _transitionCtrl.forward();
+      debugPrint('[Splash] Transitioning to MainLayout...');
+      setState(() {
+        _transitioning = true;
+        _transitionDone = true;
+      });
     }
   }
 
@@ -286,18 +327,18 @@ class _SplashContentState extends State<_SplashContent>
                 opacity: _dotsFade.value,
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
-                  // children: [
-                  //   const _BouncingDots(),
-                  //   const SizedBox(height: 12),
-                  //   Text(
-                  //     'Đang khởi động...',
-                  //     style: TextStyle(
-                  //       color: Colors.white.withValues(alpha: 0.6),
-                  //       fontSize: 12,
-                  //       letterSpacing: 0.5,
-                  //     ),
-                  //   ),
-                  // ],
+                  children: [
+                    const _BouncingDots(),
+                    const SizedBox(height: 12),
+                    // Text(
+                    //   'Đang khởi động...',
+                    //   style: TextStyle(
+                    //     color: Colors.white.withValues(alpha: 0.6),
+                    //     fontSize: 12,
+                    //     letterSpacing: 0.5,
+                    //   ),
+                    // ),
+                  ],
                 ),
               ),
             ),
