@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/theme/theme_extensions.dart';
 
 class BorrowingGuideScreen extends StatelessWidget {
   const BorrowingGuideScreen({super.key});
@@ -6,19 +7,19 @@ class BorrowingGuideScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: context.background,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: context.card,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new,
-              color: Colors.black87, size: 20),
+          icon: Icon(Icons.arrow_back_ios_new,
+              color: context.textPrimary, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
+        title: Text(
           'Hướng dẫn mượn sách',
           style: TextStyle(
-            color: Colors.black87,
+            color: context.textPrimary,
             fontWeight: FontWeight.bold,
             fontSize: 18,
           ),
@@ -37,59 +38,64 @@ class BorrowingGuideScreen extends StatelessWidget {
 
             // ── Điều kiện ───────────────────────────────────────
             _buildSection(
+              context,
               icon: Icons.checklist_outlined,
-              color: Colors.blue,
+              color: context.colors.primary,
               title: 'Điều kiện mượn sách',
               children: [
-                _buildBullet('Là thành viên đã đăng ký tài khoản trên hệ thống B4E.'),
-                _buildBullet('Mỗi tài khoản được mượn tối đa 3 quyển sách cùng lúc.'),
-                _buildBullet('Thời hạn mượn tối đa là 15 ngày kể từ ngày nhận sách.'),
-                _buildBullet('Sách phải được trả về trong tình trạng nguyên vẹn, không bị rách, ướt hoặc mất trang.'),
+                _buildBullet(context, 'Là thành viên đã đăng ký tài khoản trên hệ thống B4E.'),
+                _buildBullet(context, 'Mỗi tài khoản được mượn tối đa 3 quyển sách cùng lúc.'),
+                _buildBullet(context, 'Thời hạn mượn tối đa là 15 ngày kể từ ngày nhận sách.'),
+                _buildBullet(context, 'Sách phải được trả về trong tình trạng nguyên vẹn, không bị rách, ướt hoặc mất trang.'),
               ],
             ),
 
             // ── Các bước ────────────────────────────────────────
             _buildSection(
+              context,
               icon: Icons.format_list_numbered_outlined,
-              color: Colors.green,
+              color: context.isDarkMode ? const Color(0xFF81C784) : const Color(0xFF2E7D32),
               title: 'Các bước mượn sách',
               children: [
-                _buildStep(1, 'Tìm sách', 'Vào tab "Tìm kiếm", lọc theo thể loại hoặc tên sách bạn muốn mượn.'),
-                _buildStep(2, 'Xem chi tiết', 'Nhấn vào thẻ sách để xem đầy đủ thông tin, tác giả, mô tả và trạng thái còn sẵn.'),
-                _buildStep(3, 'Nhấn Mượn sách', 'Ở màn hình chi tiết, nhấn nút "Mượn sách" ở cuối trang và xác nhận yêu cầu.'),
-                _buildStep(4, 'Chờ xác nhận', 'Hệ thống sẽ ghi nhận yêu cầu. Ban quản lý sẽ liên hệ để sắp xếp giao nhận.'),
-                _buildStep(5, 'Nhận sách', 'Đến thư viện hoặc nhận tại địa điểm đã hẹn. Sách sẽ chuyển sang trạng thái "Đang mượn".'),
+                _buildStep(context, 1, 'Tìm sách', 'Vào tab "Tìm kiếm", lọc theo thể loại hoặc tên sách bạn muốn mượn.'),
+                _buildStep(context, 2, 'Xem chi tiết', 'Nhấn vào thẻ sách để xem đầy đủ thông tin, tác giả, mô tả và trạng thái còn sẵn.'),
+                _buildStep(context, 3, 'Nhấn Mượn sách', 'Ở màn hình chi tiết, nhấn nút "Mượn sách" ở cuối trang và xác nhận yêu cầu.'),
+                _buildStep(context, 4, 'Chờ xác nhận', 'Hệ thống sẽ ghi nhận yêu cầu. Ban quản lý sẽ liên hệ để sắp xếp giao nhận.'),
+                _buildStep(context, 5, 'Nhận sách', 'Đến thư viện hoặc nhận tại địa điểm đã hẹn. Sách sẽ chuyển sang trạng thái "Đang mượn".'),
               ],
             ),
 
             // ── Trả sách ────────────────────────────────────────
             _buildSection(
+              context,
               icon: Icons.assignment_return_outlined,
-              color: Colors.orange,
+              color: context.isDarkMode ? const Color(0xFFFFB74D) : const Color(0xFFEF6C00),
               title: 'Quy trình trả sách',
               children: [
-                _buildBullet('Vào tab "Sách của tôi" → chọn sách muốn trả → nhấn nút "Trả sách".'),
-                _buildBullet('Hệ thống sẽ cập nhật trạng thái "Đang xử lý".'),
-                _buildBullet('Mang sách đến thư viện hoặc liên hệ để sắp xếp trả qua dịch vụ chuyển phát.'),
-                _buildBullet('Sau khi ban quản lý xác nhận, sách sẽ chuyển sang "Đã trả".'),
+                _buildBullet(context, 'Vào tab "Sách của tôi" → chọn sách muốn trả → nhấn nút "Trả sách".'),
+                _buildBullet(context, 'Hệ thống sẽ cập nhật trạng thái "Đang xử lý".'),
+                _buildBullet(context, 'Mang sách đến thư viện hoặc liên hệ để sắp xếp trả qua dịch vụ chuyển phát.'),
+                _buildBullet(context, 'Sau khi ban quản lý xác nhận, sách sẽ chuyển sang "Đã trả".'),
               ],
             ),
 
             // ── Phí & Phạt ───────────────────────────────────────
             _buildSection(
+              context,
               icon: Icons.attach_money_outlined,
-              color: Colors.red,
+              color: context.error,
               title: 'Phí & Quy định phạt',
               children: [
-                _buildKeyValue('Phí mượn sách:', 'Miễn phí hoàn toàn'),
-                _buildKeyValue('Phí trễ hạn:', '2.000đ / ngày / cuốn sau ngày hết hạn'),
-                _buildKeyValue('Sách hư hỏng nặng:', 'Bồi thường 50% giá bìa sách'),
-                _buildKeyValue('Mất sách:', 'Bồi thường 100% giá bìa sách'),
+                _buildKeyValue(context, 'Phí mượn sách:', 'Miễn phí hoàn toàn'),
+                _buildKeyValue(context, 'Phí trễ hạn:', '2.000đ / ngày / cuốn sau ngày hết hạn'),
+                _buildKeyValue(context, 'Sách hư hỏng nặng:', 'Bồi thường 50% giá bìa sách'),
+                _buildKeyValue(context, 'Mất sách:', 'Bồi thường 100% giá bìa sách'),
               ],
             ),
 
             // ── Lưu ý ────────────────────────────────────────────
             _buildNoteBox(
+              context,
               '📌 Lưu ý quan trọng',
               'Trong quá trình mượn sách, nếu có vấn đề xảy ra (hư hỏng, thất lạc,...), '
               'vui lòng liên hệ ngay với thư viện qua email hotroB4E@gmail.com hoặc '
@@ -150,7 +156,8 @@ class BorrowingGuideScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildSection({
+  Widget _buildSection(
+    BuildContext context, {
     required IconData icon,
     required Color color,
     required String title,
@@ -159,11 +166,13 @@ class BorrowingGuideScreen extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.card,
         borderRadius: BorderRadius.circular(14),
         boxShadow: [
           BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
+              color: context.isDarkMode
+                  ? Colors.transparent
+                  : Colors.black.withValues(alpha: 0.04),
               blurRadius: 8,
               offset: const Offset(0, 3))
         ],
@@ -175,7 +184,7 @@ class BorrowingGuideScreen extends StatelessWidget {
           Container(
             padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
             decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.07),
+              color: color.withValues(alpha: context.isDarkMode ? 0.15 : 0.07),
               borderRadius:
                   const BorderRadius.vertical(top: Radius.circular(14)),
             ),
@@ -204,27 +213,27 @@ class BorrowingGuideScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildBullet(String text) {
+  Widget _buildBullet(BuildContext context, String text) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('•  ',
+          Text('•  ',
               style: TextStyle(
-                  color: Colors.blueAccent,
+                  color: context.colors.primary,
                   fontSize: 14,
                   fontWeight: FontWeight.bold)),
           Expanded(
               child: Text(text,
                   style: TextStyle(
-                      fontSize: 13, color: Colors.grey[700], height: 1.5))),
+                      fontSize: 13, color: context.textSecondary, height: 1.5))),
         ],
       ),
     );
   }
 
-  Widget _buildStep(int num, String title, String desc) {
+  Widget _buildStep(BuildContext context, int num, String title, String desc) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(
@@ -234,12 +243,12 @@ class BorrowingGuideScreen extends StatelessWidget {
             width: 26,
             height: 26,
             margin: const EdgeInsets.only(top: 1, right: 10),
-            decoration: const BoxDecoration(
-                color: Color(0xFF1E88E5), shape: BoxShape.circle),
+            decoration: BoxDecoration(
+                color: context.colors.primary, shape: BoxShape.circle),
             child: Center(
               child: Text('$num',
-                  style: const TextStyle(
-                      color: Colors.white,
+                  style: TextStyle(
+                      color: context.colors.onPrimary,
                       fontSize: 12,
                       fontWeight: FontWeight.bold)),
             ),
@@ -249,14 +258,14 @@ class BorrowingGuideScreen extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(title,
-                    style: const TextStyle(
+                    style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 13,
-                        color: Colors.black87)),
+                        color: context.textPrimary)),
                 const SizedBox(height: 2),
                 Text(desc,
                     style: TextStyle(
-                        fontSize: 12, color: Colors.grey[600], height: 1.4)),
+                        fontSize: 12, color: context.textSecondary, height: 1.4)),
               ],
             ),
           ),
@@ -265,7 +274,7 @@ class BorrowingGuideScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildKeyValue(String key, String value) {
+  Widget _buildKeyValue(BuildContext context, String key, String value) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Row(
@@ -274,37 +283,42 @@ class BorrowingGuideScreen extends StatelessWidget {
           SizedBox(
             width: 145,
             child: Text(key,
-                style: const TextStyle(
-                    fontSize: 13, fontWeight: FontWeight.w500)),
+                style: TextStyle(
+                    fontSize: 13, fontWeight: FontWeight.w500, color: context.textPrimary)),
           ),
           Expanded(
               child: Text(value,
-                  style: TextStyle(fontSize: 13, color: Colors.grey[700]))),
+                  style: TextStyle(fontSize: 13, color: context.textSecondary))),
         ],
       ),
     );
   }
 
-  Widget _buildNoteBox(String title, String body) {
+  Widget _buildNoteBox(BuildContext context, String title, String body) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.amber[50],
+        color: context.isDarkMode
+            ? Colors.amber.withValues(alpha: 0.15)
+            : const Color(0xFFFFF8E1),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.amber[200]!),
+        border: Border.all(
+            color: context.isDarkMode
+                ? Colors.amber.withValues(alpha: 0.3)
+                : Colors.amber[200]!),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(title,
-              style: const TextStyle(
+              style: TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 14,
-                  color: Colors.black87)),
+                  color: context.textPrimary)),
           const SizedBox(height: 8),
           Text(body,
               style: TextStyle(
-                  fontSize: 13, color: Colors.grey[700], height: 1.5)),
+                  fontSize: 13, color: context.textSecondary, height: 1.5)),
         ],
       ),
     );

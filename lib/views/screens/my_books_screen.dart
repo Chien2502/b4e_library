@@ -7,6 +7,7 @@ import '../../viewmodels/notification_provider.dart';
 import '../../data/models/borrowing_model.dart';
 import '../widgets/custom_dialog.dart';
 import '../../core/utils/snackbar_utils.dart';
+import '../../core/theme/theme_extensions.dart';
 
 class MyBooksScreen extends StatefulWidget {
   const MyBooksScreen({super.key});
@@ -42,7 +43,7 @@ class _MyBooksScreenState extends State<MyBooksScreen>
       case 1:
         return all.where((b) => b.status == 'borrowed' || b.status == 'overdue').toList();
       case 2:
-        return all.where((b) => b.status == 'returning').toList();
+        return all.where((b) => b.status == 'returning' || b.status == 'return_requested' || b.status == 'return_approved' || b.status == 'return_shipping').toList();
       case 3:
         return all.where((b) => b.status == 'returned').toList();
       default:
@@ -82,19 +83,19 @@ class _MyBooksScreenState extends State<MyBooksScreen>
     final counts = [
       all.length,
       all.where((b) => b.status == 'borrowed' || b.status == 'overdue').length,
-      all.where((b) => b.status == 'returning').length,
+      all.where((b) => b.status == 'returning' || b.status == 'return_requested' || b.status == 'return_approved' || b.status == 'return_shipping').length,
       all.where((b) => b.status == 'returned').length,
     ];
 
     return Container(
-      color: Colors.white,
+      color: context.card,
       child: TabBar(
         controller: _tabController,
         isScrollable: true,
         tabAlignment: TabAlignment.start,
-        labelColor: Colors.blueAccent,
-        unselectedLabelColor: Colors.grey[600],
-        indicatorColor: Colors.blueAccent,
+        labelColor: context.colors.primary,
+        unselectedLabelColor: context.textSecondary,
+        indicatorColor: context.colors.primary,
         indicatorWeight: 2.5,
         labelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
         unselectedLabelStyle: const TextStyle(fontSize: 13),
@@ -110,13 +111,13 @@ class _MyBooksScreenState extends State<MyBooksScreen>
                     padding: const EdgeInsets.symmetric(
                         horizontal: 6, vertical: 1),
                     decoration: BoxDecoration(
-                      color: Colors.blueAccent.withValues(alpha: 0.15),
+                      color: context.colors.primary.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Text(
                       '${counts[i]}',
-                      style: const TextStyle(
-                          fontSize: 10, color: Colors.blueAccent),
+                      style: TextStyle(
+                          fontSize: 10, color: context.colors.primary),
                     ),
                   ),
                 ],
@@ -164,11 +165,11 @@ class _MyBooksScreenState extends State<MyBooksScreen>
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(Icons.library_books_outlined,
-                size: 64, color: Colors.grey[300]),
+                size: 64, color: context.divider),
             const SizedBox(height: 12),
             Text(
               'Chưa có dữ liệu',
-              style: TextStyle(fontSize: 15, color: Colors.grey[500]),
+              style: TextStyle(fontSize: 15, color: context.textSecondary),
             ),
           ],
         ),
@@ -196,7 +197,7 @@ class _MyBooksScreenState extends State<MyBooksScreen>
     MyBooksProvider provider,
   ) {
     return Container(
-      color: Colors.white,
+      color: context.card,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
@@ -215,10 +216,10 @@ class _MyBooksScreenState extends State<MyBooksScreen>
                   b.title,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 14,
-                    color: Colors.black87,
+                    color: context.textPrimary,
                   ),
                 ),
                 if (b.author.isNotEmpty)
@@ -226,7 +227,7 @@ class _MyBooksScreenState extends State<MyBooksScreen>
                     b.author,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                    style: TextStyle(fontSize: 12, color: context.textSecondary),
                   ),
                 const SizedBox(height: 4),
 
@@ -234,21 +235,21 @@ class _MyBooksScreenState extends State<MyBooksScreen>
                 Row(
                   children: [
                     Icon(Icons.calendar_today_outlined,
-                        size: 11, color: Colors.grey[500]),
+                        size: 11, color: context.textSecondary),
                     const SizedBox(width: 3),
                     Text(
                       _formatDate(b.borrowDate),
-                      style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+                      style: TextStyle(fontSize: 11, color: context.textSecondary),
                     ),
                     const SizedBox(width: 8),
                     Icon(Icons.event_outlined,
-                        size: 11, color: _isOverdue(b) ? Colors.red : Colors.grey[500]),
+                        size: 11, color: _isOverdue(b) ? Colors.red : context.textSecondary),
                     const SizedBox(width: 3),
                     Text(
                       _formatDate(b.dueDate),
                       style: TextStyle(
                         fontSize: 11,
-                        color: _isOverdue(b) ? Colors.red : Colors.grey[600],
+                        color: _isOverdue(b) ? Colors.red : context.textSecondary,
                         fontWeight: _isOverdue(b)
                             ? FontWeight.bold
                             : FontWeight.normal,
@@ -289,59 +290,59 @@ class _MyBooksScreenState extends State<MyBooksScreen>
                 fit: BoxFit.cover,
                 httpHeaders:
                     kIsWeb ? const {'ngrok-skip-browser-warning': 'true'} : const {},
-                placeholder: (context, url) => _placeholder(),
-                errorWidget: (context, url, error) => _placeholder(),
+                placeholder: (context, url) => _placeholder(context),
+                errorWidget: (context, url, error) => _placeholder(context),
               )
-            : _placeholder(),
+            : _placeholder(context),
       ),
     );
   }
 
-  Widget _placeholder() => Container(
-        color: Colors.grey[200],
-        child: const Icon(Icons.menu_book_outlined,
-            size: 24, color: Colors.grey),
+  Widget _placeholder(BuildContext context) => Container(
+        color: context.isDarkMode ? Colors.grey[800] : Colors.grey[200],
+        child: Icon(Icons.menu_book_outlined,
+            size: 24, color: context.isDarkMode ? Colors.grey[600] : Colors.grey),
       );
 
   // ── Badge trạng thái (màu theo từng trạng thái) ───────────────
   Widget _buildStatusBadge(Borrowing b) {
-    Color bgColor;
-    Color textColor;
-
+    Color baseColor;
     switch (b.status) {
       case 'borrowed':
-        bgColor = const Color(0xFFFFF3E0);
-        textColor = Colors.orange[800]!;
+        baseColor = Colors.orange;
         break;
       case 'overdue':
-        bgColor = const Color(0xFFFFEBEE);
-        textColor = Colors.red[700]!;
+        baseColor = Colors.red;
         break;
       case 'returning':
-        bgColor = const Color(0xFFE3F2FD);
-        textColor = Colors.blue[700]!;
+      case 'return_requested':
+      case 'return_approved':
+      case 'return_shipping':
+        baseColor = Colors.blue;
         break;
       case 'returned':
-        bgColor = const Color(0xFFE8F5E9);
-        textColor = Colors.green[700]!;
+        baseColor = Colors.green;
         break;
       default:
-        bgColor = Colors.grey[100]!;
-        textColor = Colors.grey[700]!;
+        baseColor = Colors.grey;
     }
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: bgColor,
+        color: baseColor.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: baseColor.withValues(alpha: 0.3),
+          width: 1,
+        ),
       ),
       child: Text(
         b.statusLabel,
         style: TextStyle(
           fontSize: 11,
           fontWeight: FontWeight.w600,
-          color: textColor,
+          color: baseColor,
         ),
       ),
     );
@@ -362,12 +363,100 @@ class _MyBooksScreenState extends State<MyBooksScreen>
             width: 12,
             height: 12,
             child: CircularProgressIndicator(
-                strokeWidth: 1.5, color: Colors.grey[500]),
+                strokeWidth: 1.5, color: context.textSecondary),
           ),
           const SizedBox(width: 4),
           Text('Đang xử lý...',
-              style: TextStyle(fontSize: 11, color: Colors.grey[500])),
+              style: TextStyle(fontSize: 11, color: context.textSecondary)),
         ],
+      );
+    }
+
+    // Trạng thái vận chuyển của đơn mượn (shipped) -> Nút Đã nhận sách
+    if (b.status == 'shipped') {
+      return ElevatedButton(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.green,
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          minimumSize: Size.zero,
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
+          elevation: 0,
+        ),
+        onPressed: () async {
+          final confirm = await showDialog<bool>(
+            context: context,
+            builder: (ctx) => CustomDialog(
+              title: 'Xác nhận nhận sách',
+              message: 'Bạn xác nhận đã nhận thành công cuốn "${b.title}" từ shipper?',
+              icon: Icons.check_circle_outline_rounded,
+              iconColor: Colors.green,
+              confirmLabel: 'Đã nhận',
+              onConfirm: () => Navigator.pop(ctx, true),
+            ),
+          );
+          if (confirm == true) {
+            final error = await provider.confirmUserAction(b.id, 'confirm_receipt');
+            if (context.mounted) {
+              if (error == null) {
+                SnackBarUtils.showSuccess(context, 'Xác nhận nhận sách thành công! 📚');
+              } else {
+                SnackBarUtils.showError(context, error);
+              }
+            }
+          }
+        },
+        child: const Text(
+          'Đã nhận',
+          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+        ),
+      );
+    }
+
+    // Trạng thái đã duyệt trả (return_approved) -> Nút Đang ship sách
+    if (b.status == 'return_approved') {
+      return ElevatedButton(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.blueAccent,
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          minimumSize: Size.zero,
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
+          elevation: 0,
+        ),
+        onPressed: () async {
+          final confirm = await showDialog<bool>(
+            context: context,
+            builder: (ctx) => CustomDialog(
+              title: 'Xác nhận gửi hàng',
+              message: 'Bạn xác nhận đã đóng gói và gửi cuốn "${b.title}" cho đơn vị vận chuyển?',
+              icon: Icons.local_shipping_outlined,
+              iconColor: Colors.blueAccent,
+              confirmLabel: 'Xác nhận',
+              onConfirm: () => Navigator.pop(ctx, true),
+            ),
+          );
+          if (confirm == true) {
+            final error = await provider.confirmUserAction(b.id, 'confirm_shipping');
+            if (context.mounted) {
+              if (error == null) {
+                SnackBarUtils.showSuccess(context, 'Đã xác nhận đang ship trả sách! 🚚');
+              } else {
+                SnackBarUtils.showError(context, error);
+              }
+            }
+          }
+        },
+        child: const Text(
+          'Đang ship',
+          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+        ),
       );
     }
 
@@ -377,10 +466,17 @@ class _MyBooksScreenState extends State<MyBooksScreen>
     }
 
     // Chờ xác nhận → text mô tả
-    if (b.status == 'returning') {
+    if (b.status == 'returning' || b.status == 'return_requested') {
       return Text(
         'Đang xử lý...',
-        style: TextStyle(fontSize: 11, color: Colors.grey[500]),
+        style: TextStyle(fontSize: 11, color: context.textSecondary),
+      );
+    }
+
+    if (b.status == 'return_shipping') {
+      return Text(
+        'Đang ship về...',
+        style: TextStyle(fontSize: 11, color: context.textSecondary),
       );
     }
 
@@ -393,19 +489,19 @@ class _MyBooksScreenState extends State<MyBooksScreen>
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
-                color: Colors.blue.withValues(alpha: 0.1),
+                color: context.colors.primary.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(4),
               ),
-              child: const Text(
+              child: Text(
                 'Đang chờ gia hạn',
-                style: TextStyle(fontSize: 10, color: Colors.blue, fontWeight: FontWeight.bold),
+                style: TextStyle(fontSize: 10, color: context.colors.primary, fontWeight: FontWeight.bold),
               ),
             )
           else if (b.renewStatus == 'none' || b.renewStatus == 'rejected')
             OutlinedButton(
               style: OutlinedButton.styleFrom(
-                foregroundColor: const Color(0xFF1565C0),
-                side: const BorderSide(color: Color(0xFF1565C0)),
+                foregroundColor: context.colors.primary,
+                side: BorderSide(color: context.colors.primary),
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 minimumSize: Size.zero,
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -477,23 +573,15 @@ class _MyBooksScreenState extends State<MyBooksScreen>
     Borrowing b,
     MyBooksProvider provider,
   ) async {
-    final confirm = await showDialog<bool>(
+    final returnMethod = await showDialog<String>(
       context: context,
-      builder: (ctx) => CustomDialog(
-        title: 'Xác nhận trả sách',
-        message: 'Bạn muốn gửi yêu cầu trả cuốn "${b.title}"? Thủ thư sẽ xác nhận sau khi nhận được sách.',
-        icon: Icons.assignment_return_rounded,
-        iconColor: Colors.orange,
-        confirmLabel: 'Gửi yêu cầu',
-        confirmColor: Colors.orange,
-        onConfirm: () => Navigator.pop(ctx, true),
-      ),
+      builder: (ctx) => _ReturnMethodDialog(bookTitle: b.title),
     );
 
-    if (confirm != true) return;
+    if (returnMethod == null) return;
     if (!context.mounted) return;
 
-    final error = await provider.returnBook(b.id);
+    final error = await provider.returnBook(b.id, returnMethod: returnMethod);
 
     if (!context.mounted) return;
 
@@ -551,7 +639,7 @@ class _RenewConfirmDialogState extends State<_RenewConfirmDialog> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text('Số ngày gia hạn:', style: TextStyle(fontWeight: FontWeight.bold)),
-              Text('$_renewDays ngày', style: const TextStyle(color: Color(0xFF1565C0), fontWeight: FontWeight.bold)),
+              Text('$_renewDays ngày', style: TextStyle(color: context.colors.primary, fontWeight: FontWeight.bold)),
             ],
           ),
           Slider(
@@ -559,11 +647,127 @@ class _RenewConfirmDialogState extends State<_RenewConfirmDialog> {
             min: 1,
             max: 15,
             divisions: 14,
-            activeColor: const Color(0xFF1565C0),
+            activeColor: context.colors.primary,
             label: '$_renewDays ngày',
             onChanged: (val) => setState(() => _renewDays = val.toInt()),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _ReturnMethodDialog extends StatefulWidget {
+  final String bookTitle;
+
+  const _ReturnMethodDialog({required this.bookTitle});
+
+  @override
+  State<_ReturnMethodDialog> createState() => _ReturnMethodDialogState();
+}
+
+class _ReturnMethodDialogState extends State<_ReturnMethodDialog> {
+  String _selectedMethod = 'direct'; // 'direct' or 'shipping'
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomDialog(
+      title: 'Chọn phương thức trả',
+      message: 'Bạn muốn gửi yêu cầu trả cuốn "${widget.bookTitle}" bằng phương thức nào?',
+      icon: Icons.assignment_return_rounded,
+      iconColor: Colors.orange,
+      confirmLabel: 'Xác nhận',
+      confirmColor: Colors.orange,
+      onConfirm: () => Navigator.pop(context, _selectedMethod),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const SizedBox(height: 12),
+          _buildMethodOption(
+            method: 'direct',
+            title: 'Trả trực tiếp',
+            description: 'Mang sách đến trả trực tiếp tại thư viện.',
+            icon: Icons.storefront_rounded,
+          ),
+          const SizedBox(height: 12),
+          _buildMethodOption(
+            method: 'shipping',
+            title: 'Gửi qua bưu điện',
+            description: 'Gửi sách trả lại qua shipper / bưu điện.',
+            icon: Icons.local_shipping_rounded,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMethodOption({
+    required String method,
+    required String title,
+    required String description,
+    required IconData icon,
+  }) {
+    final isSelected = _selectedMethod == method;
+    final primaryColor = Colors.orange;
+
+    return InkWell(
+      onTap: () => setState(() => _selectedMethod = method),
+      borderRadius: BorderRadius.circular(16),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: isSelected ? primaryColor.withValues(alpha: 0.05) : Colors.transparent,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isSelected ? primaryColor : Colors.grey.withValues(alpha: 0.2),
+            width: isSelected ? 2 : 1,
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              icon,
+              color: isSelected ? primaryColor : Colors.grey,
+              size: 24,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: isSelected ? primaryColor : null,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    description,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: context.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Container(
+              width: 22,
+              height: 22,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: isSelected ? primaryColor : Colors.grey.withValues(alpha: 0.5),
+                  width: isSelected ? 6 : 2,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -8,6 +8,7 @@ import '../core/database/database_service.dart';
 import '../core/network/dio_client.dart';
 import '../core/network/network_error_handler.dart';
 import '../core/network/connectivity_service.dart';
+import '../core/services/push_notification_service.dart';
 import '../main.dart';
 
 // ── User data model (fields từ SELECT id, username, email, phone, address, role, avatar) ──
@@ -98,6 +99,8 @@ class AuthProvider with ChangeNotifier {
       // 2. Chỉ fetch từ server khi có mạng (tránh treo splash khi offline)
       if (ConnectivityService().isOnline) {
         fetchProfile();
+        // Cập nhật FCM token lên server (silent — không block luồng auth)
+        PushNotificationService().saveFcmTokenToServer(role: _userProfile?.role);
       } else {
         debugPrint('[Auth] Offline — skipping fetchProfile, using cached profile');
       }
@@ -252,6 +255,8 @@ class AuthProvider with ChangeNotifier {
         notifyListeners();
         // Tải profile ngay sau login
         fetchProfile();
+        // Lưu FCM token lên server (silent — không block login flow)
+        PushNotificationService().saveFcmTokenToServer(role: _userProfile?.role);
         return true;
       }
 
@@ -306,6 +311,9 @@ class AuthProvider with ChangeNotifier {
 
   // ── Đăng xuất ─────────────────────────────────────────────────
   Future<void> logout() async {
+    // Hủy đăng ký nhận thông báo chung từ Firebase
+    await PushNotificationService().unsubscribeFromTopics();
+
     await _storage.delete(key: 'jwt_token');
     await _storage.delete(key: 'refresh_token');
     _userProfile = null;

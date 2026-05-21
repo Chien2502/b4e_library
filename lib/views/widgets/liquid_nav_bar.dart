@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/theme/theme_extensions.dart';
 
 /// Bottom navigation bar có hiệu ứng "chất lỏng" di chuyển giữa các tab.
 /// Blob indicator trượt mượt từ tab cũ → tab mới, kéo giãn khi di chuyển.
@@ -29,7 +30,7 @@ class _LiquidNavBarState extends State<LiquidNavBar>
     _currentPos = widget.currentIndex.toDouble();
     _slideCtrl = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 500),
+      duration: const Duration(milliseconds: 400),
     )..addListener(() => setState(() {}));
   }
 
@@ -75,7 +76,7 @@ class _LiquidNavBarState extends State<LiquidNavBar>
     final t = _slideCtrl.value;
     // Curve: 0→1→0 (mạnh nhất ở giữa)
     final s = 4.0 * t * (1.0 - t); // parabola peak=1 tại t=0.5
-    return 1.0 + s * 0.5; // max stretch = 1.5x
+    return 1.0 + s * 0.45; // max stretch = 1.45x
   }
 
   @override
@@ -84,10 +85,10 @@ class _LiquidNavBarState extends State<LiquidNavBar>
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.card,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.06),
+            color: Colors.black.withValues(alpha: context.isDarkMode ? 0.3 : 0.06),
             blurRadius: 12,
             offset: const Offset(0, -4),
           ),
@@ -96,13 +97,13 @@ class _LiquidNavBarState extends State<LiquidNavBar>
       child: SafeArea(
         top: false,
         child: SizedBox(
-          height: 62,
+          height: 62, // Quay lại chiều cao 62 tiêu chuẩn của hiệu ứng cũ
           child: CustomPaint(
             painter: _LiquidBlobPainter(
               position: _currentPos,
               stretch: _stretch,
               itemCount: itemCount,
-              color: const Color(0xFF1565C0).withValues(alpha: 0.12),
+              color: context.colors.primary.withValues(alpha: context.isDarkMode ? 0.15 : 0.10),
             ),
             child: Row(
               children: List.generate(itemCount, (i) {
@@ -110,8 +111,8 @@ class _LiquidNavBarState extends State<LiquidNavBar>
                 // Khoảng cách từ blob tới item → dùng để scale/lift icon gần blob
                 final dist = (_currentPos - i).abs();
                 final proximity = (1.0 - dist.clamp(0.0, 1.0)); // 1=tại blob, 0=xa
-                final scale = 1.0 + proximity * 0.12;
-                final yOffset = proximity * -3.0;
+                final scale = 1.0 + proximity * 0.10;
+                final yOffset = proximity * -2.0;
 
                 return Expanded(
                   child: GestureDetector(
@@ -129,21 +130,21 @@ class _LiquidNavBarState extends State<LiquidNavBar>
                                   ? widget.items[i].activeIcon
                                   : widget.items[i].icon,
                               color: isActive
-                                  ? const Color(0xFF1565C0)
-                                  : Colors.grey[500],
-                              size: 24,
+                                  ? context.colors.primary
+                                  : context.textSecondary,
+                              size: 23,
                             ),
                             const SizedBox(height: 3),
                             Text(
                               widget.items[i].label,
                               style: TextStyle(
-                                fontSize: 10,
+                                fontSize: 9.8,
                                 fontWeight: isActive
                                     ? FontWeight.w700
                                     : FontWeight.normal,
                                 color: isActive
-                                    ? const Color(0xFF1565C0)
-                                    : Colors.grey[500],
+                                    ? context.colors.primary
+                                    : context.textSecondary,
                               ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
@@ -177,7 +178,6 @@ class LiquidNavItem {
 }
 
 /// Painter vẽ blob "chất lỏng" trượt giữa các tab.
-/// [position] là giá trị liên tục (vd: 0.0 → 2.0 khi trượt từ tab 0 → tab 2).
 class _LiquidBlobPainter extends CustomPainter {
   final double position;
   final double stretch;
@@ -197,34 +197,36 @@ class _LiquidBlobPainter extends CustomPainter {
     final centerX = itemWidth * position + itemWidth / 2;
     final centerY = size.height / 2;
 
-    // Blob kéo giãn ngang khi di chuyển, co lại khi dừng
+    // Hiệu ứng cũ: co dọc giãn ngang khi di chuyển
+    // Kích thước tĩnh nhỏ hơn 1 chút: cao 48 (thay vì 54), rộng 82% itemWidth
     final blobWidth = itemWidth * 0.82 * stretch;
-    final blobHeight = 48.0 / (stretch * 0.7 + 0.3); // co dọc khi giãn ngang
+    final blobHeight = 48.0 / (stretch * 0.7 + 0.3);
 
     final paint = Paint()
       ..color = color
       ..style = PaintingStyle.fill;
 
-    // Vẽ blob chính — hình viên con nhộng
+    // Vẽ blob chính
     final rect = RRect.fromRectAndRadius(
       Rect.fromCenter(
         center: Offset(centerX, centerY),
         width: blobWidth,
         height: blobHeight,
       ),
-      Radius.circular(blobHeight / 2),
+      Radius.circular(blobHeight / 2.0),
     );
+    
     canvas.drawRRect(rect, paint);
 
-    // Vẽ "đuôi" trail khi đang trượt
+    // Vẽ "đuôi" trail chất lỏng ở hai đầu khi đang trượt
     if (stretch > 1.08) {
       final intensity = ((stretch - 1.0) * 2.0).clamp(0.0, 1.0);
       final trailPaint = Paint()
-        ..color = color.withValues(alpha: color.a * 0.35 * intensity)
+        ..color = color.withValues(alpha: (0.15 * intensity).clamp(0.0, 1.0))
         ..style = PaintingStyle.fill;
 
-      final trailR = 5.0 * intensity;
-      // 2 giọt nhỏ theo 2 hướng
+      final trailR = 4.5 * intensity;
+      // 2 giọt nhỏ theo 2 hướng di chuyển
       canvas.drawCircle(
         Offset(centerX - blobWidth * 0.52 - trailR, centerY),
         trailR,

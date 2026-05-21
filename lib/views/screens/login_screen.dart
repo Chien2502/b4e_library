@@ -4,6 +4,7 @@ import '../../viewmodels/auth_provider.dart';
 import '../../core/utils/snackbar_utils.dart';
 import 'register_screen.dart';
 import 'main_layout.dart';
+import '../../core/theme/theme_extensions.dart';
 
 class LoginScreen extends StatefulWidget {
   /// Sau login, pop về màn hình gọi (vd: BookDetailScreen).
@@ -106,7 +107,7 @@ class _LoginScreenState extends State<LoginScreen>
     final isLoading = context.watch<AuthProvider>().isLoading;
 
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: context.background,
       body: SafeArea(
         child: SingleChildScrollView(
           physics: const BouncingScrollPhysics(),
@@ -134,19 +135,19 @@ class _LoginScreenState extends State<LoginScreen>
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // Tiêu đề form
-                      const Text(
+                      Text(
                         'Đăng nhập',
                         style: TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
-                          color: Colors.black87,
+                          color: context.textPrimary,
                         ),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         'Chào mừng bạn quay lại thư viện B4E',
                         style: TextStyle(
-                            fontSize: 13, color: Colors.grey[500]),
+                            fontSize: 13, color: context.textSecondary),
                       ),
                       const SizedBox(height: 28),
 
@@ -185,7 +186,7 @@ class _LoginScreenState extends State<LoginScreen>
                               _obscurePass
                                   ? Icons.visibility_off_outlined
                                   : Icons.visibility_outlined,
-                              color: Colors.grey,
+                              color: context.textSecondary,
                               size: 20,
                             ),
                             onPressed: () =>
@@ -203,27 +204,28 @@ class _LoginScreenState extends State<LoginScreen>
                         child: ElevatedButton(
                           onPressed: isLoading ? null : _handleLogin,
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF1E88E5),
+                            backgroundColor: context.colors.primary,
+                            foregroundColor: context.colors.onPrimary,
                             disabledBackgroundColor:
-                                const Color(0xFF1E88E5).withValues(alpha: 0.6),
+                                context.colors.primary.withValues(alpha: 0.6),
                             shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(14)),
                             elevation: 2,
-                            shadowColor: const Color(0xFF1565C0)
+                            shadowColor: context.colors.primary
                                 .withValues(alpha: 0.4),
                           ),
                           child: isLoading
-                              ? const SizedBox(
+                              ? SizedBox(
                                   width: 22,
                                   height: 22,
                                   child: CircularProgressIndicator(
                                       strokeWidth: 2.5,
-                                      color: Colors.white),
+                                      color: context.colors.onPrimary),
                                 )
-                              : const Text(
+                              : Text(
                                   'Đăng nhập',
                                   style: TextStyle(
-                                    color: Colors.white,
+                                    color: context.colors.onPrimary,
                                     fontSize: 16,
                                     fontWeight: FontWeight.bold,
                                     letterSpacing: 0.5,
@@ -238,17 +240,17 @@ class _LoginScreenState extends State<LoginScreen>
                       Row(
                         children: [
                           Expanded(
-                              child: Divider(color: Colors.grey[300])),
+                              child: Divider(color: context.divider)),
                           Padding(
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 12),
                             child: Text('hoặc',
                                 style: TextStyle(
                                     fontSize: 12,
-                                    color: Colors.grey[400])),
+                                    color: context.textSecondary)),
                           ),
                           Expanded(
-                              child: Divider(color: Colors.grey[300])),
+                              child: Divider(color: context.divider)),
                         ],
                       ),
 
@@ -262,23 +264,38 @@ class _LoginScreenState extends State<LoginScreen>
                           onPressed: () {
                             Navigator.push(
                               context,
-                              MaterialPageRoute(
-                                builder: (_) => RegisterScreen(
-                                  returnTabIndex: widget.returnTabIndex,
-                                ),
+                              PageRouteBuilder(
+                                pageBuilder: (context, animation, secondaryAnimation) =>
+                                    RegisterScreen(returnTabIndex: widget.returnTabIndex),
+                                transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                                  const begin = Offset(1.0, 0.0);
+                                  const end = Offset.zero;
+                                  const curve = Curves.easeInOutCubic;
+                                  var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+                                  var offsetAnimation = animation.drive(tween);
+                                  return SlideTransition(
+                                    position: offsetAnimation,
+                                    child: FadeTransition(
+                                      opacity: animation,
+                                      child: child,
+                                    ),
+                                  );
+                                },
+                                transitionDuration: const Duration(milliseconds: 400),
+                                reverseTransitionDuration: const Duration(milliseconds: 400),
                               ),
                             );
                           },
                           style: OutlinedButton.styleFrom(
-                            side: const BorderSide(
-                                color: Color(0xFF1E88E5), width: 1.5),
+                            side: BorderSide(
+                                color: context.colors.primary, width: 1.5),
                             shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(14)),
                           ),
-                          child: const Text(
+                          child: Text(
                             'Tạo tài khoản mới',
                             style: TextStyle(
-                              color: Color(0xFF1E88E5),
+                              color: context.colors.primary,
                               fontSize: 15,
                               fontWeight: FontWeight.w600,
                             ),
@@ -294,7 +311,7 @@ class _LoginScreenState extends State<LoginScreen>
                           child: TextButton(
                             onPressed: () => Navigator.pop(context),
                             style: TextButton.styleFrom(
-                                foregroundColor: Colors.grey),
+                                foregroundColor: context.textSecondary),
                             child: const Text(
                               'Tiếp tục mà không đăng nhập',
                               style: TextStyle(fontSize: 13),
@@ -334,30 +351,45 @@ class _LoginScreenState extends State<LoginScreen>
       child: Column(
         children: [
           // Logo
-          Container(
-            width: 72,
-            height: 72,
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.2),
-              shape: BoxShape.circle,
+          Hero(
+            tag: 'auth_logo',
+            child: Container(
+              width: 72,
+              height: 72,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.2),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.local_library_outlined,
+                  color: Colors.white, size: 38),
             ),
-            child: const Icon(Icons.local_library_outlined,
-                color: Colors.white, size: 38),
           ),
           const SizedBox(height: 12),
-          const Text(
-            'B4E Library',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 0.5,
+          Hero(
+            tag: 'auth_title',
+            child: Material(
+              color: Colors.transparent,
+              child: const Text(
+                'B4E Library',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 0.5,
+                ),
+              ),
             ),
           ),
           const SizedBox(height: 4),
-          const Text(
-            'Book For Everyone',
-            style: TextStyle(color: Colors.white70, fontSize: 13),
+          Hero(
+            tag: 'auth_subtitle',
+            child: Material(
+              color: Colors.transparent,
+              child: const Text(
+                'Book For Everyone',
+                style: TextStyle(color: Colors.white70, fontSize: 13),
+              ),
+            ),
           ),
         ],
       ),
@@ -370,10 +402,10 @@ class _LoginScreenState extends State<LoginScreen>
       padding: const EdgeInsets.only(bottom: 6),
       child: Text(
         text,
-        style: const TextStyle(
+        style: TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w600,
-            color: Colors.black87),
+            color: context.textPrimary),
       ),
     );
   }
@@ -385,29 +417,29 @@ class _LoginScreenState extends State<LoginScreen>
   }) {
     return InputDecoration(
       hintText: hint,
-      hintStyle: TextStyle(fontSize: 13, color: Colors.grey[400]),
-      prefixIcon: Icon(icon, size: 20, color: Colors.grey[500]),
+      hintStyle: TextStyle(fontSize: 13, color: context.textSecondary),
+      prefixIcon: Icon(icon, size: 20, color: context.textSecondary),
       suffixIcon: suffix,
       filled: true,
-      fillColor: Colors.white,
+      fillColor: context.card,
       contentPadding:
           const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: Colors.grey[300]!),
+        borderSide: BorderSide(color: context.divider),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
         borderSide:
-            const BorderSide(color: Color(0xFF1E88E5), width: 1.5),
+            BorderSide(color: context.colors.primary, width: 1.5),
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Colors.red),
+        borderSide: BorderSide(color: context.error),
       ),
       focusedErrorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Colors.red, width: 1.5),
+        borderSide: BorderSide(color: context.error, width: 1.5),
       ),
     );
   }

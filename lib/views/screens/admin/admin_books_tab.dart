@@ -15,6 +15,7 @@ import '../../../viewmodels/recommendation_provider.dart';
 import '../../widgets/custom_dialog.dart';
 import 'book_scan_sheet.dart';
 import '../../../core/utils/snackbar_utils.dart';
+import '../../../core/theme/theme_extensions.dart';
 
 class AdminBooksTab extends StatefulWidget {
   const AdminBooksTab({super.key});
@@ -75,9 +76,8 @@ class _AdminBooksTabState extends State<AdminBooksTab> {
             'page': _currentPage,
             'limit': 10,
             if (_search.isNotEmpty) 'search': _search,
-            if (_selectedStatus != null) 'status': _selectedStatus!,
-            if (_selectedCategoryId != null)
-              'category_id': _selectedCategoryId!,
+            if (_selectedStatus != null) 'status': _selectedStatus,
+            if (_selectedCategoryId != null) 'category_id': _selectedCategoryId,
           },
         ),
         _categories.isEmpty
@@ -133,9 +133,9 @@ class _AdminBooksTabState extends State<AdminBooksTab> {
         message:
             'Bạn có chắc muốn xóa cuốn "$title"? Hành động này không thể hoàn tác.',
         icon: Icons.delete_forever_rounded,
-        iconColor: Colors.red,
+        iconColor: context.colors.error,
         confirmLabel: 'Xóa ngay',
-        confirmColor: Colors.red,
+        confirmColor: context.colors.error,
         onConfirm: () => Navigator.pop(ctx, true),
       ),
     );
@@ -257,22 +257,26 @@ class _AdminBooksTabState extends State<AdminBooksTab> {
 
   Widget _buildTitleBar() {
     return Container(
-      color: Colors.white,
+      color: context.colors.surface,
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
       child: Row(
         children: [
-          const Icon(Icons.menu_book, color: Color(0xFF1565C0), size: 22),
+          Icon(Icons.menu_book, color: context.colors.primary, size: 22),
           const SizedBox(width: 8),
-          const Expanded(
+          Expanded(
             child: Text(
               'Quản lý Sách',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              style: TextStyle(
+                fontWeight: FontWeight.bold, 
+                fontSize: 16,
+                color: context.textPrimary,
+              ),
             ),
           ),
           ElevatedButton.icon(
             onPressed: () => _openForm(),
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF1E88E5),
+              backgroundColor: context.colors.primary,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(10),
               ),
@@ -287,7 +291,7 @@ class _AdminBooksTabState extends State<AdminBooksTab> {
           ),
           const SizedBox(width: 4),
           IconButton(
-            icon: const Icon(Icons.refresh, size: 20),
+            icon: Icon(Icons.refresh, size: 20, color: context.textPrimary),
             onPressed: _loadAll,
           ),
         ],
@@ -297,7 +301,7 @@ class _AdminBooksTabState extends State<AdminBooksTab> {
 
   Widget _buildSearchBar() {
     return Container(
-      color: Colors.white,
+      color: context.colors.surface,
       padding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
       child: TextField(
         onChanged: (v) {
@@ -307,13 +311,13 @@ class _AdminBooksTabState extends State<AdminBooksTab> {
             _loadAll(resetPage: true);
           });
         },
-        style: const TextStyle(fontSize: 13),
+        style: TextStyle(fontSize: 13, color: context.textPrimary),
         decoration: InputDecoration(
           hintText: 'Tìm kiếm theo tên sách, tác giả...',
-          hintStyle: TextStyle(color: Colors.grey[400], fontSize: 13),
-          prefixIcon: const Icon(Icons.search, size: 20),
+          hintStyle: TextStyle(color: context.textSecondary.withAlpha(120), fontSize: 13),
+          prefixIcon: Icon(Icons.search, size: 20, color: context.textSecondary),
           filled: true,
-          fillColor: Colors.grey[100],
+          fillColor: context.background,
           contentPadding: const EdgeInsets.symmetric(vertical: 10),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
@@ -326,7 +330,7 @@ class _AdminBooksTabState extends State<AdminBooksTab> {
 
   Widget _buildFilterRow() {
     return Container(
-      color: Colors.white,
+      color: context.colors.surface,
       padding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -347,31 +351,31 @@ class _AdminBooksTabState extends State<AdminBooksTab> {
                   height: 44,
                   padding: const EdgeInsets.symmetric(horizontal: 10),
                   decoration: BoxDecoration(
-                    color: Colors.grey[100],
+                    color: context.background,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.grey[300]!),
+                    border: Border.all(color: context.divider),
                   ),
                   child: DropdownButtonHideUnderline(
                     child: DropdownButton<int?>(
                       value: _selectedCategoryId,
                       isDense: true,
-                      dropdownColor: Colors.white,
+                      dropdownColor: context.colors.surface,
                       borderRadius: BorderRadius.circular(12),
-                      icon: const Icon(
+                      icon: Icon(
                         Icons.keyboard_arrow_down,
                         size: 18,
-                        color: Colors.blueAccent,
+                        color: context.colors.primary,
                       ),
                       hint: Text(
                         'Thể loại',
-                        style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                        style: TextStyle(fontSize: 12, color: context.textSecondary),
                       ),
-                      style: const TextStyle(fontSize: 12, color: Color(0xFF1565C0)),
+                      style: TextStyle(fontSize: 12, color: context.colors.primary),
                       items: [
-                        const DropdownMenuItem<int?>(
+                        DropdownMenuItem<int?>(
                           value: null,
                           child: Text('Tất cả thể loại',
-                              style: TextStyle(fontSize: 12, color: Colors.black87)),
+                              style: TextStyle(fontSize: 12, color: context.textPrimary)),
                         ),
                         ..._categories.map((cat) {
                           final catId = int.tryParse('${cat['id']}') ?? 0;
@@ -379,7 +383,7 @@ class _AdminBooksTabState extends State<AdminBooksTab> {
                           return DropdownMenuItem<int?>(
                             value: catId,
                             child: Text(catName,
-                                style: const TextStyle(fontSize: 12, color: Colors.black87)),
+                                style: TextStyle(fontSize: 12, color: context.textPrimary)),
                           );
                         }),
                       ],
@@ -411,11 +415,11 @@ class _AdminBooksTabState extends State<AdminBooksTab> {
         padding: const EdgeInsets.symmetric(horizontal: 12),
         decoration: BoxDecoration(
           color: isSelected
-              ? const Color(0xFF1565C0).withAlpha(20)
-              : Colors.grey[100],
+              ? context.colors.primary.withAlpha(isSelected ? 40 : 20)
+              : context.background,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isSelected ? const Color(0xFF1565C0) : Colors.grey[300]!,
+            color: isSelected ? context.colors.primary : context.divider,
           ),
         ),
         child: Row(
@@ -424,7 +428,7 @@ class _AdminBooksTabState extends State<AdminBooksTab> {
             Icon(
               icon,
               size: 14,
-              color: isSelected ? const Color(0xFF1565C0) : Colors.grey[600],
+              color: isSelected ? context.colors.primary : context.textSecondary,
             ),
             const SizedBox(width: 4),
             Text(
@@ -432,7 +436,7 @@ class _AdminBooksTabState extends State<AdminBooksTab> {
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-                color: isSelected ? const Color(0xFF1565C0) : Colors.grey[600],
+                color: isSelected ? context.colors.primary : context.textSecondary,
               ),
             ),
           ],
@@ -467,7 +471,7 @@ class _AdminBooksTabState extends State<AdminBooksTab> {
       return Center(
         child: Text(
           _search.isEmpty ? 'Chưa có sách nào' : 'Không tìm thấy kết quả',
-          style: const TextStyle(color: Colors.grey),
+          style: TextStyle(color: context.textSecondary),
         ),
       );
     }
@@ -495,8 +499,8 @@ class _AdminBooksTabState extends State<AdminBooksTab> {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
       decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border(top: BorderSide(color: Colors.grey[200]!)),
+        color: context.colors.surface,
+        border: Border(top: BorderSide(color: context.divider)),
       ),
       child: SafeArea(
         top: false,
@@ -511,12 +515,16 @@ class _AdminBooksTabState extends State<AdminBooksTab> {
                       _loadAll();
                     }
                   : null,
-              color: const Color(0xFF1565C0),
+              color: context.colors.primary,
             ),
             const SizedBox(width: 8),
             Text(
               'Trang $_currentPage / $_totalPages',
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+              style: TextStyle(
+                fontWeight: FontWeight.bold, 
+                fontSize: 14,
+                color: context.textPrimary,
+              ),
             ),
             const SizedBox(width: 8),
             IconButton(
@@ -527,7 +535,7 @@ class _AdminBooksTabState extends State<AdminBooksTab> {
                       _loadAll();
                     }
                   : null,
-              color: const Color(0xFF1565C0),
+              color: context.colors.primary,
             ),
           ],
         ),
@@ -545,9 +553,9 @@ class _AdminBooksTabState extends State<AdminBooksTab> {
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.card,
         borderRadius: BorderRadius.circular(14),
-        boxShadow: [
+        boxShadow: context.isDarkMode ? [] : [
           BoxShadow(
             color: Colors.black.withAlpha(8),
             blurRadius: 5,
@@ -588,9 +596,10 @@ class _AdminBooksTabState extends State<AdminBooksTab> {
                 children: [
                   Text(
                     title,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 13,
+                      color: context.textPrimary,
                     ),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
@@ -598,7 +607,7 @@ class _AdminBooksTabState extends State<AdminBooksTab> {
                   const SizedBox(height: 3),
                   Text(
                     author,
-                    style: const TextStyle(fontSize: 11, color: Colors.grey),
+                    style: TextStyle(fontSize: 11, color: context.textSecondary),
                   ),
                   const SizedBox(height: 3),
                   Row(
@@ -609,14 +618,14 @@ class _AdminBooksTabState extends State<AdminBooksTab> {
                           vertical: 2,
                         ),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFE3F2FD),
+                          color: context.colors.primary.withAlpha(30),
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(
                           catName,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 10,
-                            color: Color(0xFF1565C0),
+                            color: context.colors.primary,
                           ),
                         ),
                       ),
@@ -628,8 +637,8 @@ class _AdminBooksTabState extends State<AdminBooksTab> {
                         ),
                         decoration: BoxDecoration(
                           color: status == 'available'
-                              ? Colors.green.withAlpha(20)
-                              : Colors.orange.withAlpha(20),
+                              ? Colors.green.withAlpha(30)
+                              : Colors.orange.withAlpha(30),
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(
@@ -637,8 +646,8 @@ class _AdminBooksTabState extends State<AdminBooksTab> {
                           style: TextStyle(
                             fontSize: 10,
                             color: status == 'available'
-                                ? Colors.green[700]
-                                : Colors.orange[700],
+                                ? (context.isDarkMode ? Colors.green[300] : Colors.green[700])
+                                : (context.isDarkMode ? Colors.orange[300] : Colors.orange[700]),
                           ),
                         ),
                       ),
@@ -656,14 +665,14 @@ class _AdminBooksTabState extends State<AdminBooksTab> {
                 width: 34,
                 height: 34,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF1565C0).withAlpha(15),
+                  color: context.colors.primary.withAlpha(20),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: IconButton(
-                  icon: const Icon(
+                  icon: Icon(
                     Icons.edit_outlined,
                     size: 16,
-                    color: Color(0xFF1565C0),
+                    color: context.colors.primary,
                   ),
                   onPressed: () => _openForm(book: book),
                   padding: EdgeInsets.zero,
@@ -681,7 +690,7 @@ class _AdminBooksTabState extends State<AdminBooksTab> {
                   icon: Icon(
                     Icons.delete_outline,
                     size: 16,
-                    color: Colors.red[600],
+                    color: context.colors.error,
                   ),
                   onPressed: () => _deleteBook(id, title),
                   padding: EdgeInsets.zero,
@@ -696,8 +705,8 @@ class _AdminBooksTabState extends State<AdminBooksTab> {
   }
 
   Widget _placeholder() => Container(
-    color: Colors.grey[200],
-    child: const Icon(Icons.menu_book_outlined, size: 28, color: Colors.grey),
+    color: context.background,
+    child: Icon(Icons.menu_book_outlined, size: 28, color: context.divider),
   );
 }
 
@@ -818,24 +827,31 @@ class _BookFormSheetState extends State<_BookFormSheet> {
                 height: 4,
                 margin: const EdgeInsets.only(bottom: 12),
                 decoration: BoxDecoration(
-                  color: Colors.grey[300],
+                  color: context.divider,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
-              const Text(
+              Text(
                 'Chọn ảnh bìa',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                style: TextStyle(
+                  fontWeight: FontWeight.bold, 
+                  fontSize: 15,
+                  color: context.textPrimary,
+                ),
               ),
               const SizedBox(height: 8),
               ListTile(
-                leading: const CircleAvatar(
-                  backgroundColor: Color(0xFFE3F2FD),
+                leading: CircleAvatar(
+                  backgroundColor: context.colors.primary.withAlpha(30),
                   child: Icon(
                     Icons.photo_library_outlined,
-                    color: Color(0xFF1565C0),
+                    color: context.colors.primary,
                   ),
                 ),
-                title: const Text('Chọn từ thư viện ảnh'),
+                title: Text(
+                  'Chọn từ thư viện ảnh',
+                  style: TextStyle(color: context.textPrimary),
+                ),
                 onTap: () {
                   Navigator.pop(ctx);
                   _pickImage(ImageSource.gallery);
@@ -843,14 +859,17 @@ class _BookFormSheetState extends State<_BookFormSheet> {
               ),
               if (!kIsWeb)
                 ListTile(
-                  leading: const CircleAvatar(
-                    backgroundColor: Color(0xFFF3E5F5),
+                  leading: CircleAvatar(
+                    backgroundColor: context.colors.secondary.withAlpha(30),
                     child: Icon(
                       Icons.camera_alt_outlined,
-                      color: Colors.purple,
+                      color: context.colors.secondary,
                     ),
                   ),
-                  title: const Text('Chụp ảnh mới'),
+                  title: Text(
+                    'Chụp ảnh mới',
+                    style: TextStyle(color: context.textPrimary),
+                  ),
                   onTap: () {
                     Navigator.pop(ctx);
                     _pickImage(ImageSource.camera);
@@ -927,9 +946,9 @@ class _BookFormSheetState extends State<_BookFormSheet> {
   Widget build(BuildContext context) {
     final bottom = MediaQuery.of(context).viewInsets.bottom;
     return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      decoration: BoxDecoration(
+        color: context.colors.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
       ),
       padding: EdgeInsets.fromLTRB(20, 16, 20, bottom + 24),
       child: Form(
@@ -945,16 +964,17 @@ class _BookFormSheetState extends State<_BookFormSheet> {
                   height: 4,
                   margin: const EdgeInsets.only(bottom: 16),
                   decoration: BoxDecoration(
-                    color: Colors.grey[300],
+                    color: context.divider,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
               ),
               Text(
                 _isEdit ? 'Chỉnh sửa Sách' : 'Thêm Sách Mới',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 17,
                   fontWeight: FontWeight.bold,
+                  color: context.textPrimary,
                 ),
               ),
               const SizedBox(height: 16),
@@ -986,23 +1006,23 @@ class _BookFormSheetState extends State<_BookFormSheet> {
                 height: 44,
                 padding: const EdgeInsets.symmetric(horizontal: 10),
                 decoration: BoxDecoration(
-                  color: Colors.grey[100],
+                  color: context.background,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.grey[300]!),
+                  border: Border.all(color: context.divider),
                 ),
                 child: DropdownButtonHideUnderline(
                   child: DropdownButton<int>(
                     value: _categoryId,
                     isExpanded: true,
-                    dropdownColor: Colors.white,
+                    dropdownColor: context.colors.surface,
                     borderRadius: BorderRadius.circular(12),
-                    hint: const Text('Chọn thể loại', style: TextStyle(fontSize: 13, color: Colors.black54)),
-                    icon: const Icon(Icons.keyboard_arrow_down, size: 18, color: Colors.blueAccent),
-                    style: const TextStyle(fontSize: 13, color: Colors.black87, fontWeight: FontWeight.w500),
+                    hint: Text('Chọn thể loại', style: TextStyle(fontSize: 13, color: context.textSecondary)),
+                    icon: Icon(Icons.keyboard_arrow_down, size: 18, color: context.colors.primary),
+                    style: TextStyle(fontSize: 13, color: context.textPrimary, fontWeight: FontWeight.w500),
                     items: widget.categories
                         .map((c) => DropdownMenuItem<int>(
                               value: int.tryParse('${c['id']}'),
-                              child: Text(c['name'] ?? ''),
+                              child: Text(c['name'] ?? '', style: TextStyle(color: context.textPrimary)),
                             ))
                         .toList(),
                     onChanged: (v) => setState(() => _categoryId = v),
@@ -1047,7 +1067,7 @@ class _BookFormSheetState extends State<_BookFormSheet> {
               TextFormField(
                 controller: _descCtrl,
                 maxLines: 3,
-                style: const TextStyle(fontSize: 13),
+                style: TextStyle(fontSize: 13, color: context.textPrimary),
                 decoration: _dec(
                   Icons.description_outlined,
                 ).copyWith(hintText: 'Mô tả sách...'),
@@ -1059,8 +1079,8 @@ class _BookFormSheetState extends State<_BookFormSheet> {
                     child: OutlinedButton(
                       onPressed: () => Navigator.pop(context),
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: Colors.grey,
-                        side: BorderSide(color: Colors.grey[300]!),
+                        foregroundColor: context.textSecondary,
+                        side: BorderSide(color: context.divider),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
@@ -1074,7 +1094,7 @@ class _BookFormSheetState extends State<_BookFormSheet> {
                     child: ElevatedButton(
                       onPressed: _saving ? null : _save,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF1565C0),
+                        backgroundColor: context.colors.primary,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
@@ -1082,12 +1102,12 @@ class _BookFormSheetState extends State<_BookFormSheet> {
                         elevation: 0,
                       ),
                       child: _saving
-                          ? const SizedBox(
+                          ? SizedBox(
                               width: 18,
                               height: 18,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
-                                color: Colors.white,
+                                color: context.colors.onPrimary,
                               ),
                             )
                           : Text(
@@ -1116,9 +1136,9 @@ class _BookFormSheetState extends State<_BookFormSheet> {
         _label('Ảnh bìa sách'),
         Container(
           decoration: BoxDecoration(
-            color: Colors.grey[50],
+            color: context.background,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.grey[300]!),
+            border: Border.all(color: context.divider),
           ),
           padding: const EdgeInsets.all(12),
           child: Row(
@@ -1150,8 +1170,8 @@ class _BookFormSheetState extends State<_BookFormSheet> {
                           style: const TextStyle(fontSize: 13),
                         ),
                         style: OutlinedButton.styleFrom(
-                          foregroundColor: const Color(0xFF1565C0),
-                          side: const BorderSide(color: Color(0xFF1565C0)),
+                          foregroundColor: context.colors.primary,
+                          side: BorderSide(color: context.colors.primary),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8),
                           ),
@@ -1177,9 +1197,9 @@ class _BookFormSheetState extends State<_BookFormSheet> {
                               size: 14,
                               color: Colors.red,
                             ),
-                            label: const Text(
+                            label: Text(
                               'Hủy chọn ảnh',
-                              style: TextStyle(fontSize: 12, color: Colors.red),
+                              style: TextStyle(fontSize: 12, color: context.colors.error),
                             ),
                             style: TextButton.styleFrom(
                               padding: const EdgeInsets.symmetric(
@@ -1193,7 +1213,7 @@ class _BookFormSheetState extends State<_BookFormSheet> {
                     const SizedBox(height: 6),
                     Text(
                       'JPG, PNG, WEBP · Tối đa 5MB\nẢnh sẽ được nén tự động',
-                      style: TextStyle(fontSize: 10, color: Colors.grey[500]),
+                      style: TextStyle(fontSize: 10, color: context.textSecondary),
                     ),
                   ],
                 ),
@@ -1238,7 +1258,7 @@ class _BookFormSheetState extends State<_BookFormSheet> {
   }
 
   Widget _placeholder({bool loading = false}) => Container(
-    color: Colors.grey[200],
+    color: context.background,
     child: Center(
       child: loading
           ? const SizedBox(
@@ -1252,12 +1272,12 @@ class _BookFormSheetState extends State<_BookFormSheet> {
                 Icon(
                   Icons.add_photo_alternate_outlined,
                   size: 28,
-                  color: Colors.grey[400],
+                  color: context.divider,
                 ),
                 const SizedBox(height: 4),
                 Text(
                   'Chưa\ncó ảnh',
-                  style: TextStyle(fontSize: 9, color: Colors.grey[400]),
+                  style: TextStyle(fontSize: 9, color: context.textSecondary),
                   textAlign: TextAlign.center,
                 ),
               ],
@@ -1269,7 +1289,11 @@ class _BookFormSheetState extends State<_BookFormSheet> {
     padding: const EdgeInsets.only(bottom: 5),
     child: Text(
       t,
-      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+      style: TextStyle(
+        fontSize: 12, 
+        fontWeight: FontWeight.w600,
+        color: context.textPrimary,
+      ),
     ),
   );
 
@@ -1284,32 +1308,32 @@ class _BookFormSheetState extends State<_BookFormSheet> {
       controller: ctrl,
       validator: validator,
       keyboardType: keyboardType,
-      style: const TextStyle(fontSize: 13),
+      style: TextStyle(fontSize: 13, color: context.textPrimary),
       decoration: _dec(icon).copyWith(hintText: hint),
     );
   }
 
   InputDecoration _dec(IconData icon) => InputDecoration(
-    hintStyle: TextStyle(color: Colors.grey[400], fontSize: 13),
-    prefixIcon: Icon(icon, size: 18, color: Colors.grey[500]),
+    hintStyle: TextStyle(color: context.textSecondary.withAlpha(120), fontSize: 13),
+    prefixIcon: Icon(icon, size: 18, color: context.textSecondary),
     filled: true,
-    fillColor: Colors.grey[50],
+    fillColor: context.background,
     contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
     enabledBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(10),
-      borderSide: BorderSide(color: Colors.grey[300]!),
+      borderSide: BorderSide(color: context.divider),
     ),
     focusedBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(10),
-      borderSide: const BorderSide(color: Color(0xFF1565C0)),
+      borderSide: BorderSide(color: context.colors.primary),
     ),
     errorBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(10),
-      borderSide: const BorderSide(color: Colors.red),
+      borderSide: BorderSide(color: context.colors.error),
     ),
     focusedErrorBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(10),
-      borderSide: const BorderSide(color: Colors.red),
+      borderSide: BorderSide(color: context.colors.error),
     ),
   );
 }

@@ -4,4 +4,6 @@
     <!-- Màu nền native splash — khớp với gradient Flutter splash (#0D47A1 → #1565C0 → #1E88E5)
          Dùng màu giữa để trông đồng nhất nhất với gradient -->
     <color name="splashBackground">#1565C0</color>
+    <!-- FCM: Màu icon notification -->
+    <color name="notification_color">#1565C0</color>
 </resources>

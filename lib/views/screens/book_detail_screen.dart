@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui' show ImageFilter;
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
@@ -11,11 +12,14 @@ import '../../core/services/push_notification_service.dart';
 import '../../data/models/book_model.dart';
 import '../../data/models/book_detail_model.dart';
 import '../../viewmodels/auth_provider.dart';
-import '../../viewmodels/notification_provider.dart';
+
 import '../../core/utils/snackbar_utils.dart';
+import '../../core/theme/theme_extensions.dart';
 import '../widgets/custom_dialog.dart';
+import '../widgets/borrow_delivery_bottom_sheet.dart';
 import 'login_screen.dart';
 import '../../core/utils/page_transitions.dart';
+
 
 class BookDetailScreen extends StatefulWidget {
   final int bookId;
@@ -34,6 +38,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
   bool _isLoading = true;
   String _errorMessage = '';
   bool _isBorrowing = false;
+  bool _showRealtimeBorrowedNotice = false;
 
   StreamSubscription<Map<String, dynamic>>? _fcmSubscription;
 
@@ -74,6 +79,13 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
               'Rất tiếc, ai đó vừa mượn cuốn sách này vài giây trước.',
             );
           }
+          setState(() {
+            _showRealtimeBorrowedNotice = true;
+          });
+        } else if (isAvail) {
+          setState(() {
+            _showRealtimeBorrowedNotice = false;
+          });
         }
 
         if (mounted && _book != null && _book!.isAvailable != isAvail) {
@@ -98,6 +110,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
     setState(() {
       _isLoading = true;
       _errorMessage = '';
+      _showRealtimeBorrowedNotice = false;
     });
 
     try {
@@ -200,43 +213,15 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
       return;
     }
 
-    final selectedDays = await showDialog<int>(
-      context: context,
-      builder: (ctx) => _BorrowConfirmDialog(bookTitle: _book!.title),
+    // ── Mở Bottom Sheet chọn hình thức mượn ───────────────────────
+    final success = await BorrowDeliveryBottomSheet.show(
+      context,
+      bookId: widget.bookId,
+      bookTitle: _book!.title,
     );
 
-    if (selectedDays == null) return;
-
-    setState(() => _isBorrowing = true);
-
-    try {
-      final Response res = await _dioClient.dio.post(
-        ApiConstants.createBorrowing,
-        data: {
-          'book_id': widget.bookId,
-          'borrow_days': selectedDays,
-        },
-      );
-
-      if (res.statusCode == 201) {
-        SnackBarUtils.showSuccess(
-          context,
-          'Mượn sách thành công! Vui lòng trả đúng hạn.',
-        );
-        // Fetch ngay để badge đỏ hiện lên tức thì
-        if (mounted) {
-          context.read<NotificationProvider>().fetchNotifications();
-        }
-        await _fetchBookDetail();
-        if (mounted) Navigator.pop(context, true);
-      } else {
-        final msg = res.data?['error'] ?? 'Không thể mượn sách.';
-        SnackBarUtils.showError(context, msg);
-      }
-    } on DioException catch (e) {
-      SnackBarUtils.showError(context, NetworkErrorHandler.getFriendlyMessage(e));
-    } finally {
-      setState(() => _isBorrowing = false);
+    if (success == true && mounted) {
+      await _fetchBookDetail();
     }
   }
 
@@ -258,7 +243,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
               height: 4,
               margin: const EdgeInsets.only(bottom: 20),
               decoration: BoxDecoration(
-                color: Colors.grey[300],
+                color: ctx.divider,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -274,7 +259,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 13,
-                color: Colors.grey[600],
+                color: ctx.textSecondary,
                 height: 1.5,
               ),
             ),
@@ -315,7 +300,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
               onPressed: () => Navigator.pop(ctx),
               child: Text(
                 'Để sau',
-                style: TextStyle(color: Colors.grey[500], fontSize: 13),
+                style: TextStyle(color: ctx.textSecondary, fontSize: 13),
               ),
             ),
           ],
@@ -328,22 +313,21 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[50],
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: context.card,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(
+          icon: Icon(
             Icons.arrow_back_ios_new,
-            color: Colors.black87,
+            color: context.textPrimary,
             size: 20,
           ),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
+        title: Text(
           'Chi tiết sách',
           style: TextStyle(
-            color: Colors.black87,
+            color: context.textPrimary,
             fontWeight: FontWeight.bold,
             fontSize: 18,
           ),
@@ -364,12 +348,12 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.error_outline, color: Colors.red, size: 48),
+            Icon(Icons.error_outline, color: context.colors.error, size: 48),
             const SizedBox(height: 12),
             Text(
               _errorMessage,
               textAlign: TextAlign.center,
-              style: const TextStyle(color: Colors.red),
+              style: TextStyle(color: context.colors.error),
             ),
             const SizedBox(height: 16),
             ElevatedButton.icon(
@@ -387,43 +371,45 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
     final book = _book!;
     final isAvailable = book.isAvailable;
 
-    return Column(
-      children: [
-        // ── Nội dung cuộn được ──────────────────────────────────
-        Expanded(
-          child: SingleChildScrollView(
-            physics: const BouncingScrollPhysics(),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // ── Header: Ảnh + Tên + Badge ──────────────────
-                _buildHeader(book),
+    return SingleChildScrollView(
+      physics: const BouncingScrollPhysics(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ── Header: Ảnh + Tên + Badge ──────────────────
+          _buildHeader(book),
 
-                const SizedBox(height: 20),
+          if (_showRealtimeBorrowedNotice)
+            _buildRealtimeBorrowedNotice(),
 
-                // ── Thông tin chi tiết ─────────────────────────
-                _buildInfoSection(book),
+          // ── Nút mượn sách ─────────────────────────────
+          _buildBorrowButton(book, isAvailable),
 
-                const SizedBox(height: 20),
-
-                // ── Mô tả ──────────────────────────────────────
-                if (book.description.isNotEmpty)
-                  _buildDescriptionSection(book.description),
-
-                const SizedBox(height: 16),
-
-                // ── Sách liên quan / Đề xuất ────────────────────
-                _buildRelatedBooksSection(),
-
-                const SizedBox(height: 100), // Khoảng trống cho nút phía dưới
-              ],
-            ),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Divider(color: context.divider.withValues(alpha: 0.3), height: 1, indent: 20, endIndent: 20),
           ),
-        ),
 
-        // ── Nút hành động cố định ──────────────────────────────
-        _buildBottomAction(book, isAvailable),
-      ],
+          // ── Thông tin chi tiết ─────────────────────────
+          _buildInfoSection(book),
+
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: Divider(color: context.divider.withValues(alpha: 0.3), height: 1, indent: 20, endIndent: 20),
+          ),
+
+          // ── Mô tả ──────────────────────────────────────
+          if (book.description.isNotEmpty)
+            _buildDescriptionSection(book.description),
+
+          const SizedBox(height: 8),
+
+          // ── Sách liên quan / Đề xuất ────────────────────
+          _buildRelatedBooksSection(),
+
+          const SizedBox(height: 40), // Khoảng trống dưới cùng
+        ],
+      ),
     );
   }
 
@@ -432,98 +418,162 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
   // Layout: Ảnh bên trái, thông tin bên phải (giống web reference)
   // ────────────────────────────────────────────────────────────────
   Widget _buildHeader(BookDetail book) {
-    return Container(
-      color: Colors.white,
-      padding: const EdgeInsets.all(20),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Ảnh bìa sách
-          Hero(
-            tag: widget.heroTag.isNotEmpty ? widget.heroTag : 'book_${book.id}',
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: SizedBox(
-                width: 130,
-                height: 180,
+    return Stack(
+      children: [
+        // 1. Ảnh bìa nền làm mờ (Blur Background)
+        Positioned.fill(
+          child: ClipRect(
+            child: ShaderMask(
+              // Gradient che phủ giúp ảnh mờ hòa quyện và biến mất dần về phía dưới
+              shaderCallback: (rect) {
+                return LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.black,
+                    Colors.black.withValues(alpha: 0.35),
+                    Colors.transparent,
+                  ],
+                  stops: const [0.0, 0.75, 1.0],
+                ).createShader(rect);
+              },
+              blendMode: BlendMode.dstIn,
+              child: ImageFiltered(
+                imageFilter: ImageFilter.blur(sigmaX: 25, sigmaY: 25),
                 child: book.displayImageUrl.isNotEmpty
                     ? CachedNetworkImage(
                         imageUrl: book.displayImageUrl,
                         fit: BoxFit.cover,
+                        alignment: Alignment.center,
                         httpHeaders: kIsWeb
                             ? const {'ngrok-skip-browser-warning': 'true'}
                             : const {},
-                        placeholder: (context, url) => _buildImagePlaceholder(),
-                        errorWidget: (context, url, error) =>
-                            _buildImagePlaceholder(),
                       )
-                    : _buildImagePlaceholder(),
+                    : Container(color: context.card),
               ),
             ),
           ),
+        ),
 
-          const SizedBox(width: 16),
+        // Lớp tint phủ (overlay color) làm dịu ảnh nền mờ theo màu chủ đạo của theme
+        Positioned.fill(
+          child: Container(
+            color: context.isDarkMode
+                ? Colors.black.withValues(alpha: 0.3)
+                : Colors.white.withValues(alpha: 0.4),
+          ),
+        ),
 
-          // Tiêu đề + badge trạng thái
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SizedBox(height: 4),
-
-                // Tên sách
-                Text(
-                  book.title,
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF1565C0), // Xanh đậm — giống web
-                    height: 1.3,
-                  ),
-                ),
-
-                const SizedBox(height: 10),
-
-                // Badge trạng thái
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 5,
-                  ),
+        // 2. Nội dung chính: Ảnh bìa sắc nét + Thông tin
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.fromLTRB(20, 24, 20, 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              // Ảnh bìa sách (Centered & Large)
+              Hero(
+                tag: widget.heroTag.isNotEmpty ? widget.heroTag : 'book_${book.id}',
+                child: Container(
                   decoration: BoxDecoration(
-                    color: book.isAvailable
-                        ? const Color(0xFFE8F5E9)
-                        : const Color(0xFFFFF3E0),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: book.isAvailable ? Colors.green : Colors.orange,
-                      width: 1,
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        book.isAvailable
-                            ? Icons.check_circle_outline
-                            : Icons.access_time,
-                        size: 14,
-                        color: book.isAvailable
-                            ? Colors.green[700]
-                            : Colors.orange[700],
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        book.isAvailable ? 'Có sẵn' : 'Đã mượn',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: book.isAvailable
-                              ? Colors.green[700]
-                              : Colors.orange[700],
-                        ),
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.18),
+                        blurRadius: 20,
+                        offset: const Offset(0, 10),
                       ),
                     ],
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(16),
+                    child: SizedBox(
+                      width: 150,
+                      height: 215,
+                      child: book.displayImageUrl.isNotEmpty
+                          ? CachedNetworkImage(
+                              imageUrl: book.displayImageUrl,
+                              fit: BoxFit.cover,
+                              httpHeaders: kIsWeb
+                                  ? const {'ngrok-skip-browser-warning': 'true'}
+                                  : const {},
+                              placeholder: (context, url) => _buildImagePlaceholder(),
+                              errorWidget: (context, url, error) =>
+                                  _buildImagePlaceholder(),
+                            )
+                          : _buildImagePlaceholder(),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+
+          // Tên sách (Centered)
+          Text(
+            book.title,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+              color: context.colors.primary,
+              height: 1.3,
+            ),
+          ),
+          const SizedBox(height: 8),
+
+          // Tác giả (Centered)
+          Text(
+            book.author.isNotEmpty ? book.author : 'Chưa rõ tác giả',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 15,
+              color: context.textSecondary,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          // Badge trạng thái (Centered)
+          Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: 14,
+              vertical: 6,
+            ),
+            decoration: BoxDecoration(
+              color: book.isAvailable
+                  ? (context.isDarkMode
+                      ? Colors.green.withValues(alpha: 0.15)
+                      : const Color(0xFFE8F5E9))
+                  : (context.isDarkMode
+                      ? Colors.orange.withValues(alpha: 0.15)
+                      : const Color(0xFFFFF3E0)),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: book.isAvailable ? Colors.green : Colors.orange,
+                width: 1,
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  book.isAvailable
+                      ? Icons.check_circle_outline
+                      : Icons.access_time,
+                  size: 14,
+                  color: book.isAvailable
+                      ? (context.isDarkMode ? Colors.green[300] : Colors.green[700])
+                      : (context.isDarkMode ? Colors.orange[300] : Colors.orange[700]),
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  book.isAvailable ? 'Có sẵn' : 'Đã mượn',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: book.isAvailable
+                        ? (context.isDarkMode ? Colors.green[300] : Colors.green[700])
+                        : (context.isDarkMode ? Colors.orange[300] : Colors.orange[700]),
                   ),
                 ),
               ],
@@ -531,16 +581,17 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
           ),
         ],
       ),
-    );
-  }
+    ),
+  ],
+);
+}
 
   // ────────────────────────────────────────────────────────────────
   // SECTION 2: Thông tin meta (Tác giả, Thể loại, Năm XB, NXB)
   // ────────────────────────────────────────────────────────────────
   Widget _buildInfoSection(BookDetail book) {
     return Container(
-      color: Colors.white,
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -590,16 +641,16 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 18, color: Colors.grey[500]),
+          Icon(icon, size: 18, color: context.textSecondary),
           const SizedBox(width: 10),
           SizedBox(
             width: 100,
             child: Text(
               '$label:',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
-                color: Colors.black87,
+                color: context.textPrimary,
               ),
             ),
           ),
@@ -608,7 +659,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
               value,
               style: TextStyle(
                 fontSize: 14,
-                color: valueColor ?? Colors.black54,
+                color: valueColor ?? context.textSecondary,
               ),
             ),
           ),
@@ -618,24 +669,23 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
   }
 
   Widget _buildDivider() =>
-      const Divider(height: 1, thickness: 0.5, color: Color(0xFFF0F0F0));
+      Divider(height: 1, thickness: 0.5, color: context.divider);
 
   // ────────────────────────────────────────────────────────────────
   // SECTION 3: Mô tả sách
   // ────────────────────────────────────────────────────────────────
   Widget _buildDescriptionSection(String description) {
     return Container(
-      color: Colors.white,
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Mô tả',
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
-              color: Color(0xFF1565C0),
+              color: context.colors.primary,
             ),
           ),
           const SizedBox(height: 8),
@@ -643,7 +693,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
             description,
             style: TextStyle(
               fontSize: 14,
-              color: Colors.grey[700],
+              color: context.textSecondary,
               height: 1.6,
             ),
           ),
@@ -655,24 +705,9 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
   // ────────────────────────────────────────────────────────────────
   // BOTTOM: Nút Mượn sách / trạng thái Đã mượn (cố định ở đáy)
   // ────────────────────────────────────────────────────────────────
-  Widget _buildBottomAction(BookDetail book, bool isAvailable) {
-    return Container(
-      padding: EdgeInsets.fromLTRB(
-        20,
-        12,
-        20,
-        MediaQuery.of(context).padding.bottom + 12,
-      ),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.06),
-            blurRadius: 12,
-            offset: const Offset(0, -4),
-          ),
-        ],
-      ),
+  Widget _buildBorrowButton(BookDetail book, bool isAvailable) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       child: SizedBox(
         width: double.infinity,
         height: 50,
@@ -680,8 +715,8 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
             ? ElevatedButton.icon(
                 onPressed: _isBorrowing ? null : _handleBorrow,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blueAccent,
-                  disabledBackgroundColor: Colors.blueAccent.withValues(
+                  backgroundColor: context.colors.primary,
+                  disabledBackgroundColor: context.colors.primary.withValues(
                     alpha: 0.6,
                   ),
                   shape: RoundedRectangleBorder(
@@ -738,11 +773,61 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
     );
   }
 
+  Widget _buildRealtimeBorrowedNotice() {
+    return Container(
+      margin: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: context.isDarkMode
+            ? const Color(0x29FF9800)
+            : const Color(0xFFFFF3E0),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: Colors.orange[400]!,
+          width: 1,
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.info_outline, color: Colors.orange[700], size: 22),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Sách đã được mượn',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: context.isDarkMode
+                        ? Colors.orange[300]
+                        : Colors.orange[800],
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Rất tiếc, đã có người nhanh tay mượn cuốn sách này trước. Vui lòng tham khảo những quyển sách khác!',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: context.textPrimary,
+                    height: 1.5,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildImagePlaceholder() {
     return Container(
-      color: Colors.grey[200],
-      child: const Center(
-        child: Icon(Icons.menu_book_outlined, size: 50, color: Colors.grey),
+      color: context.divider.withValues(alpha: 0.5),
+      child: Center(
+        child: Icon(Icons.menu_book_outlined, size: 50, color: context.textSecondary),
       ),
     );
   }
@@ -754,8 +839,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
     // Nếu đang load hoặc danh sách rỗng → ẩn hoặc shimmer
     if (_isLoadingRelated) {
       return Container(
-        color: Colors.white,
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -763,7 +847,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
               width: 140,
               height: 16,
               decoration: BoxDecoration(
-                color: Colors.grey[200],
+                color: context.divider,
                 borderRadius: BorderRadius.circular(8),
               ),
             ),
@@ -773,11 +857,11 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
                 itemCount: 3,
-                separatorBuilder: (_, __) => const SizedBox(width: 12),
-                itemBuilder: (_, __) => Container(
+                separatorBuilder: (_, r) => const SizedBox(width: 12),
+                itemBuilder: (_, i) => Container(
                   width: 120,
                   decoration: BoxDecoration(
-                    color: Colors.grey[100],
+                    color: context.divider.withValues(alpha: 0.5),
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
@@ -799,22 +883,21 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
         : Icons.auto_awesome_rounded;
 
     return Container(
-      color: Colors.white,
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // ── Tiêu đề ───────────────────────────────────────────
           Row(
             children: [
-              Icon(sectionIcon, size: 20, color: const Color(0xFF1565C0)),
+              Icon(sectionIcon, size: 20, color: context.colors.primary),
               const SizedBox(width: 8),
               Text(
                 sectionTitle,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
-                  color: Color(0xFF1565C0),
+                  color: context.colors.primary,
                 ),
               ),
             ],
@@ -829,7 +912,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
               scrollDirection: Axis.horizontal,
               physics: const BouncingScrollPhysics(),
               itemCount: _relatedBooks.length + (_isLoadingMoreRelated ? 1 : 0),
-              separatorBuilder: (_, __) => const SizedBox(width: 12),
+              separatorBuilder: (_, r) => const SizedBox(width: 12),
               itemBuilder: (_, i) {
                 if (i == _relatedBooks.length) {
                   return const SizedBox(
@@ -897,10 +980,10 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
               book.title,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
-                color: Colors.black87,
+                color: context.textPrimary,
                 height: 1.3,
               ),
             ),
@@ -912,12 +995,12 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
 
   Widget _buildMiniPlaceholder() {
     return Container(
-      color: Colors.grey[200],
+      color: context.divider.withValues(alpha: 0.5),
       child: Center(
         child: Icon(
           Icons.menu_book_outlined,
           size: 30,
-          color: Colors.grey[400],
+          color: context.textSecondary,
         ),
       ),
     );

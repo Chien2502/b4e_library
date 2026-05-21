@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/theme/theme_extensions.dart';
 
 /// Shimmer loading effect — gradient sáng chạy qua placeholder.
 /// Dùng thay cho các khối xám tĩnh khi đang tải dữ liệu.
@@ -42,6 +43,7 @@ class _ShimmerBoxState extends State<ShimmerBox>
     return AnimatedBuilder(
       animation: _ctrl,
       builder: (context, _) {
+        final isDark = context.isDarkMode;
         return Container(
           width: widget.width,
           height: widget.height,
@@ -50,11 +52,17 @@ class _ShimmerBoxState extends State<ShimmerBox>
             gradient: LinearGradient(
               begin: Alignment(-1.0 + 2.0 * _ctrl.value, 0),
               end: Alignment(-1.0 + 2.0 * _ctrl.value + 1.0, 0),
-              colors: [
-                Colors.grey[300]!,
-                Colors.grey[100]!,
-                Colors.grey[300]!,
-              ],
+              colors: isDark
+                  ? [
+                      Colors.grey[850]!,
+                      Colors.grey[800]!,
+                      Colors.grey[850]!,
+                    ]
+                  : [
+                      Colors.grey[300]!,
+                      Colors.grey[100]!,
+                      Colors.grey[300]!,
+                    ],
               stops: const [0.0, 0.5, 1.0],
             ),
           ),
@@ -70,19 +78,25 @@ class BookCardShimmer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = context.isDarkMode;
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       height: 110,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.card,
         borderRadius: BorderRadius.circular(14),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        border: isDark
+            ? Border.all(color: context.divider, width: 0.5)
+            : null,
+        boxShadow: isDark
+            ? []
+            : [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.04),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
       ),
       child: Row(
         children: [

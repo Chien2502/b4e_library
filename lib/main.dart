@@ -7,8 +7,12 @@ import 'viewmodels/my_books_provider.dart';
 import 'viewmodels/notification_provider.dart';
 import 'viewmodels/recommendation_provider.dart';
 import 'viewmodels/admin_data_provider.dart';
+import 'viewmodels/chat_provider.dart';
+import 'viewmodels/theme_provider.dart';
 import 'main_wrapper.dart';
+import 'core/theme/app_theme.dart';
 
+/// đường dẫn đến backend dự án: C:\xampp\htdocs\B4Eproject\api
 /// main() chỉ làm 2 việc: bind Flutter và gọi runApp ngay lập tức.
 /// Mọi async init (Firebase, FCM, SQLite, auth check) đều chuyển vào
 /// MainWrapper.initState() để splash screen có thể render ngay frame đầu.
@@ -26,6 +30,8 @@ void main() {
         // AdminDataProvider sống ở cấp app → cache tồn tại suốt session
         // dù AdminScreen bị push/pop nhiều lần
         ChangeNotifierProvider(create: (_) => AdminDataProvider()),
+        ChangeNotifierProvider(create: (_) => ChatProvider()),
+        ChangeNotifierProvider(create: (_) => ThemeProvider()),
       ],
       child: const MyApp(),
     ),
@@ -33,23 +39,27 @@ void main() {
 }
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
-final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
+final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey =
+    GlobalKey<ScaffoldMessengerState>();
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      navigatorKey: navigatorKey,
-      scaffoldMessengerKey: scaffoldMessengerKey,
-      debugShowCheckedModeBanner: false,
-      title: 'B4E Library',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-        splashFactory: InkRipple.splashFactory,
-      ),
-      home: const MainWrapper(),
+    return Consumer<ThemeProvider>(
+      builder: (context, themeProvider, _) {
+        return MaterialApp(
+          navigatorKey: navigatorKey,
+          scaffoldMessengerKey: scaffoldMessengerKey,
+          debugShowCheckedModeBanner: false,
+          title: 'B4E Library',
+          theme: AppTheme.light,
+          darkTheme: AppTheme.dark,
+          themeMode: themeProvider.themeMode,
+          home: const MainWrapper(),
+        );
+      },
     );
   }
 }

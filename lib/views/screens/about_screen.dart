@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+import '../../core/theme/theme_extensions.dart';
 
 class AboutScreen extends StatelessWidget {
   const AboutScreen({super.key});
@@ -16,22 +17,22 @@ class AboutScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: context.background,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: context.card,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(
+          icon: Icon(
             Icons.arrow_back_ios_new,
-            color: Colors.black87,
+            color: context.textPrimary,
             size: 20,
           ),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
+        title: Text(
           'Về chúng tôi',
           style: TextStyle(
-            color: Colors.black87,
+            color: context.textPrimary,
             fontWeight: FontWeight.bold,
             fontSize: 18,
           ),
@@ -43,9 +44,9 @@ class AboutScreen extends StatelessWidget {
         child: Column(
           children: [
             _buildHeroBanner(),
-            _buildQuoteSection(),
-            _buildTeamSection(),
-            _buildContactSection(),
+            _buildQuoteSection(context),
+            _buildTeamSection(context),
+            _buildContactSection(context),
             const SizedBox(height: 32),
           ],
         ),
@@ -103,9 +104,9 @@ class AboutScreen extends StatelessWidget {
   }
 
   // ── 2. Câu chuyện / Quote ─────────────────────────────────────
-  Widget _buildQuoteSection() {
+  Widget _buildQuoteSection(BuildContext context) {
     return Container(
-      color: Colors.white,
+      color: context.card,
       padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
       child: Column(
         children: [
@@ -114,21 +115,23 @@ class AboutScreen extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
             decoration: BoxDecoration(
               border: Border(
-                left: BorderSide(color: const Color(0xFF1E88E5), width: 4),
+                left: BorderSide(color: context.colors.primary, width: 4),
               ),
-              color: Colors.blue[50],
+              color: context.isDarkMode
+                  ? context.colors.primary.withValues(alpha: 0.1)
+                  : const Color(0xFFE3F2FD),
               borderRadius: const BorderRadius.only(
                 topRight: Radius.circular(8),
                 bottomRight: Radius.circular(8),
               ),
             ),
-            child: const Text(
+            child: Text(
               '"Chúng tôi tin rằng mỗi cuốn sách đều chứa đựng một thế giới, '
               'và mỗi người đều xứng đáng được khám phá những thế giới ấy"',
               style: TextStyle(
                 fontSize: 14,
                 fontStyle: FontStyle.italic,
-                color: Colors.black87,
+                color: context.textPrimary,
                 height: 1.6,
               ),
             ),
@@ -137,11 +140,13 @@ class AboutScreen extends StatelessWidget {
           const SizedBox(height: 20),
 
           _buildParagraph(
+            context,
             'Đó là tâm nhìn chung mà đội ngũ sáng lập đã thống nhất khi '
             'quyết định xây dựng dự án B4E – Book for everyone.',
           ),
           const SizedBox(height: 10),
           _buildParagraph(
+            context,
             'Sau bao nhiêu nỗ lực, nhóm chúng mình đã cho ra mắt bản mobile '
             'nơi mà mọi người có thể mượn những quyển sách dự án đang có, '
             'hãy quyên góp thêm sách để gia tăng độ đa dạng của kho lưu trữ '
@@ -149,6 +154,7 @@ class AboutScreen extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           _buildParagraph(
+            context,
             'Từ ước mơ ban đầu của đội ngũ sáng lập, dự án B4E đã trở thành '
             'ngôi nhà chung của những người yêu sách, nơi tri thức được '
             'tự do chia sẻ và lan tỏa.',
@@ -158,15 +164,15 @@ class AboutScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildParagraph(String text) {
+  Widget _buildParagraph(BuildContext context, String text) {
     return Text(
       text,
-      style: TextStyle(fontSize: 13.5, color: Colors.grey[700], height: 1.65),
+      style: TextStyle(fontSize: 13.5, color: context.textSecondary, height: 1.65),
     );
   }
 
   // ── 3. Đội ngũ sáng lập ──────────────────────────────────────
-  Widget _buildTeamSection() {
+  Widget _buildTeamSection(BuildContext context) {
     const members = [
       {
         'name': 'Nguyễn Thanh Chiến',
@@ -191,22 +197,22 @@ class AboutScreen extends StatelessWidget {
     ];
 
     return Container(
-      color: Colors.grey[50],
+      color: context.background,
       padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
       child: Column(
         children: [
-          const Text(
+          Text(
             'Đội ngũ sáng lập',
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
-              color: Color(0xFF1565C0),
+              color: context.colors.primary,
             ),
           ),
           const SizedBox(height: 6),
-          const Text(
+          Text(
             'Gặp gỡ những người sáng lập đầy nhiệt huyết phía sau dự án Thư Viện Cộng Đồng',
-            style: TextStyle(fontSize: 12, color: Colors.grey),
+            style: TextStyle(fontSize: 12, color: context.textSecondary),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 8),
@@ -214,7 +220,7 @@ class AboutScreen extends StatelessWidget {
             width: 36,
             height: 3,
             decoration: BoxDecoration(
-              color: Colors.blueAccent,
+              color: context.colors.primary,
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -232,6 +238,7 @@ class AboutScreen extends StatelessWidget {
                 return SizedBox(
                   width: 260,
                   child: _buildMemberCard(
+                    context,
                     name: m['name'] as String,
                     role: m['role'] as String,
                     bio: m['bio'] as List<String>,
@@ -246,7 +253,8 @@ class AboutScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildMemberCard({
+  Widget _buildMemberCard(
+    BuildContext context, {
     required String name,
     required String role,
     required List<String> bio,
@@ -255,11 +263,13 @@ class AboutScreen extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.card,
         borderRadius: BorderRadius.circular(14),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.06),
+            color: context.isDarkMode
+                ? Colors.transparent
+                : Colors.black.withValues(alpha: 0.06),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -273,13 +283,13 @@ class AboutScreen extends StatelessWidget {
             children: [
               CircleAvatar(
                 radius: 24,
-                backgroundColor: const Color(0xFFE3F2FD),
+                backgroundColor: context.colors.primary.withValues(alpha: 0.12),
                 child: Text(
                   name[0],
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF1565C0),
+                    color: context.colors.primary,
                   ),
                 ),
               ),
@@ -290,18 +300,18 @@ class AboutScreen extends StatelessWidget {
                   children: [
                     Text(
                       name,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 14,
-                        color: Colors.black87,
+                        color: context.textPrimary,
                       ),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       role,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 10,
-                        color: Color(0xFF1E88E5),
+                        color: context.colors.primary,
                         fontWeight: FontWeight.w600,
                         letterSpacing: 0.2,
                       ),
@@ -312,7 +322,7 @@ class AboutScreen extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
-          const Divider(height: 1, color: Color(0xFFF0F0F0)),
+          Divider(height: 1, color: context.divider),
           const SizedBox(height: 10),
 
           // Bullet bio
@@ -322,10 +332,10 @@ class AboutScreen extends StatelessWidget {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
+                  Text(
                     '• ',
                     style: TextStyle(
-                      color: Colors.blueAccent,
+                      color: context.colors.primary,
                       fontSize: 13,
                       fontWeight: FontWeight.bold,
                     ),
@@ -335,7 +345,7 @@ class AboutScreen extends StatelessWidget {
                       point,
                       style: TextStyle(
                         fontSize: 12,
-                        color: Colors.grey[700],
+                        color: context.textSecondary,
                         height: 1.4,
                       ),
                     ),
@@ -346,7 +356,7 @@ class AboutScreen extends StatelessWidget {
           ),
 
           const Spacer(),
-          const Divider(height: 1, color: Color(0xFFF0F0F0)),
+          Divider(height: 1, color: context.divider),
           const SizedBox(height: 8),
 
           // Email + Facebook links
@@ -354,14 +364,14 @@ class AboutScreen extends StatelessWidget {
             children: [
               InkWell(
                 onTap: () {},
-                child: const Row(
+                child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.email_outlined, size: 14, color: Colors.grey),
-                    SizedBox(width: 4),
+                    Icon(Icons.email_outlined, size: 14, color: context.textSecondary),
+                    const SizedBox(width: 4),
                     Text(
                       'Email',
-                      style: TextStyle(fontSize: 12, color: Colors.grey),
+                      style: TextStyle(fontSize: 12, color: context.textSecondary),
                     ),
                   ],
                 ),
@@ -369,14 +379,14 @@ class AboutScreen extends StatelessWidget {
               const SizedBox(width: 16),
               InkWell(
                 onTap: () {},
-                child: const Row(
+                child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.facebook, size: 14, color: Colors.blue),
-                    SizedBox(width: 4),
+                    Icon(Icons.facebook, size: 14, color: context.colors.primary),
+                    const SizedBox(width: 4),
                     Text(
                       'Facebook',
-                      style: TextStyle(fontSize: 12, color: Colors.blue),
+                      style: TextStyle(fontSize: 12, color: context.colors.primary),
                     ),
                   ],
                 ),
@@ -389,9 +399,9 @@ class AboutScreen extends StatelessWidget {
   }
 
   // ── 4. Thông tin liên hệ ──────────────────────────────────────
-  Widget _buildContactSection() {
+  Widget _buildContactSection(BuildContext context) {
     return Container(
-      color: Colors.white,
+      color: context.card,
       padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -402,17 +412,17 @@ class AboutScreen extends StatelessWidget {
                 width: 4,
                 height: 20,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF1E88E5),
+                  color: context.colors.primary,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
               const SizedBox(width: 10),
-              const Text(
+              Text(
                 'Thông tin liên hệ',
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
-                  color: Colors.black87,
+                  color: context.textPrimary,
                 ),
               ),
             ],
@@ -420,27 +430,31 @@ class AboutScreen extends StatelessWidget {
           const SizedBox(height: 16),
 
           _buildContactRow(
+            context,
             icon: Icons.location_on_outlined,
             label: 'Văn phòng chính:',
             value: '470 Trần Đại Nghĩa, Ngũ Hành Sơn, Đà Nẵng',
-            valueColor: const Color(0xFF1E88E5),
+            valueColor: context.colors.primary,
           ),
           _buildContactRow(
+            context,
             icon: Icons.phone_outlined,
             label: 'Điện thoại:',
             value: '0989 676 555',
           ),
           _buildContactRow(
+            context,
             icon: Icons.email_outlined,
             label: 'Email:',
             value: 'hotroB4E@gmail.com',
-            valueColor: const Color(0xFF1E88E5),
+            valueColor: context.colors.primary,
           ),
           _buildContactRow(
+            context,
             icon: Icons.language_outlined,
             label: 'Website:',
             value: 'B4EProject',
-            valueColor: const Color(0xFF1E88E5),
+            valueColor: context.colors.primary,
           ),
 
           const SizedBox(height: 16),
@@ -449,27 +463,27 @@ class AboutScreen extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: Colors.grey[50],
+              color: context.background,
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: Colors.grey[200]!),
+              border: Border.all(color: context.divider),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Row(
+                Row(
                   children: [
                     Icon(
                       Icons.access_time_outlined,
                       size: 16,
-                      color: Colors.grey,
+                      color: context.textSecondary,
                     ),
-                    SizedBox(width: 6),
+                    const SizedBox(width: 6),
                     Text(
                       'Giờ hoạt động:',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 13,
-                        color: Colors.black87,
+                        color: context.textPrimary,
                       ),
                     ),
                   ],
@@ -480,13 +494,13 @@ class AboutScreen extends StatelessWidget {
                     const SizedBox(width: 22),
                     Text(
                       'Thứ Hai – Chủ Nhật: ',
-                      style: TextStyle(fontSize: 13, color: Colors.grey[700]),
+                      style: TextStyle(fontSize: 13, color: context.textSecondary),
                     ),
-                    const Text(
+                    Text(
                       '8:00 – 21:00',
                       style: TextStyle(
                         fontSize: 13,
-                        color: Color(0xFF1E88E5),
+                        color: context.colors.primary,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -498,11 +512,11 @@ class AboutScreen extends StatelessWidget {
                     const SizedBox(width: 22),
                     Text(
                       'Ngày lễ: ',
-                      style: TextStyle(fontSize: 13, color: Colors.grey[700]),
+                      style: TextStyle(fontSize: 13, color: context.textSecondary),
                     ),
                     Text(
                       'Tạm nghỉ',
-                      style: TextStyle(fontSize: 13, color: Colors.red[400]),
+                      style: TextStyle(fontSize: 13, color: context.error),
                     ),
                   ],
                 ),
@@ -518,7 +532,7 @@ class AboutScreen extends StatelessWidget {
             child: Container(
               height: 220,
               decoration: BoxDecoration(
-                border: Border.all(color: Colors.grey[300]!),
+                border: Border.all(color: context.divider),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Stack(
@@ -563,11 +577,13 @@ class AboutScreen extends StatelessWidget {
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: context.card,
                         borderRadius: BorderRadius.circular(20),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.1),
+                            color: context.isDarkMode
+                                ? Colors.transparent
+                                : Colors.black.withValues(alpha: 0.1),
                             blurRadius: 4,
                             offset: const Offset(0, 2),
                           ),
@@ -576,14 +592,14 @@ class AboutScreen extends StatelessWidget {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.map, size: 14, color: Colors.blue[700]),
+                          Icon(Icons.map, size: 14, color: context.colors.primary),
                           const SizedBox(width: 6),
                           Text(
                             'Chỉ đường',
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.bold,
-                              color: Colors.blue[700],
+                              color: context.colors.primary,
                             ),
                           ),
                         ],
@@ -599,7 +615,8 @@ class AboutScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildContactRow({
+  Widget _buildContactRow(
+    BuildContext context, {
     required IconData icon,
     required String label,
     required String value,
@@ -610,13 +627,13 @@ class AboutScreen extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 16, color: Colors.grey[500]),
+          Icon(icon, size: 16, color: context.textSecondary),
           const SizedBox(width: 8),
           SizedBox(
             width: 100,
             child: Text(
               label,
-              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: context.textPrimary),
             ),
           ),
           Expanded(
@@ -624,7 +641,7 @@ class AboutScreen extends StatelessWidget {
               value,
               style: TextStyle(
                 fontSize: 13,
-                color: valueColor ?? Colors.grey[700],
+                color: valueColor ?? context.textSecondary,
               ),
             ),
           ),

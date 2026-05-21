@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../../core/theme/theme_extensions.dart';
 import '../../../viewmodels/admin_data_provider.dart';
 
 class AdminDashboardTab extends StatefulWidget {
@@ -49,18 +50,18 @@ class _AdminDashboardTabState extends State<AdminDashboardTab> {
           children: [
             _buildHeader(stats),
             const SizedBox(height: 20),
-            const Text(
+            Text(
               'Thống kê & Quản lý',
               style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.bold,
-                color: Colors.black87,
+                color: context.textPrimary,
               ),
             ),
             const SizedBox(height: 4),
-            const Text(
+            Text(
               'Nhấn vào từng mục để quản lý chi tiết',
-              style: TextStyle(fontSize: 11, color: Colors.grey),
+              style: TextStyle(fontSize: 11, color: context.textSecondary),
             ),
             const SizedBox(height: 12),
             _buildNavCards(stats),
@@ -76,23 +77,33 @@ class _AdminDashboardTabState extends State<AdminDashboardTab> {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF1565C0), Color(0xFF1E88E5)],
+        gradient: LinearGradient(
+          colors: [
+            context.colors.primary,
+            context.colors.primary.withValues(alpha: 0.8),
+          ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(16),
+        boxShadow: context.isDarkMode ? null : [
+          BoxShadow(
+            color: context.colors.primary.withValues(alpha: 0.3),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          )
+        ],
       ),
       child: Row(
         children: [
           const Icon(Icons.local_library_outlined,
               color: Colors.white, size: 36),
           const SizedBox(width: 14),
-          const Expanded(
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
+                const Text(
                   'Hệ thống quản trị thư viện',
                   style: TextStyle(
                     color: Colors.white,
@@ -100,16 +111,19 @@ class _AdminDashboardTabState extends State<AdminDashboardTab> {
                     fontSize: 16,
                   ),
                 ),
-                SizedBox(height: 4),
+                const SizedBox(height: 4),
                 Text(
                   'B4E Library Admin Panel',
-                  style: TextStyle(color: Colors.white70, fontSize: 12),
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.7),
+                    fontSize: 12,
+                  ),
                 ),
               ],
             ),
           ),
           IconButton(
-            icon: const Icon(Icons.refresh, color: Colors.white70),
+            icon: Icon(Icons.refresh, color: Colors.white.withValues(alpha: 0.7)),
             onPressed: () => context.read<AdminDataProvider>().fetchStats(forceRefresh: true),
             tooltip: 'Làm mới',
           ),
@@ -159,7 +173,7 @@ class _AdminDashboardTabState extends State<AdminDashboardTab> {
         _NavCard(
           tabIndex: 5,
           icon: Icons.people_rounded,
-          color: Colors.teal,
+          color: context.isDarkMode ? Colors.tealAccent : Colors.teal,
           label: 'Người dùng',
           value: '${stats['users'] ?? 0}',
           unit: 'tài khoản',
@@ -169,7 +183,7 @@ class _AdminDashboardTabState extends State<AdminDashboardTab> {
         _NavCard(
           tabIndex: 3,
           icon: Icons.volunteer_activism_rounded,
-          color: Colors.orange,
+          color: context.isDarkMode ? Colors.orangeAccent : Colors.orange,
           label: 'Chờ duyệt quyên góp',
           value: '${stats['pending_donations'] ?? 0}',
           unit: 'yêu cầu',
@@ -195,7 +209,7 @@ class _AdminDashboardTabState extends State<AdminDashboardTab> {
         _NavCard(
           tabIndex: 2,
           icon: Icons.category_rounded,
-          color: Colors.deepPurple,
+          color: context.isDarkMode ? Colors.purpleAccent : Colors.deepPurple,
           label: 'Thể loại sách',
           value: '${stats['categories'] ?? '—'}',
           unit: 'thể loại',
@@ -208,7 +222,7 @@ class _AdminDashboardTabState extends State<AdminDashboardTab> {
   Widget _buildCard(_NavCard c, {bool fullWidth = false}) {
     final hasAlert = c.badge != null;
     return Material(
-      color: Colors.white,
+      color: context.card,
       borderRadius: BorderRadius.circular(16),
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
@@ -219,10 +233,10 @@ class _AdminDashboardTabState extends State<AdminDashboardTab> {
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
-            border: hasAlert
-                ? Border.all(color: c.color.withAlpha(80), width: 1.5)
-                : null,
-            boxShadow: [
+            border: context.isDarkMode 
+                ? Border.all(color: context.divider, width: 0.5) 
+                : (hasAlert ? Border.all(color: c.color.withAlpha(80), width: 1.5) : null),
+            boxShadow: context.isDarkMode ? null : [
               BoxShadow(
                 color: hasAlert
                     ? c.color.withAlpha(30)
@@ -251,7 +265,7 @@ class _AdminDashboardTabState extends State<AdminDashboardTab> {
             Container(
               padding: const EdgeInsets.all(9),
               decoration: BoxDecoration(
-                color: c.color.withAlpha(25),
+                color: c.color.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Icon(c.icon, color: c.color, size: 20),
@@ -281,17 +295,17 @@ class _AdminDashboardTabState extends State<AdminDashboardTab> {
         ),
         Text(
           c.unit,
-          style: TextStyle(fontSize: 10, color: Colors.grey[500]),
+          style: TextStyle(fontSize: 10, color: context.textSecondary),
         ),
         const SizedBox(height: 8),
-        const Divider(height: 1, thickness: 0.5),
+        Divider(height: 1, thickness: 0.5, color: context.divider),
         const SizedBox(height: 8),
         Text(
           c.label,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.w600,
-            color: Colors.black87,
+            color: context.textPrimary,
           ),
         ),
         const SizedBox(height: 4),
@@ -321,7 +335,7 @@ class _AdminDashboardTabState extends State<AdminDashboardTab> {
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: c.color.withAlpha(20),
+            color: c.color.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Icon(c.icon, color: c.color, size: 26),
@@ -333,10 +347,10 @@ class _AdminDashboardTabState extends State<AdminDashboardTab> {
             children: [
               Text(
                 c.label,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.bold,
-                  color: Colors.black87,
+                  color: context.textPrimary,
                 ),
               ),
               Text(
@@ -359,11 +373,11 @@ class _AdminDashboardTabState extends State<AdminDashboardTab> {
             ),
             Text(c.unit,
                 style:
-                    TextStyle(fontSize: 10, color: Colors.grey[500])),
+                    TextStyle(fontSize: 10, color: context.textSecondary)),
           ],
         ),
         const SizedBox(width: 4),
-        Icon(Icons.arrow_forward_ios, size: 12, color: c.color.withAlpha(150)),
+        Icon(Icons.arrow_forward_ios, size: 12, color: c.color.withValues(alpha: 0.6)),
       ],
     );
   }
@@ -389,7 +403,7 @@ class _AdminDashboardTabState extends State<AdminDashboardTab> {
               icon: const Icon(Icons.refresh),
               label: const Text('Thử lại'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF1565C0),
+                backgroundColor: context.colors.primary,
                 padding: const EdgeInsets.symmetric(
                     horizontal: 24, vertical: 12),
               ),

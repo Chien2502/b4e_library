@@ -175,6 +175,70 @@ class DatabaseService {
     } catch (_) {}
   }
 
+  /// Cập nhật thời gian thực trạng thái khả dụng của sách trực tiếp trong SQLite Cache.
+  Future<void> updateBookStatusInCache(int bookId, bool isAvailable) async {
+    if (!isReady) return;
+
+    try {
+      final String newStatus = isAvailable ? 'available' : 'borrowed';
+      final List<String> targets = [
+        'home_latest',
+        'home_popular',
+        'home_recommendations'
+      ];
+
+      for (final key in targets) {
+        final rows = await _db!.query(
+          'cache_entries',
+          columns: ['data'],
+          where: 'cache_key = ?',
+          whereArgs: [key],
+          limit: 1,
+        );
+
+        if (rows.isNotEmpty) {
+          final row = rows.first;
+          final String rawData = row['data'] as String;
+          final dynamic decoded = jsonDecode(rawData);
+
+          final updatedDecoded = _updateBookStatusInJson(decoded, bookId, newStatus);
+          final String updatedJson = jsonEncode(updatedDecoded);
+
+          await _db!.update(
+            'cache_entries',
+            {
+              'data': updatedJson,
+            },
+            where: 'cache_key = ?',
+            whereArgs: [key],
+          );
+        }
+      }
+    } catch (e) {
+      assert(() {
+        // ignore: avoid_print
+        print('[CacheDB] updateBookStatusInCache error: $e');
+        return true;
+      }());
+    }
+  }
+
+  dynamic _updateBookStatusInJson(dynamic node, int bookId, String newStatus) {
+    if (node is Map) {
+      if (node.containsKey('id') && node['id'].toString() == bookId.toString()) {
+        node['status'] = newStatus;
+      }
+      for (final key in node.keys) {
+        node[key] = _updateBookStatusInJson(node[key], bookId, newStatus);
+      }
+    } else if (node is List) {
+      for (int i = 0; i < node.length; i++) {
+        node[i] = _updateBookStatusInJson(node[i], bookId, newStatus);
+      }
+    }
+    return node;
+  }
+
   // ─────────────────────────────────────────────────────────────────
   // Seed static pages (ghi nội dung tĩnh nếu chưa có)
   // ─────────────────────────────────────────────────────────────────

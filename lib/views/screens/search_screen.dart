@@ -8,6 +8,7 @@ import 'book_detail_screen.dart';
 import '../widgets/staggered_list_item.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../core/utils/page_transitions.dart';
+import '../../core/theme/theme_extensions.dart';
 class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key});
 
@@ -73,7 +74,7 @@ class _SearchScreenState extends State<SearchScreen> {
                   'Tìm thấy ${provider.totalItems} cuốn sách',
                   style: TextStyle(
                     fontSize: 12,
-                    color: Colors.grey[600],
+                    color: context.textSecondary,
                     fontStyle: FontStyle.italic,
                   ),
                 ),
@@ -98,7 +99,7 @@ class _SearchScreenState extends State<SearchScreen> {
   // ────────────────────────────────────────────────────────────────
   Widget _buildSearchBar(SearchProvider provider) {
     return Container(
-      color: Colors.white,
+      color: context.card,
       padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
       child: Row(
         children: [
@@ -107,9 +108,9 @@ class _SearchScreenState extends State<SearchScreen> {
             child: Container(
               height: 44,
               decoration: BoxDecoration(
-                color: Colors.grey[100],
+                color: context.background,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.grey[300]!),
+                border: Border.all(color: context.divider),
               ),
               child: TextField(
                 controller: _searchController,
@@ -117,9 +118,9 @@ class _SearchScreenState extends State<SearchScreen> {
                 decoration: InputDecoration(
                   hintText: 'Tìm theo tên sách, tác giả...',
                   hintStyle: TextStyle(
-                      fontSize: 13, color: Colors.grey[500]),
-                  prefixIcon: const Icon(Icons.search,
-                      size: 20, color: Colors.blueAccent),
+                      fontSize: 13, color: context.textSecondary),
+                  prefixIcon: Icon(Icons.search,
+                      size: 20, color: context.colors.primary),
                   suffixIcon: _searchController.text.isNotEmpty
                       ? GestureDetector(
                           onTap: () {
@@ -147,20 +148,20 @@ class _SearchScreenState extends State<SearchScreen> {
             height: 44,
             padding: const EdgeInsets.symmetric(horizontal: 10),
             decoration: BoxDecoration(
-              color: Colors.grey[100],
+              color: context.background,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.grey[300]!),
+              border: Border.all(color: context.divider),
             ),
             child: DropdownButtonHideUnderline(
               child: DropdownButton<String>(
                 value: provider.selectedStatus,
-                dropdownColor: Colors.white,
+                dropdownColor: context.colors.surface,
                 borderRadius: BorderRadius.circular(12),
-                icon: const Icon(Icons.keyboard_arrow_down,
-                    size: 18, color: Colors.blueAccent),
-                style: const TextStyle(
+                icon: Icon(Icons.keyboard_arrow_down,
+                    size: 18, color: context.colors.primary),
+                style: TextStyle(
                     fontSize: 12,
-                    color: Colors.black87,
+                    color: context.textPrimary,
                     fontWeight: FontWeight.w500),
                 items: _statusOptions.map((opt) {
                   return DropdownMenuItem(
@@ -186,23 +187,23 @@ class _SearchScreenState extends State<SearchScreen> {
   // ────────────────────────────────────────────────────────────────
   Widget _buildCategoryChips(SearchProvider provider) {
     return Container(
-      color: Colors.white,
+      color: context.card,
       padding: const EdgeInsets.only(bottom: 10),
       child: SizedBox(
         height: 38,
         child: provider.isCategoriesLoading
-            ? const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 16),
+            ? Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Row(
                   children: [
-                    SizedBox(
+                    const SizedBox(
                       width: 16,
                       height: 16,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     ),
-                    SizedBox(width: 8),
+                    const SizedBox(width: 8),
                     Text('Đang tải thể loại...',
-                        style: TextStyle(fontSize: 12, color: Colors.grey)),
+                        style: TextStyle(fontSize: 12, color: context.textSecondary)),
                   ],
                 ),
               )
@@ -233,19 +234,18 @@ class _SearchScreenState extends State<SearchScreen> {
         padding:
             const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
         decoration: BoxDecoration(
-          color: isSelected ? Colors.blueAccent : Colors.grey[100],
+          color: isSelected ? context.colors.primary : context.background,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isSelected ? Colors.blueAccent : Colors.grey[300]!,
+            color: isSelected ? context.colors.primary : context.divider,
           ),
         ),
         child: Text(
           name,
           style: TextStyle(
             fontSize: 12,
-            fontWeight:
-                isSelected ? FontWeight.bold : FontWeight.normal,
-            color: isSelected ? Colors.white : Colors.black87,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+            color: isSelected ? Colors.white : context.textSecondary,
           ),
         ),
       ),
@@ -265,11 +265,11 @@ class _SearchScreenState extends State<SearchScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.error_outline, color: Colors.red, size: 40),
+            Icon(Icons.error_outline, color: context.colors.error, size: 40),
             const SizedBox(height: 8),
             Text(
               provider.errorMessage,
-              style: const TextStyle(color: Colors.red),
+              style: TextStyle(color: context.colors.error),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 12),
@@ -289,12 +289,12 @@ class _SearchScreenState extends State<SearchScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.search_off, size: 60, color: Colors.grey[300]),
+            Icon(Icons.search_off, size: 60, color: context.divider),
             const SizedBox(height: 12),
             Text(
               'Không tìm thấy sách nào',
               style: TextStyle(
-                  fontSize: 16, color: Colors.grey[500]),
+                  fontSize: 16, color: context.textSecondary),
             ),
             const SizedBox(height: 6),
             TextButton(
@@ -355,9 +355,12 @@ class _SearchScreenState extends State<SearchScreen> {
       },
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: context.card,
           borderRadius: BorderRadius.circular(16),
-          boxShadow: [
+          border: context.isDarkMode
+              ? Border.all(color: context.divider, width: 0.5)
+              : null,
+          boxShadow: context.isDarkMode ? [] : [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.06),
               blurRadius: 12,
@@ -384,15 +387,15 @@ class _SearchScreenState extends State<SearchScreen> {
                           ? const {'ngrok-skip-browser-warning': 'true'}
                           : const {},
                       placeholder: (context, url) => Container(
-                        color: Colors.grey[200],
+                        color: context.background,
                         child: const Center(
                           child: CircularProgressIndicator(strokeWidth: 2),
                         ),
                       ),
                       errorWidget: (context, url, error) => Container(
-                        color: Colors.grey[200],
-                        child: const Icon(Icons.broken_image,
-                            size: 50, color: Colors.grey),
+                        color: context.background,
+                        child: Icon(Icons.broken_image,
+                            size: 50, color: context.divider),
                       ),
                     ),
                     // Badge trạng thái
@@ -434,10 +437,10 @@ class _SearchScreenState extends State<SearchScreen> {
                       book.title,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.bold,
-                        color: Colors.black87,
+                        color: context.textPrimary,
                         height: 1.2,
                       ),
                     ),
@@ -446,15 +449,15 @@ class _SearchScreenState extends State<SearchScreen> {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                          fontSize: 11, color: Colors.grey[600]),
+                          fontSize: 11, color: context.textSecondary),
                     ),
                     Text(
                       book.category,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 10,
-                        color: Colors.blueAccent,
+                        color: context.colors.primary,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -473,7 +476,7 @@ class _SearchScreenState extends State<SearchScreen> {
   // ────────────────────────────────────────────────────────────────
   Widget _buildPagination(SearchProvider provider) {
     return Container(
-      color: Colors.white,
+      color: context.card,
       padding:
           const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
       child: Row(
@@ -553,11 +556,10 @@ class _SearchScreenState extends State<SearchScreen> {
         width: 34,
         height: 34,
         decoration: BoxDecoration(
-          color: isActive ? Colors.blueAccent : Colors.grey[100],
+          color: isActive ? context.colors.primary : context.background,
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
-            color:
-                isActive ? Colors.blueAccent : Colors.grey[300]!,
+            color: isActive ? context.colors.primary : context.divider,
           ),
         ),
         child: Center(
@@ -567,7 +569,7 @@ class _SearchScreenState extends State<SearchScreen> {
               fontSize: 13,
               fontWeight:
                   isActive ? FontWeight.bold : FontWeight.normal,
-              color: isActive ? Colors.white : Colors.black87,
+              color: isActive ? Colors.white : context.textPrimary,
             ),
           ),
         ),
@@ -586,12 +588,12 @@ class _SearchScreenState extends State<SearchScreen> {
         width: 36,
         height: 36,
         decoration: BoxDecoration(
-          color: enabled ? Colors.blueAccent : Colors.grey[200],
+          color: enabled ? context.colors.primary : context.divider,
           borderRadius: BorderRadius.circular(8),
         ),
         child: Icon(
           icon,
-          color: enabled ? Colors.white : Colors.grey[400],
+          color: enabled ? Colors.white : context.textSecondary,
           size: 22,
         ),
       ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../viewmodels/auth_provider.dart';
+import '../../viewmodels/book_provider.dart';
 import '../../viewmodels/notification_provider.dart';
 import '../../viewmodels/recommendation_provider.dart';
 import 'home_screen.dart';
@@ -10,8 +11,12 @@ import 'donation_screen.dart';
 import 'profile_screen.dart';
 import 'auth_guard.dart';
 import 'notification_screen.dart';
+import 'chat_screen.dart';
 import '../../core/utils/page_transitions.dart';
 import '../widgets/liquid_nav_bar.dart';
+import '../../core/theme/theme_extensions.dart';
+import '../../core/services/push_notification_service.dart';
+import 'dart:async';
 
 class MainLayout extends StatefulWidget {
   /// Nếu được truyền vào (từ LoginScreen sau đăng nhập), tự động chuyển tab.
@@ -22,7 +27,8 @@ class MainLayout extends StatefulWidget {
   State<MainLayout> createState() => _MainLayoutState();
 }
 
-class _MainLayoutState extends State<MainLayout> {
+class _MainLayoutState extends State<MainLayout>
+    with WidgetsBindingObserver {
   late int _currentIndex;
 
   // Tab nào yêu cầu đăng nhập:  2 = Sách của tôi, 3 = Quyên góp, 4 = Hồ sơ
@@ -33,6 +39,9 @@ class _MainLayoutState extends State<MainLayout> {
   final Set<int> _visitedTabs = {0};
   // Cache các widget đã build — mỗi màn hình chỉ được tạo đúng 1 lần.
   final Map<int, Widget> _screenCache = {};
+
+  // Subscription lắng nghe tap notification (hủy khi dispose)
+  StreamSubscription<Map<String, dynamic>>? _notifTapSub;
 
   // Factory cho từng tab — chỉ gọi khi cần
   Widget _getScreen(int index) {
@@ -65,6 +74,30 @@ class _MainLayoutState extends State<MainLayout> {
   void initState() {
     super.initState();
     _currentIndex = widget.initialIndex;
+    _visitedTabs.add(_currentIndex);
+    WidgetsBinding.instance.addObserver(this); // đăng ký lifecycle observer
+
+    // Lắng nghe notification tap để điều hướng đúng tab
+    // Hoạt động cả 3 trạng thái: foreground, background, terminated
+    _notifTapSub = PushNotificationService().notificationTapStream.listen((data) {
+      if (!mounted) return;
+      final type = data['type']?.toString() ?? '';
+      // Điều hướng theo loại thông báo
+      if (type == 'chat_reply') {
+        // Mở ChatScreen khi tap thông báo chat
+        Navigator.push(context, MaterialPageRoute(builder: (_) => const ChatScreen()));
+      } else if (type.contains('borrow') || type.contains('return')) {
+        // borrow_approved, borrow_rejected, return_reminder, return_overdue
+        _onTabTapped(2); // Tab "Sách của tôi"
+      } else if (type.contains('donation')) {
+        // donation_approved, donation_rejected
+        _onTabTapped(3); // Tab "Quyên góp"
+      }
+      // Refresh danh sách thông báo sau khi tap
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) context.read<NotificationProvider>().fetchNotifications();
+      });
+    });
   }
 
   // Tự động fetch thông báo khi trạng thái đăng nhập thay đổi
@@ -120,12 +153,34 @@ class _MainLayoutState extends State<MainLayout> {
   }
 
   @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _notifTapSub?.cancel();
+    super.dispose();
+  }
+
+  /// Khi app từ background trở lại foreground:
+  /// refresh danh sách sách để bắt kịp các thay đổi xảy ra khi app ở background.
+  /// Điều này xử lý trường hợp book_updates topic message đến khi app bị tắt.
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        // Force refresh sách khi mở lại app để đồng bộ trạng thái tồn kho
+        context.read<BookProvider>().fetchLatestBooks(forceRefresh: true);
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final isLoggedIn =
         context.watch<AuthProvider>().status == AuthStatus.authenticated;
 
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      // Không set cứng — tự dùng scaffoldBackgroundColor từ AppTheme
+      // (light = 0xFFF8F9FE, dark = 0xFF111318)
 
       // ── Top App Bar ────────────────────────────────────────────────
       // Chỉ hiển thị AppBar ở tab Trang chủ (tab 0).
@@ -133,13 +188,13 @@ class _MainLayoutState extends State<MainLayout> {
       // lỗi layout body trên một số phiên bản Flutter.
       appBar: _currentIndex == 0
           ? AppBar(
-              backgroundColor: Colors.white,
+              backgroundColor: context.card,
               elevation: 0,
               automaticallyImplyLeading: false,
-              title: const Text(
+              title: Text(
                 'Thư viện B4E',
                 style: TextStyle(
-                  color: Colors.black87,
+                  color: context.textPrimary,
                   fontWeight: FontWeight.bold,
                   fontSize: 20,
                 ),
@@ -153,9 +208,9 @@ class _MainLayoutState extends State<MainLayout> {
                         alignment: Alignment.center,
                         children: [
                           IconButton(
-                            icon: const Icon(
+                            icon: Icon(
                               Icons.notifications_none_outlined,
-                              color: Colors.black87,
+                              color: context.textPrimary,
                               size: 28,
                             ),
                             onPressed: () {

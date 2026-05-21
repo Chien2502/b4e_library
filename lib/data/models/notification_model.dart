@@ -3,10 +3,11 @@ class AppNotification {
   final int id;
   final String title;
   final String message;
-  final String type; // borrow_approved | borrow_rejected | return_overdue | donation_approved | donation_rejected | system
+  final String type; // borrow_approved | borrow_rejected | return_overdue | donation_approved | donation_rejected | system | system_broadcast
   final int? refId;
   final bool isRead;
   final String createdAt;
+  final bool isSystem;
 
   AppNotification({
     required this.id,
@@ -16,6 +17,7 @@ class AppNotification {
     this.refId,
     required this.isRead,
     required this.createdAt,
+    this.isSystem = false,
   });
 
   factory AppNotification.fromJson(Map<String, dynamic> json) {
@@ -29,6 +31,22 @@ class AppNotification {
           : null,
       isRead: json['is_read'] == true || json['is_read'] == 1,
       createdAt: json['created_at']?.toString() ?? '',
+      isSystem: json['is_system'] == true || json['is_system'] == 1,
+    );
+  }
+
+  AppNotification copyWith({
+    bool? isRead,
+  }) {
+    return AppNotification(
+      id: id,
+      title: title,
+      message: message,
+      type: type,
+      refId: refId,
+      isRead: isRead ?? this.isRead,
+      createdAt: createdAt,
+      isSystem: isSystem,
     );
   }
 }

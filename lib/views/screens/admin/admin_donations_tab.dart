@@ -5,6 +5,7 @@ import '../../../core/network/dio_client.dart';
 import '../../../core/network/network_error_handler.dart';
 import '../../widgets/custom_dialog.dart';
 import '../../../core/utils/snackbar_utils.dart';
+import '../../../core/theme/theme_extensions.dart';
 
 
 // ── Model ────────────────────────────────────────────────────────────
@@ -66,16 +67,82 @@ class AdminDonationsTab extends StatefulWidget {
   State<AdminDonationsTab> createState() => _AdminDonationsTabState();
 }
 
-class _AdminDonationsTabState extends State<AdminDonationsTab> {
+class _AdminDonationsTabState extends State<AdminDonationsTab> with SingleTickerProviderStateMixin {
   final _dio = DioClient().dio;
   List<AdminDonation> _items = [];
   bool _loading = true;
   String? _error;
+  
+  late TabController _tabController;
+  String _subFilter = 'all';
 
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: 3, vsync: this);
+    _tabController.addListener(() {
+      if (_tabController.indexIsChanging) {
+        setState(() {
+          _subFilter = 'all';
+        });
+      }
+    });
     _load();
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  List<(String, String, Color)> _getSubFiltersForTab(int tabIndex) {
+    switch (tabIndex) {
+      case 0:
+        return [
+          ('all', 'Tất cả', Colors.blueGrey),
+          ('pending', 'Chờ duyệt', Colors.orange),
+        ];
+      case 1:
+        return [
+          ('all', 'Tất cả', Colors.blueGrey),
+          ('approved', 'Đã duyệt', Colors.indigo),
+          ('in_transit', 'Đang ship', Colors.blue),
+          ('received', 'Đã nhận', Colors.teal),
+        ];
+      case 2:
+        return [
+          ('all', 'Tất cả', Colors.blueGrey),
+          ('processed', 'Đã nhập kho', Colors.green),
+          ('rejected', 'Từ chối', Colors.red),
+        ];
+      default:
+        return [];
+    }
+  }
+
+  int _getCountForSubFilter(int tabIndex, String subFilterKey) {
+    List<AdminDonation> baseItems = [];
+    switch (tabIndex) {
+      case 0:
+        baseItems = _items.where((e) => e.status == 'pending').toList();
+        break;
+      case 1:
+        baseItems = _items.where((e) {
+          final s = e.status;
+          return s == 'approved' || s == 'in_transit' || s == 'received';
+        }).toList();
+        break;
+      case 2:
+        baseItems = _items.where((e) {
+          final s = e.status;
+          return s == 'processed' || s == 'rejected';
+        }).toList();
+        break;
+    }
+    
+    if (subFilterKey == 'all') return baseItems.length;
+    return baseItems.where((e) => e.status == subFilterKey).length;
   }
 
   // ── Load danh sách pending ────────────────────────────────────────
@@ -122,41 +189,76 @@ class _AdminDonationsTabState extends State<AdminDonationsTab> {
     }
   }
 
-  // ── Approve ───────────────────────────────────────────────────────
-  Future<void> _approve(int donationId) async {
+  // ── Generic status update ─────────────────────────────────────────
+  Future<void> _updateStatus(int donationId, String newStatus) async {
     try {
-      // PHP đọc json_decode(file_get_contents('php://input'))
-      // → phải gửi JSON body (contentType: json)
       await _dio.post(
-        ApiConstants.adminApproveDonation,
-        data: {'donation_id': donationId},
+        ApiConstants.adminUpdateDonationStatus,
+        data: {'donation_id': donationId, 'status': newStatus},
         options: Options(contentType: Headers.jsonContentType),
       );
       if (!mounted) return;
-      _showSnack('✅ Đã tiếp nhận sách vào kho thành công!', false);
+      _showSnack('✅ Cập nhật thành công!', false);
       _load();
     } on DioException catch (e) {
-      _showSnack(NetworkErrorHandler.getFriendlyMessage(e), true);
-    } catch (e) {
-      _showSnack(NetworkErrorHandler.getFriendlyMessage(e), true);
+      _showSnack(e.response?.data?['error'] ??
+          NetworkErrorHandler.getFriendlyMessage(e), true);
     }
   }
 
-  // ── Reject ────────────────────────────────────────────────────────
-  Future<void> _reject(int donationId) async {
-    try {
-      await _dio.post(
-        ApiConstants.adminRejectDonation,
-        data: {'donation_id': donationId},
-        options: Options(contentType: Headers.jsonContentType),
-      );
-      if (!mounted) return;
-      _showSnack('Đã từ chối yêu cầu quyên góp.', false);
-      _load();
-    } on DioException catch (e) {
-      _showSnack(NetworkErrorHandler.getFriendlyMessage(e), true);
-    } catch (e) {
-      _showSnack(NetworkErrorHandler.getFriendlyMessage(e), true);
+  Widget _buildDonationActions(AdminDonation d) {
+    switch (d.status) {
+      case 'pending':
+        return Row(children: [
+          Expanded(child: _DonBtn(
+            label: 'Duyệt', icon: Icons.check, color: Colors.green,
+            onTap: () => _confirmAction('Chấp nhận yêu cầu quyên góp "${d.bookTitle}"?',
+                () => _updateStatus(d.id, 'approved')),
+          )),
+          const SizedBox(width: 8),
+          Expanded(child: _DonBtn(
+            label: 'Từ chối', icon: Icons.close, color: Colors.red,
+            onTap: () => _confirmAction('Từ chối yêu cầu này?',
+                () => _updateStatus(d.id, 'rejected')),
+          )),
+        ]);
+      case 'approved':
+      case 'in_transit':
+        return Row(children: [
+          Expanded(child: _DonBtn(
+            label: 'Đã nhận sách', icon: Icons.inventory_2_outlined, color: Colors.teal,
+            onTap: () => _confirmAction('Đã nhận được sách từ người dùng?',
+                () => _updateStatus(d.id, 'received')),
+          )),
+          const SizedBox(width: 8),
+          Expanded(child: _DonBtn(
+            label: 'Hủy/Không nhận', icon: Icons.close, color: Colors.red,
+            onTap: () => _confirmAction('Hủy quyên góp vì không nhận được sách?',
+                () => _updateStatus(d.id, 'rejected')),
+          )),
+        ]);
+      case 'received':
+        return Row(children: [
+          Expanded(child: _DonBtn(
+            label: 'Nhập kho', icon: Icons.library_add_outlined, color: Colors.indigo,
+            onTap: () => _confirmAction('Đã kiểm tra và đưa sách vào kho thư viện?',
+                () => _updateStatus(d.id, 'processed')),
+          )),
+          const SizedBox(width: 8),
+          Expanded(child: _DonBtn(
+            label: 'Hư hỏng', icon: Icons.broken_image_outlined, color: Colors.orange,
+            onTap: () => _confirmAction('Sách bị hư hỏng, không thể nhập kho?',
+                () => _updateStatus(d.id, 'rejected')),
+          )),
+        ]);
+      case 'processed':
+        return const Text('✅ Đã nhập kho thành công',
+            style: TextStyle(fontSize: 12, color: Colors.green, fontWeight: FontWeight.w600));
+      case 'rejected':
+        return const Text('❌ Đã từ chối',
+            style: TextStyle(fontSize: 12, color: Colors.red, fontWeight: FontWeight.w600));
+      default:
+        return const SizedBox.shrink();
     }
   }
 
@@ -177,43 +279,222 @@ class _AdminDonationsTabState extends State<AdminDonationsTab> {
     return Column(
       children: [
         _buildTitleBar(),
+        _buildTabBar(),
+        _buildFilterChips(),
         Expanded(child: _buildBody()),
       ],
     );
   }
 
-  Widget _buildTitleBar() {
+  List<AdminDonation> get _filtered {
+    final tabIndex = _tabController.index;
+    
+    // First, filter by chronological group
+    List<AdminDonation> tabItems = [];
+    switch (tabIndex) {
+      case 0: // Chờ xử lý
+        tabItems = _items.where((e) => e.status == 'pending').toList();
+        break;
+      case 1: // Tiếp nhận
+        tabItems = _items.where((e) {
+          final s = e.status;
+          return s == 'approved' || s == 'in_transit' || s == 'received';
+        }).toList();
+        break;
+      case 2: // Lịch sử
+        tabItems = _items.where((e) {
+          final s = e.status;
+          return s == 'processed' || s == 'rejected';
+        }).toList();
+        break;
+    }
+
+    // Second, apply sub-filter within the tab group
+    if (_subFilter == 'all') return tabItems;
+    return tabItems.where((e) => e.status == _subFilter).toList();
+  }
+
+  Widget _buildTabBar() {
+    final pendingCount = _items.where((e) => e.status == 'pending').length;
+    final transitCount = _items.where((e) {
+      final s = e.status;
+      return s == 'approved' || s == 'in_transit' || s == 'received';
+    }).length;
+    final historyCount = _items.where((e) {
+      final s = e.status;
+      return s == 'processed' || s == 'rejected';
+    }).length;
+
     return Container(
-      color: Colors.white,
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-      child: Row(
-        children: [
-          const Icon(Icons.volunteer_activism,
-              color: Color(0xFF1565C0), size: 22),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+      color: context.card,
+      child: TabBar(
+        controller: _tabController,
+        labelColor: context.colors.primary,
+        unselectedLabelColor: context.textSecondary,
+        indicatorColor: context.colors.primary,
+        indicatorSize: TabBarIndicatorSize.tab,
+        dividerColor: context.divider,
+        indicatorWeight: 3,
+        labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+        unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.normal, fontSize: 13),
+        tabs: [
+          Tab(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Text('Duyệt Quyên Góp Sách',
-                    style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                        color: Colors.black87)),
-                Text(
-                  _items.isEmpty && !_loading
-                      ? 'Không có yêu cầu nào chờ duyệt'
-                      : 'Có ${_items.length} yêu cầu chờ xác nhận nhập kho',
-                  style: const TextStyle(fontSize: 11, color: Colors.grey),
-                ),
+                const Text('Chờ xử lý'),
+                if (pendingCount > 0) ...[
+                  const SizedBox(width: 4),
+                  _buildTabBadge(pendingCount, Colors.orange),
+                ],
               ],
             ),
           ),
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _load,
-            tooltip: 'Tải lại',
+          Tab(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Text('Tiếp nhận'),
+                if (transitCount > 0) ...[
+                  const SizedBox(width: 4),
+                  _buildTabBadge(transitCount, Colors.indigo),
+                ],
+              ],
+            ),
           ),
+          Tab(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Text('Lịch sử'),
+                if (historyCount > 0) ...[
+                  const SizedBox(width: 4),
+                  _buildTabBadge(historyCount, Colors.green),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTabBadge(int count, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: color.withValues(alpha: 0.4), width: 0.5),
+      ),
+      child: Text(
+        '$count',
+        style: TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.bold,
+          color: color,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFilterChips() {
+    final subFilters = _getSubFiltersForTab(_tabController.index);
+    if (subFilters.isEmpty) return const SizedBox.shrink();
+
+    return Container(
+      color: context.background,
+      height: 54,
+      child: ListView.separated(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        scrollDirection: Axis.horizontal,
+        itemCount: subFilters.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        itemBuilder: (context, index) {
+          final filter = subFilters[index];
+          final isSelected = _subFilter == filter.$1;
+          final count = _getCountForSubFilter(_tabController.index, filter.$1);
+          final themeColor = filter.$3;
+
+          return FilterChip(
+            selected: isSelected,
+            label: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  filter.$2,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                    color: isSelected ? Colors.white : context.textPrimary,
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                  decoration: BoxDecoration(
+                    color: isSelected 
+                        ? Colors.white.withValues(alpha: 0.25)
+                        : themeColor.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    '$count',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      color: isSelected ? Colors.white : themeColor,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: context.card,
+            selectedColor: themeColor,
+            checkmarkColor: Colors.white,
+            showCheckmark: false,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+              side: BorderSide(
+                color: isSelected 
+                    ? themeColor
+                    : context.divider.withValues(alpha: 0.5),
+                width: 0.8,
+              ),
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            onSelected: (selected) {
+              if (selected) {
+                setState(() {
+                  _subFilter = filter.$1;
+                });
+              }
+            },
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildTitleBar() {
+    final pending = _items.where((d) => d.status == 'pending').length;
+    return Container(
+      color: context.card,
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+      child: Row(
+        children: [
+          Icon(Icons.volunteer_activism, color: context.colors.primary, size: 22),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              const Text('Quản lý Quyên Góp Sách',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              Text('Tổng ${_items.length} đơn quyên góp — $pending chờ duyệt',
+                  style: TextStyle(fontSize: 11, color: context.textSecondary)),
+            ]),
+          ),
+          IconButton(icon: Icon(Icons.refresh, color: context.textPrimary), onPressed: _load),
         ],
       ),
     );
@@ -244,7 +525,7 @@ class _AdminDonationsTabState extends State<AdminDonationsTab> {
                 icon: const Icon(Icons.refresh),
                 label: const Text('Thử lại'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF1565C0),
+                  backgroundColor: context.colors.primary,
                   padding: const EdgeInsets.symmetric(
                       horizontal: 24, vertical: 12),
                 ),
@@ -260,23 +541,36 @@ class _AdminDonationsTabState extends State<AdminDonationsTab> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.check_circle_outline,
+            Icon(Icons.volunteer_activism_outlined,
                 color: Colors.green[400], size: 64),
             const SizedBox(height: 12),
-            const Text(
-              'Không có yêu cầu chờ duyệt',
-              style: TextStyle(fontSize: 15, color: Colors.grey),
-            ),
-            const SizedBox(height: 6),
-            const Text(
-              'Tất cả quyên góp đã được xử lý!',
-              style: TextStyle(fontSize: 12, color: Colors.grey),
+            Text(
+              'Không có yêu cầu quyên góp nào',
+              style: TextStyle(fontSize: 15, color: context.textSecondary),
             ),
             const SizedBox(height: 20),
             TextButton.icon(
               onPressed: _load,
-              icon: const Icon(Icons.refresh, size: 16),
-              label: const Text('Làm mới'),
+              icon: Icon(Icons.refresh, size: 16, color: context.colors.primary),
+              label: Text('Làm mới', style: TextStyle(color: context.colors.primary)),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final filteredList = _filtered;
+    if (filteredList.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.inbox_outlined,
+                color: context.textSecondary.withValues(alpha: 0.5), size: 56),
+            const SizedBox(height: 12),
+            Text(
+              'Không có dữ liệu trong mục này',
+              style: TextStyle(fontSize: 14, color: context.textSecondary),
             ),
           ],
         ),
@@ -287,9 +581,9 @@ class _AdminDonationsTabState extends State<AdminDonationsTab> {
       onRefresh: _load,
       child: ListView.separated(
         padding: const EdgeInsets.fromLTRB(12, 12, 12, kBottomNavigationBarHeight + 12),
-        itemCount: _items.length,
+        itemCount: filteredList.length,
         separatorBuilder: (_, a) => const SizedBox(height: 10),
-        itemBuilder: (_, i) => _buildCard(_items[i]),
+        itemBuilder: (_, i) => _buildCard(filteredList[i]),
       ),
     );
   }
@@ -297,14 +591,15 @@ class _AdminDonationsTabState extends State<AdminDonationsTab> {
   Widget _buildCard(AdminDonation d) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.card,
         borderRadius: BorderRadius.circular(14),
-        boxShadow: [
+        boxShadow: context.isDarkMode ? null : [
           BoxShadow(
               color: Colors.black.withAlpha(10),
               blurRadius: 6,
               offset: const Offset(0, 2))
         ],
+        border: context.isDarkMode ? Border.all(color: context.divider, width: 0.5) : null,
       ),
       padding: const EdgeInsets.all(14),
       child: Column(
@@ -313,10 +608,10 @@ class _AdminDonationsTabState extends State<AdminDonationsTab> {
           // ── Người gửi ─────────────────────────────────────
           Row(
             children: [
-              const CircleAvatar(
+              CircleAvatar(
                 radius: 16,
-                backgroundColor: Color(0xFFE3F2FD),
-                child: Icon(Icons.person, size: 18, color: Color(0xFF1565C0)),
+                backgroundColor: context.colors.primary.withValues(alpha: 0.1),
+                child: Icon(Icons.person, size: 18, color: context.colors.primary),
               ),
               const SizedBox(width: 8),
               Expanded(
@@ -324,40 +619,27 @@ class _AdminDonationsTabState extends State<AdminDonationsTab> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(d.senderName,
-                        style: const TextStyle(
-                            fontWeight: FontWeight.bold, fontSize: 13)),
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 13, color: context.textPrimary)),
                     Text(d.senderEmail,
                         style:
-                            const TextStyle(fontSize: 11, color: Colors.grey)),
+                            TextStyle(fontSize: 11, color: context.textSecondary)),
                   ],
                 ),
               ),
-              // Badge hình thức
-              if (d.donationType.isNotEmpty)
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: Colors.blue[50],
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.blue[200]!),
-                  ),
-                  child: Text(d.donationType,
-                      style: TextStyle(
-                          fontSize: 10, color: Colors.blue[800])),
-                ),
+              _DonationStatusBadge(status: d.status),
             ],
           ),
 
-          const Divider(height: 16, thickness: 0.5),
+          Divider(height: 16, thickness: 0.5, color: context.divider),
 
           // ── Thông tin sách ────────────────────────────────
           Text(
             d.bookTitle.isNotEmpty ? d.bookTitle : '(Chưa có tiêu đề)',
-            style: const TextStyle(
+            style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.bold,
-                color: Color(0xFF1565C0)),
+                color: context.colors.primary),
           ),
           const SizedBox(height: 4),
           _infoRow(
@@ -372,62 +654,21 @@ class _AdminDonationsTabState extends State<AdminDonationsTab> {
           const SizedBox(height: 4),
           Row(
             children: [
-              const Icon(Icons.schedule, size: 12, color: Colors.grey),
+              Icon(Icons.schedule, size: 12, color: context.textSecondary),
               const SizedBox(width: 4),
               Text(
                 'Gửi lúc: ${d.createdAt.isNotEmpty ? d.createdAt.substring(0, d.createdAt.length > 16 ? 16 : d.createdAt.length) : "---"}',
                 style:
-                    const TextStyle(fontSize: 11, color: Colors.grey),
+                    TextStyle(fontSize: 11, color: context.textSecondary),
               ),
             ],
           ),
 
           const SizedBox(height: 12),
 
-          // ── Nút hành động ─────────────────────────────────
-          Row(
-            children: [
-              Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: () => _confirmAction(
-                    'Tiếp nhận sách "${d.bookTitle}" vào kho?',
-                    () => _approve(d.id),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green[600],
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10)),
-                    padding: const EdgeInsets.symmetric(vertical: 10),
-                    elevation: 0,
-                  ),
-                  icon: const Icon(Icons.check, size: 16, color: Colors.white),
-                  label: const Text('Tiếp nhận',
-                      style:
-                          TextStyle(color: Colors.white, fontSize: 13)),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: () => _confirmAction(
-                    'Từ chối yêu cầu quyên góp này?',
-                    () => _reject(d.id),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red[600],
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10)),
-                    padding: const EdgeInsets.symmetric(vertical: 10),
-                    elevation: 0,
-                  ),
-                  icon: const Icon(Icons.close, size: 16, color: Colors.white),
-                  label: const Text('Từ chối',
-                      style:
-                          TextStyle(color: Colors.white, fontSize: 13)),
-                ),
-              ),
-            ],
-          ),
+          // ── Nút hành động (dynamic theo trạng thái) ────────────────
+          _buildDonationActions(d),
+
         ],
       ),
     );
@@ -440,15 +681,15 @@ class _AdminDonationsTabState extends State<AdminDonationsTab> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(label,
-              style: const TextStyle(
+              style: TextStyle(
                   fontSize: 12,
-                  color: Colors.grey,
+                  color: context.textSecondary,
                   fontWeight: FontWeight.w500)),
           const SizedBox(width: 4),
           Expanded(
             child: Text(value,
                 style:
-                    const TextStyle(fontSize: 12, color: Colors.black87)),
+                    TextStyle(fontSize: 12, color: context.textPrimary)),
           ),
         ],
       ),
@@ -466,5 +707,71 @@ class _AdminDonationsTabState extends State<AdminDonationsTab> {
       ),
     );
     if (ok == true) onConfirm();
+  }
+}
+
+// ── Sub-widgets ────────────────────────────────────────────────────────────────
+
+class _DonationStatusBadge extends StatelessWidget {
+  final String status;
+  const _DonationStatusBadge({required this.status});
+
+  @override
+  Widget build(BuildContext context) {
+    final (label, color) = _resolve();
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withValues(alpha: 0.4)),
+      ),
+      child: Text(label,
+          style: TextStyle(fontSize: 10, color: color, fontWeight: FontWeight.w700)),
+    );
+  }
+
+  (String, Color) _resolve() {
+    switch (status) {
+      case 'pending':    return ('Chờ duyệt', Colors.orange);
+      case 'approved':   return ('Đã duyệt', Colors.indigo);
+      case 'in_transit': return ('Đang vận chuyển', Colors.blue);
+      case 'received':   return ('Đã nhận', Colors.teal);
+      case 'processed':  return ('Đã nhập kho', Colors.green);
+      case 'rejected':   return ('Từ chối', Colors.red);
+      default:           return (status, Colors.grey);
+    }
+  }
+}
+
+class _DonBtn extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final Color color;
+  final VoidCallback onTap;
+
+  const _DonBtn({
+    required this.label,
+    required this.icon,
+    required this.color,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 36,
+      child: ElevatedButton.icon(
+        onPressed: onTap,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: color,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          elevation: 0,
+        ),
+        icon: Icon(icon, size: 14, color: Colors.white),
+        label: Text(label, style: const TextStyle(fontSize: 12, color: Colors.white)),
+      ),
+    );
   }
 }

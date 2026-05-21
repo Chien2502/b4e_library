@@ -50,6 +50,7 @@ class BookProvider with ChangeNotifier {
       }
     }
     if (changed) {
+      _cache.updateBookStatusInCache(bookId, isAvail);
       notifyListeners();
     }
   }

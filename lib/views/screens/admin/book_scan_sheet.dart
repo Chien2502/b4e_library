@@ -4,6 +4,7 @@ import 'package:image_picker/image_picker.dart';
 import '../../../core/services/barcode_service.dart';
 import '../../../core/services/book_ai_service.dart';
 import '../../../core/utils/snackbar_utils.dart';
+import '../../../core/theme/theme_extensions.dart';
 
 /// Bottom sheet để chọn phương thức nhập thông tin sách tự động.
 ///
@@ -65,9 +66,11 @@ class _BookScanSheetState extends State<BookScanSheet> {
         maxWidth: 600,    // Giới hạn chiều ngang 600px để file siêu nhẹ (< 100KB)
       );
     } catch (e) {
-      SnackBarUtils.showError(context, source == ImageSource.camera
-          ? 'Không thể mở camera: $e'
-          : 'Không thể mở thư viện ảnh: $e');
+      if (mounted) {
+        SnackBarUtils.showError(context, source == ImageSource.camera
+            ? 'Không thể mở camera: $e'
+            : 'Không thể mở thư viện ảnh: $e');
+      }
       return;
     }
 
@@ -107,9 +110,9 @@ class _BookScanSheetState extends State<BookScanSheet> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      decoration: BoxDecoration(
+        color: context.colors.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
       padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
       child: Column(
@@ -120,19 +123,19 @@ class _BookScanSheetState extends State<BookScanSheet> {
             width: 40,
             height: 4,
             decoration: BoxDecoration(
-              color: Colors.grey[300],
+              color: context.divider,
               borderRadius: BorderRadius.circular(2),
             ),
           ),
           const SizedBox(height: 20),
-          const Text('Thêm sách nhanh',
+          Text('Thêm sách nhanh',
               style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
-                  color: Colors.black87)),
+                  color: context.textPrimary)),
           const SizedBox(height: 6),
           Text('Chọn phương thức điền thông tin sách',
-              style: TextStyle(fontSize: 13, color: Colors.grey[600])),
+              style: TextStyle(fontSize: 13, color: context.textSecondary)),
           const SizedBox(height: 24),
 
           // Option 1: Barcode
@@ -170,7 +173,7 @@ class _BookScanSheetState extends State<BookScanSheet> {
           // Option 4: Manual
           _Option(
             icon: Icons.edit_outlined,
-            color: Colors.grey[600]!,
+            color: context.textSecondary,
             title: 'Nhập tay',
             subtitle: 'Điền thủ công thông tin sách vào form',
             onTap: () {
@@ -199,12 +202,12 @@ class _LoadingDialog extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const CircularProgressIndicator(color: Color(0xFF1E88E5)),
+            CircularProgressIndicator(color: context.colors.primary),
             const SizedBox(height: 18),
             Text(
               message,
               textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 14, color: Colors.black87),
+              style: TextStyle(fontSize: 14, color: context.textPrimary),
             ),
           ],
         ),
@@ -238,9 +241,9 @@ class _Option extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          border: Border.all(color: Colors.grey[200]!),
+          border: Border.all(color: context.divider),
           borderRadius: BorderRadius.circular(14),
-          color: Colors.grey[50],
+          color: context.background,
         ),
         child: Row(
           children: [
@@ -259,17 +262,17 @@ class _Option extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(title,
-                      style: const TextStyle(
+                      style: TextStyle(
                           fontWeight: FontWeight.w600,
                           fontSize: 14,
-                          color: Colors.black87)),
+                          color: context.textPrimary)),
                   const SizedBox(height: 3),
                   Text(subtitle,
-                      style: TextStyle(fontSize: 12, color: Colors.grey[500])),
+                      style: TextStyle(fontSize: 12, color: context.textSecondary)),
                 ],
               ),
             ),
-            Icon(Icons.chevron_right, color: Colors.grey[400], size: 20),
+            Icon(Icons.chevron_right, color: context.divider, size: 20),
           ],
         ),
       ),

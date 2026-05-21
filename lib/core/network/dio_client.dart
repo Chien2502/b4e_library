@@ -86,10 +86,10 @@ class DioClient {
             // Nếu không có refresh token hoặc làm mới thất bại -> Đăng xuất
             final context = navigatorKey.currentContext;
             if (context != null) {
-              // Gọi hàm logout
+              // context từ navigatorKey — không phải widget context bị capture
+              // ignore: use_build_context_synchronously
               Provider.of<AuthProvider>(context, listen: false).logout();
-              
-              // Hiển thị thông báo (ẩn các thông báo cũ để tránh spam)
+              // ignore: use_build_context_synchronously
               SnackBarUtils.showError(context, 'Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại.');
             }
           }

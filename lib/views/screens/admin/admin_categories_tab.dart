@@ -5,6 +5,7 @@ import '../../../core/network/dio_client.dart';
 import '../../../core/network/network_error_handler.dart';
 import '../../widgets/custom_dialog.dart';
 import '../../../core/utils/snackbar_utils.dart';
+import '../../../core/theme/theme_extensions.dart';
 
 
 class AdminCategoriesTab extends StatefulWidget {
@@ -75,9 +76,9 @@ class _AdminCategoriesTabState extends State<AdminCategoriesTab> {
         title: 'Xóa thể loại',
         message: 'Bạn có chắc muốn xóa thể loại "$name"? Hành động này có thể ảnh hưởng đến các sách thuộc thể loại này.',
         icon: Icons.delete_outline_rounded,
-        iconColor: Colors.red,
+        iconColor: context.colors.error,
         confirmLabel: 'Xóa',
-        confirmColor: Colors.red,
+        confirmColor: context.colors.error,
         onConfirm: () => Navigator.pop(ctx, true),
       ),
     );
@@ -110,15 +111,21 @@ class _AdminCategoriesTabState extends State<AdminCategoriesTab> {
         content: TextField(
           controller: ctrl,
           autofocus: true,
+          style: TextStyle(color: context.textPrimary),
           decoration: InputDecoration(
             hintText: 'Tên thể loại...',
+            hintStyle: TextStyle(color: context.textSecondary),
             filled: true,
-            fillColor: Colors.grey[100],
+            fillColor: context.background,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(14),
-              borderSide: BorderSide.none,
+              borderSide: BorderSide(color: context.divider, width: 0.5),
             ),
-            prefixIcon: const Icon(Icons.category_rounded, color: Color(0xFF1565C0)),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: BorderSide(color: context.divider, width: 0.5),
+            ),
+            prefixIcon: Icon(Icons.category_rounded, color: context.colors.primary),
           ),
         ),
       ),
@@ -142,15 +149,21 @@ class _AdminCategoriesTabState extends State<AdminCategoriesTab> {
         content: TextField(
           controller: ctrl,
           autofocus: true,
+          style: TextStyle(color: context.textPrimary),
           decoration: InputDecoration(
             hintText: 'Tên mới...',
+            hintStyle: TextStyle(color: context.textSecondary),
             filled: true,
-            fillColor: Colors.grey[100],
+            fillColor: context.background,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(14),
-              borderSide: BorderSide.none,
+              borderSide: BorderSide(color: context.divider, width: 0.5),
             ),
-            prefixIcon: const Icon(Icons.category_rounded, color: Color(0xFF1565C0)),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: BorderSide(color: context.divider, width: 0.5),
+            ),
+            prefixIcon: Icon(Icons.category_rounded, color: context.colors.primary),
           ),
         ),
       ),
@@ -178,20 +191,20 @@ class _AdminCategoriesTabState extends State<AdminCategoriesTab> {
 
   Widget _buildTitleBar() {
     return Container(
-      color: Colors.white,
+      color: context.card,
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
       child: Row(
         children: [
-          const Icon(Icons.category, color: Color(0xFF1565C0), size: 22),
+          Icon(Icons.category, color: context.colors.primary, size: 22),
           const SizedBox(width: 8),
-          const Expanded(
+          Expanded(
             child: Text('Quản lý Thể loại sách',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: context.textPrimary)),
           ),
           ElevatedButton.icon(
             onPressed: _showAddDialog,
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF1E88E5),
+              backgroundColor: context.colors.primary,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               elevation: 0,
@@ -200,7 +213,10 @@ class _AdminCategoriesTabState extends State<AdminCategoriesTab> {
             label: const Text('Thêm', style: TextStyle(color: Colors.white, fontSize: 12)),
           ),
           const SizedBox(width: 4),
-          IconButton(icon: const Icon(Icons.refresh, size: 20), onPressed: _load),
+          IconButton(
+            icon: Icon(Icons.refresh, size: 20, color: context.textPrimary),
+            onPressed: _load,
+          ),
         ],
       ),
     );
@@ -210,16 +226,16 @@ class _AdminCategoriesTabState extends State<AdminCategoriesTab> {
     if (_loading) return const Center(child: CircularProgressIndicator());
     if (_error != null) {
       return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-      const Icon(Icons.error_outline, color: Colors.red, size: 48),
+      Icon(Icons.error_outline, color: context.colors.error, size: 48),
       const SizedBox(height: 12),
-      Text(_error!, style: const TextStyle(color: Colors.red)),
+      Text(_error!, style: TextStyle(color: context.colors.error)),
       const SizedBox(height: 16),
       ElevatedButton.icon(onPressed: _load, icon: const Icon(Icons.refresh), label: const Text('Thử lại')),
     ]));
     }
     if (_items.isEmpty) {
-      return const Center(
-        child: Text('Chưa có thể loại nào.', style: TextStyle(color: Colors.grey)));
+      return Center(
+        child: Text('Chưa có thể loại nào.', style: TextStyle(color: context.textSecondary)));
     }
 
     return RefreshIndicator(
@@ -234,28 +250,29 @@ class _AdminCategoriesTabState extends State<AdminCategoriesTab> {
           return Container(
             margin: const EdgeInsets.only(bottom: 8),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: context.card,
               borderRadius: BorderRadius.circular(12),
-              boxShadow: [
+              boxShadow: context.isDarkMode ? null : [
                 BoxShadow(
                     color: Colors.black.withAlpha(8),
                     blurRadius: 5,
                     offset: const Offset(0, 2))
               ],
+              border: context.isDarkMode ? Border.all(color: context.divider, width: 0.5) : null,
             ),
             child: ListTile(
               leading: CircleAvatar(
                 radius: 16,
-                backgroundColor: const Color(0xFFE3F2FD),
+                backgroundColor: context.colors.primary.withValues(alpha: 0.1),
                 child: Text('#$id',
-                    style: const TextStyle(
+                    style: TextStyle(
                         fontSize: 10,
-                        color: Color(0xFF1565C0),
+                        color: context.colors.primary,
                         fontWeight: FontWeight.bold)),
               ),
               title: Text(name,
-                  style: const TextStyle(
-                      fontWeight: FontWeight.w600, fontSize: 14)),
+                  style: TextStyle(
+                      fontWeight: FontWeight.w600, fontSize: 14, color: context.textPrimary)),
               trailing: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -264,12 +281,12 @@ class _AdminCategoriesTabState extends State<AdminCategoriesTab> {
                     width: 34,
                     height: 34,
                     decoration: BoxDecoration(
-                      color: const Color(0xFF1565C0).withAlpha(15),
+                      color: context.colors.primary.withAlpha(15),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: IconButton(
-                      icon: const Icon(Icons.edit_outlined,
-                          size: 16, color: Color(0xFF1565C0)),
+                      icon: Icon(Icons.edit_outlined,
+                          size: 16, color: context.colors.primary),
                       onPressed: () => _showEditDialog(cat),
                       padding: EdgeInsets.zero,
                       tooltip: 'Chỉnh sửa',
@@ -281,12 +298,12 @@ class _AdminCategoriesTabState extends State<AdminCategoriesTab> {
                     width: 34,
                     height: 34,
                     decoration: BoxDecoration(
-                      color: Colors.red.withAlpha(15),
+                      color: context.colors.error.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: IconButton(
                       icon: Icon(Icons.delete_outline,
-                          size: 16, color: Colors.red[600]),
+                          size: 16, color: context.colors.error),
                       onPressed: () => _deleteCategory(id, name),
                       padding: EdgeInsets.zero,
                       tooltip: 'Xóa',

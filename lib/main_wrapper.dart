@@ -81,25 +81,35 @@ class _MainWrapperState extends State<MainWrapper>
   Future<void> _runAllInit() async {
     try {
       debugPrint('[Splash] Step 1: Loading .env and checking connectivity...');
-      await dotenv.load(fileName: ".env");
+      // Load .env với timeout 3s để tránh kẹt nếu file không tồn tại hoặc lỗi đọc file
+      try {
+        await dotenv.load(fileName: ".env").timeout(const Duration(seconds: 3));
+      } catch (e) {
+        debugPrint('[Splash] .env load error or timeout: $e');
+      }
 
       // Kiểm tra mạng TRƯỚC TIÊN — kết quả này quyết định các bước sau
-      final bool isOnline = await ConnectivityService().checkStatus();
+      // Thêm timeout cho checkStatus để tránh kẹt ở tầng plugin native
+      bool isOnline = true;
+      try {
+        isOnline = await ConnectivityService().checkStatus().timeout(const Duration(seconds: 3));
+      } catch (e) {
+        debugPrint('[Splash] Connectivity check timeout, assuming online: $e');
+      }
+      
       ConnectivityService().initialize(); // bắt đầu lắng nghe thay đổi mạng
       debugPrint('[Splash] Connectivity: ${isOnline ? "ONLINE" : "OFFLINE"}');
 
       // Bước 1: Firebase & SQLite
-      // Khi offline, Firebase.initializeApp() vẫn OK (dùng config local)
-      // Tách thành Future<void> để timeout không conflict với return type
       debugPrint('[Splash] Step 1: Starting Firebase and SQLite init...');
       Future<void> firebaseInit() async {
         try {
           await Firebase.initializeApp(
                   options: DefaultFirebaseOptions.currentPlatform)
-              .timeout(const Duration(seconds: 5));
+              .timeout(const Duration(seconds: 8));
           debugPrint('[Splash] Firebase initialized');
-        } on TimeoutException {
-          debugPrint('[Splash] Firebase init timeout — continuing anyway');
+        } catch (e) {
+          debugPrint('[Splash] Firebase init error or timeout: $e — continuing anyway');
         }
       }
 
@@ -107,11 +117,13 @@ class _MainWrapperState extends State<MainWrapper>
         firebaseInit(),
         DatabaseService.instance
             .init()
-            .then((_) => debugPrint('[Splash] Database initialized')),
+            .timeout(const Duration(seconds: 5))
+            .then((_) => debugPrint('[Splash] Database initialized'))
+            .catchError((e) => debugPrint('[Splash] Database init error: $e')),
       ]);
       debugPrint('[Splash] Step 1 completed.');
 
-      // FCM chỉ khởi động khi online (FCM cần internet để đăng ký token)
+      // FCM chỉ khởi động khi online
       if (isOnline) {
         PushNotificationService().init().catchError((e) {
           debugPrint('[FCM] Init error: $e');
@@ -119,14 +131,13 @@ class _MainWrapperState extends State<MainWrapper>
       }
 
       debugPrint('[Splash] Step 2: Auth check and seeder...');
-      // Lấy auth trước await để tránh BuildContext-across-async-gap warning
       if (!mounted) return;
       final auth = Provider.of<AuthProvider>(context, listen: false);
       await Future.wait([
         // Auth: đọc token → load cache → chỉ gọi server nếu online
-        auth.checkAuthStatus().then((_) => debugPrint('[Splash] Auth check completed')),
+        auth.checkAuthStatus().timeout(const Duration(seconds: 10)).then((_) => debugPrint('[Splash] Auth check completed')),
         // Seed dữ liệu tĩnh (chỉ đọc từ assets → luôn ok kể cả offline)
-        StaticContentSeeder.seed().then((_) => debugPrint('[Splash] StaticContentSeeder completed')),
+        StaticContentSeeder.seed().timeout(const Duration(seconds: 5)).then((_) => debugPrint('[Splash] StaticContentSeeder completed')),
       ]);
       debugPrint('[Splash] Step 2 completed.');
 
@@ -141,7 +152,9 @@ class _MainWrapperState extends State<MainWrapper>
     } finally {
       if (mounted) {
         debugPrint('[Splash] Setting _initDone = true');
-        _initDone = true;
+        setState(() {
+          _initDone = true;
+        });
         _tryTransition();
       }
     }
@@ -155,8 +168,8 @@ class _MainWrapperState extends State<MainWrapper>
       debugPrint('[Splash] Transitioning to MainLayout...');
       setState(() {
         _transitioning = true;
-        _transitionDone = true;
       });
+      _transitionCtrl.forward();
     }
   }
 

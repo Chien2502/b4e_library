@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/theme/theme_extensions.dart';
 
 class CustomDialog extends StatelessWidget {
   final String title;
@@ -35,14 +36,20 @@ class CustomDialog extends StatelessWidget {
   }
 
   Widget _content(BuildContext context) {
+    final effectiveIconColor = iconColor ?? context.colors.primary;
+    final effectiveConfirmColor = confirmColor ?? context.colors.primary;
+
     return Container(
       padding: const EdgeInsets.fromLTRB(24, 28, 24, 24),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.colors.surface,
         borderRadius: BorderRadius.circular(28),
+        border: context.isDarkMode
+            ? Border.all(color: context.divider, width: 0.8)
+            : null,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
+            color: Colors.black.withValues(alpha: context.isDarkMode ? 0.4 : 0.1),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -55,23 +62,23 @@ class CustomDialog extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: (iconColor ?? const Color(0xFF1565C0)).withValues(alpha: 0.1),
+                color: effectiveIconColor.withValues(alpha: 0.12),
                 shape: BoxShape.circle,
               ),
               child: Icon(
                 icon,
                 size: 32,
-                color: iconColor ?? const Color(0xFF1565C0),
+                color: effectiveIconColor,
               ),
             ),
             const SizedBox(height: 20),
           ],
           Text(
             title,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
-              color: Color(0xFF263238),
+              color: context.textPrimary,
             ),
             textAlign: TextAlign.center,
           ),
@@ -80,7 +87,7 @@ class CustomDialog extends StatelessWidget {
             message,
             style: TextStyle(
               fontSize: 15,
-              color: Colors.grey[600],
+              color: context.textSecondary,
               height: 1.5,
             ),
             textAlign: TextAlign.center,
@@ -102,8 +109,8 @@ class CustomDialog extends StatelessWidget {
                   ),
                   child: Text(
                     cancelLabel,
-                    style: const TextStyle(
-                      color: Colors.grey,
+                    style: TextStyle(
+                      color: context.textSecondary,
                       fontWeight: FontWeight.w600,
                       fontSize: 16,
                     ),
@@ -115,7 +122,7 @@ class CustomDialog extends StatelessWidget {
                 child: ElevatedButton(
                   onPressed: onConfirm,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: confirmColor ?? const Color(0xFF1565C0),
+                    backgroundColor: effectiveConfirmColor,
                     foregroundColor: Colors.white,
                     elevation: 0,
                     padding: const EdgeInsets.symmetric(vertical: 14),

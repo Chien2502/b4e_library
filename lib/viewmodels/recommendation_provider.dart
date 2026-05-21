@@ -42,7 +42,10 @@ class RecommendationProvider with ChangeNotifier {
         }
       }
     }
-    if (changed) notifyListeners();
+    if (changed) {
+      _cache.updateBookStatusInCache(bookId, isAvail);
+      notifyListeners();
+    }
   }
 
   @override

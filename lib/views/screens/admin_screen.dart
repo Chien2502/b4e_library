@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../core/theme/theme_extensions.dart';
 import '../../viewmodels/auth_provider.dart';
 import 'admin/admin_dashboard_tab.dart';
 import 'admin/admin_books_tab.dart';
@@ -7,6 +8,7 @@ import 'admin/admin_categories_tab.dart';
 import 'admin/admin_borrowings_tab.dart';
 import 'admin/admin_donations_tab.dart';
 import 'admin/admin_users_tab.dart';
+import 'admin/admin_chat_tab.dart';
 import '../widgets/custom_dialog.dart';
 import '../widgets/liquid_nav_bar.dart';
 
@@ -55,6 +57,11 @@ class _AdminScreenState extends State<AdminScreen> {
       activeIcon: Icons.people,
       label: 'Người dùng',
     ),
+    LiquidNavItem(
+      icon: Icons.chat_outlined,
+      activeIcon: Icons.chat,
+      label: 'Chat',
+    ),
   ];
 
   Widget _getTab(int index) {
@@ -76,8 +83,10 @@ class _AdminScreenState extends State<AdminScreen> {
         case 4:
           return const AdminBorrowingsTab();
         case 5:
-        default:
           return const AdminUsersTab();
+        case 6:
+        default:
+          return const AdminChatTab();
       }
     });
   }
@@ -96,7 +105,7 @@ class _AdminScreenState extends State<AdminScreen> {
     final username = user?.username ?? 'Admin';
 
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: context.theme.scaffoldBackgroundColor,
       appBar: AppBar(
         backgroundColor: const Color(0xFF1565C0),
         elevation: 0,
@@ -151,7 +160,7 @@ class _AdminScreenState extends State<AdminScreen> {
 
       // ── Body: Lazy Offstage stack (giống main_layout) ──────────────
       body: Stack(
-        children: List.generate(6, (i) {
+        children: List.generate(7, (i) {
           return Offstage(
             offstage: _currentIndex != i,
             child: _visitedTabs.contains(i)
@@ -237,16 +246,16 @@ class _AdminScreenState extends State<AdminScreen> {
                   leading: Icon(
                     selected ? item.activeIcon : item.icon,
                     color: selected
-                        ? const Color(0xFF1565C0)
-                        : Colors.grey[600],
+                        ? context.colors.primary
+                        : context.colors.onSurfaceVariant,
                     size: 22,
                   ),
                   title: Text(
                     item.label,
                     style: TextStyle(
                       color: selected
-                          ? const Color(0xFF1565C0)
-                          : Colors.grey[800],
+                          ? context.colors.primary
+                          : context.colors.onSurface,
                       fontWeight:
                           selected ? FontWeight.bold : FontWeight.normal,
                       fontSize: 14,
@@ -254,7 +263,7 @@ class _AdminScreenState extends State<AdminScreen> {
                   ),
                   selected: selected,
                   selectedTileColor:
-                      const Color(0xFF1565C0).withAlpha(15),
+                      context.colors.primary.withValues(alpha: 0.1),
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8)),
                   horizontalTitleGap: 8,

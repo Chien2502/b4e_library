@@ -1,7 +1,7 @@
 /// Model cho 1 bản ghi quyên góp — từ /api/users/donations.php
-/// SELECT * FROM donations WHERE user_id = ?
-/// Fields: id, user_id, book_title, book_author, book_publisher,
-///         book_year, book_condition, donation_type, status, created_at
+///
+/// status mới đầy đủ:
+///   pending → approved → in_transit → received → processed | rejected
 class DonationRecord {
   final int id;
   final String bookTitle;
@@ -10,10 +10,11 @@ class DonationRecord {
   final String bookYear;
   final String bookCondition;
   final String donationType;
-  final String status;     // 'pending' | 'approved' | 'rejected'
+  final String pickupType;  // 'self_deliver' | 'user_ship'
+  final String status;
   final String createdAt;
 
-  DonationRecord({
+  const DonationRecord({
     required this.id,
     required this.bookTitle,
     required this.bookAuthor,
@@ -21,17 +22,24 @@ class DonationRecord {
     required this.bookYear,
     required this.bookCondition,
     required this.donationType,
+    this.pickupType = 'self_deliver',
     required this.status,
     required this.createdAt,
   });
 
-  // ── Label hiển thị trạng thái (giống web) ─────────────────────
+  // ── Label trạng thái ───────────────────────────────────────────
   String get statusLabel {
     switch (status) {
       case 'pending':
         return 'Chờ duyệt';
       case 'approved':
         return 'Đã tiếp nhận';
+      case 'in_transit':
+        return 'Đang vận chuyển';
+      case 'received':
+        return 'Đã nhận sách';
+      case 'processed':
+        return 'Đã xử lý';
       case 'rejected':
         return 'Từ chối';
       default:
@@ -39,7 +47,19 @@ class DonationRecord {
     }
   }
 
-  // ── Label hình thức (raw từ DB → tiếng Việt) ──────────────────
+  // ── Label hình thức gửi sách ───────────────────────────────────
+  String get pickupTypeLabel {
+    switch (pickupType) {
+      case 'self_deliver':
+        return 'Mang trực tiếp';
+      case 'user_ship':
+        return 'Gửi qua bưu điện';
+      default:
+        return donationType;
+    }
+  }
+
+  // ── Label hình thức quyên góp (legacy) ────────────────────────
   String get donationTypeLabel {
     switch (donationType) {
       case 'direct':
@@ -49,7 +69,6 @@ class DonationRecord {
       case 'delivery':
         return 'Chuyển phát';
       default:
-        // Fallback nếu DB lưu dạng khác (vd: directDelivery)
         return donationType;
     }
   }
@@ -63,9 +82,9 @@ class DonationRecord {
       bookYear: json['book_year']?.toString() ?? '',
       bookCondition: json['book_condition']?.toString() ?? '',
       donationType: json['donation_type']?.toString() ?? '',
+      pickupType: json['pickup_type']?.toString() ?? 'self_deliver',
       status: json['status']?.toString() ?? 'pending',
       createdAt: json['created_at']?.toString() ?? '',
     );
   }
 }
-

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/theme/theme_extensions.dart';
 
 class PrivacyPolicyScreen extends StatelessWidget {
   const PrivacyPolicyScreen({super.key});
@@ -9,19 +10,19 @@ class PrivacyPolicyScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: context.background,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: context.card,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new,
-              color: Colors.black87, size: 20),
+          icon: Icon(Icons.arrow_back_ios_new,
+              color: context.textPrimary, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
+        title: Text(
           'Chính sách bảo mật',
           style: TextStyle(
-              color: Colors.black87,
+              color: context.textPrimary,
               fontWeight: FontWeight.bold,
               fontSize: 18),
         ),
@@ -38,85 +39,91 @@ class PrivacyPolicyScreen extends StatelessWidget {
             const SizedBox(height: 16),
 
             // ── Mục lục ─────────────────────────────────────
-            _buildTableOfContents(),
+            _buildTableOfContents(context),
             const SizedBox(height: 20),
 
             // ── Các điều khoản ──────────────────────────────
-            _buildSection('1. Thông tin chúng tôi thu thập', [
+            _buildSection(context, '1. Thông tin chúng tôi thu thập', [
               _buildParagraph(
+                context,
                 'Khi bạn đăng ký và sử dụng ứng dụng B4E, chúng tôi thu thập các thông tin sau:',
               ),
-              _buildBullet(heading: 'Thông tin đăng ký:', text: 'Tên người dùng (username), địa chỉ email, số điện thoại và địa chỉ nhà.'),
-              _buildBullet(heading: 'Thông tin hoạt động:', text: 'Lịch sử mượn sách, lịch sử quyên góp sách, và thời gian tương tác với hệ thống.'),
-              _buildBullet(heading: 'Thông tin kỹ thuật:', text: 'Phiên bản ứng dụng, hệ điều hành thiết bị, và thông tin kết nối nhằm đảm bảo tính ổn định của hệ thống.'),
+              _buildBullet(context, heading: 'Thông tin đăng ký:', text: 'Tên người dùng (username), địa chỉ email, số điện thoại và địa chỉ nhà.'),
+              _buildBullet(context, heading: 'Thông tin hoạt động:', text: 'Lịch sử mượn sách, lịch sử quyên góp sách, và thời gian tương tác với hệ thống.'),
+              _buildBullet(context, heading: 'Thông tin kỹ thuật:', text: 'Phiên bản ứng dụng, hệ điều hành thiết bị, và thông tin kết nối nhằm đảm bảo tính ổn định của hệ thống.'),
             ]),
 
-            _buildSection('2. Mục đích sử dụng thông tin', [
-              _buildParagraph('Các thông tin thu thập được sử dụng cho các mục đích sau:'),
-              _buildBullet(text: 'Xử lý yêu cầu mượn sách và theo dõi tiến trình trả sách.'),
-              _buildBullet(text: 'Ghi nhận và xét duyệt các đơn quyên góp sách.'),
-              _buildBullet(text: 'Liên hệ với bạn khi cần thiết (xác nhận mượn, nhắc nhở trả sách,...).'),
-              _buildBullet(text: 'Cải thiện trải nghiệm người dùng và phát triển các tính năng mới.'),
-              _buildBullet(text: 'Thống kê tổng hợp phục vụ báo cáo hoạt động thư viện (ẩn danh, không định danh cá nhân).'),
+            _buildSection(context, '2. Mục đích sử dụng thông tin', [
+              _buildParagraph(context, 'Các thông tin thu thập được sử dụng cho các mục đích sau:'),
+              _buildBullet(context, text: 'Xử lý yêu cầu mượn sách và theo dõi tiến trình trả sách.'),
+              _buildBullet(context, text: 'Ghi nhận và xét duyệt các đơn quyên góp sách.'),
+              _buildBullet(context, text: 'Liên hệ với bạn khi cần thiết (xác nhận mượn, nhắc nhở trả sách,...).'),
+              _buildBullet(context, text: 'Cải thiện trải nghiệm người dùng và phát triển các tính năng mới.'),
+              _buildBullet(context, text: 'Thống kê tổng hợp phục vụ báo cáo hoạt động thư viện (ẩn danh, không định danh cá nhân).'),
             ]),
 
-            _buildSection('3. Chia sẻ thông tin với bên thứ ba', [
+            _buildSection(context, '3. Chia sẻ thông tin với bên thứ ba', [
               _buildParagraph(
+                context,
                 'B4E cam kết KHÔNG bán, trao đổi hoặc chuyển giao thông tin cá nhân của bạn '
                 'cho bất kỳ bên thứ ba nào vì mục đích thương mại.',
               ),
               _buildParagraph(
+                context,
                 'Thông tin chỉ được chia sẻ trong các trường hợp đặc biệt sau:',
               ),
-              _buildBullet(text: 'Khi có yêu cầu hợp pháp từ cơ quan nhà nước có thẩm quyền.'),
-              _buildBullet(text: 'Khi cần thiết để bảo vệ quyền lợi hợp pháp của tổ chức hoặc người dùng khác.'),
+              _buildBullet(context, text: 'Khi có yêu cầu hợp pháp từ cơ quan nhà nước có thẩm quyền.'),
+              _buildBullet(context, text: 'Khi cần thiết để bảo vệ quyền lợi hợp pháp của tổ chức hoặc người dùng khác.'),
             ]),
 
-            _buildSection('4. Bảo mật thông tin', [
+            _buildSection(context, '4. Bảo mật thông tin', [
               _buildParagraph(
+                context,
                 'Chúng tôi áp dụng các biện pháp kỹ thuật và tổ chức phù hợp để bảo vệ thông tin cá nhân của bạn:',
               ),
-              _buildBullet(text: 'Mật khẩu được mã hóa bằng thuật toán băm an toàn, không ai có thể đọc lại được.'),
-              _buildBullet(text: 'Token xác thực (JWT) có thời hạn hiệu lực và được lưu trữ an toàn trên thiết bị.'),
-              _buildBullet(text: 'Giao tiếp giữa ứng dụng và máy chủ được thực hiện qua kết nối bảo mật (HTTPS).'),
-              _buildBullet(text: 'Hệ thống cơ sở dữ liệu được kiểm soát truy cập nghiêm ngặt, chỉ những người có thẩm quyền mới được phép truy cập.'),
+              _buildBullet(context, text: 'Mật khẩu được mã hóa bằng thuật toán băm an toàn, không ai có thể đọc lại được.'),
+              _buildBullet(context, text: 'Token xác thực (JWT) có thời hạn hiệu lực và được lưu trữ an toàn trên thiết bị.'),
+              _buildBullet(context, text: 'Giao tiếp giữa ứng dụng và máy chủ được thực hiện qua kết nối bảo mật (HTTPS).'),
+              _buildBullet(context, text: 'Hệ thống cơ sở dữ liệu được kiểm soát truy cập nghiêm ngặt, chỉ những người có thẩm quyền mới được phép truy cập.'),
             ]),
 
-            _buildSection('5. Quyền của người dùng', [
-              _buildParagraph('Bạn có đầy đủ các quyền sau đối với thông tin cá nhân của mình:'),
-              _buildBullet(heading: 'Quyền truy cập:', text: 'Xem và kiểm tra thông tin cá nhân thông qua màn hình "Hồ sơ".'),
-              _buildBullet(heading: 'Quyền chỉnh sửa:', text: 'Cập nhật tên, số điện thoại và địa chỉ bất kỳ lúc nào.'),
-              _buildBullet(heading: 'Quyền xóa tài khoản:', text: 'Yêu cầu xóa tài khoản và toàn bộ dữ liệu liên quan bằng cách liên hệ qua email hotroB4E@gmail.com.'),
-              _buildBullet(heading: 'Quyền phản đối:', text: 'Từ chối nhận email thông báo không cần thiết.'),
+            _buildSection(context, '5. Quyền của người dùng', [
+              _buildParagraph(context, 'Bạn có đầy đủ các quyền sau đối với thông tin cá nhân của mình:'),
+              _buildBullet(context, heading: 'Quyền truy cập:', text: 'Xem và kiểm tra thông tin cá nhân thông qua màn hình "Hồ sơ".'),
+              _buildBullet(context, heading: 'Quyền chỉnh sửa:', text: 'Cập nhật tên, số điện thoại và địa chỉ bất kỳ lúc nào.'),
+              _buildBullet(context, heading: 'Quyền xóa tài khoản:', text: 'Yêu cầu xóa tài khoản và toàn bộ dữ liệu liên quan bằng cách liên hệ qua email hotroB4E@gmail.com.'),
+              _buildBullet(context, heading: 'Quyền phản đối:', text: 'Từ chối nhận email thông báo không cần thiết.'),
             ]),
 
-            _buildSection('6. Lưu trữ dữ liệu', [
+            _buildSection(context, '6. Lưu trữ dữ liệu', [
               _buildParagraph(
+                context,
                 'Dữ liệu của bạn được lưu trữ trên máy chủ đặt tại Việt Nam. '
                 'Thông tin cá nhân sẽ được lưu giữ trong suốt thời gian tài khoản còn hoạt động. '
-                'Sau khi tài khoản bị xóa, dữ liệu sẽ được ẩn danh hóa và giữ lại tối đa 30 ngày '
+                'After sau khi tài khoản bị xóa, dữ liệu sẽ được ẩn danh hóa và giữ lại tối đa 30 ngày '
                 'trước khi xóa hoàn toàn khỏi hệ thống.',
               ),
             ]),
 
-            _buildSection('7. Sử dụng Cookie & Token', [
+            _buildSection(context, '7. Sử dụng Cookie & Token', [
               _buildParagraph(
+                context,
                 'Ứng dụng B4E sử dụng JSON Web Token (JWT) thay cho cookie để xác thực người dùng. '
                 'Token này được lưu trữ an toàn trong bộ nhớ bảo mật của thiết bị (Secure Storage), '
                 'không thể bị truy cập bởi các ứng dụng khác.',
               ),
             ]),
 
-            _buildSection('8. Liên hệ về chính sách bảo mật', [
-              _buildParagraph('Nếu bạn có thắc mắc hoặc yêu cầu liên quan đến chính sách bảo mật, vui lòng liên hệ:'),
-              _buildContactInfo(Icons.email_outlined, 'hotroB4E@gmail.com'),
-              _buildContactInfo(Icons.phone_outlined, '0989 676 555'),
-              _buildContactInfo(Icons.location_on_outlined,
+            _buildSection(context, '8. Liên hệ về chính sách bảo mật', [
+              _buildParagraph(context, 'Nếu bạn có thắc mắc hoặc yêu cầu liên quan đến chính sách bảo mật, vui lòng liên hệ:'),
+              _buildContactInfo(context, Icons.email_outlined, 'hotroB4E@gmail.com'),
+              _buildContactInfo(context, Icons.phone_outlined, '0989 676 555'),
+              _buildContactInfo(context, Icons.location_on_outlined,
                   '470 Trần Đại Nghĩa, Ngũ Hành Sơn, Đà Nẵng'),
             ]),
 
             // ── Ghi chú cuối ─────────────────────────────────
-            _buildFooterNote(),
+            _buildFooterNote(context),
             const SizedBox(height: 24),
           ],
         ),
@@ -177,7 +184,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildTableOfContents() {
+  Widget _buildTableOfContents(BuildContext context) {
     final items = [
       'Thông tin chúng tôi thu thập',
       'Mục đích sử dụng thông tin',
@@ -192,33 +199,33 @@ class PrivacyPolicyScreen extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.card,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey[200]!),
+        border: Border.all(color: context.divider),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Mục lục',
+          Text('Mục lục',
               style: TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 14,
-                  color: Colors.black87)),
+                  color: context.textPrimary)),
           const SizedBox(height: 10),
           ...items.asMap().entries.map((e) => Padding(
                 padding: const EdgeInsets.only(bottom: 6),
                 child: Row(
                   children: [
                     Text('${e.key + 1}. ',
-                        style: const TextStyle(
+                        style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
-                            color: Color(0xFF1E88E5))),
+                            color: context.colors.primary)),
                     Expanded(
                         child: Text(e.value,
                             style: TextStyle(
                                 fontSize: 13,
-                                color: Colors.grey[700]))),
+                                color: context.textSecondary))),
                   ],
                 ),
               )),
@@ -227,16 +234,18 @@ class PrivacyPolicyScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildSection(String title, List<Widget> content) {
+  Widget _buildSection(BuildContext context, String title, List<Widget> content) {
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.card,
         borderRadius: BorderRadius.circular(14),
         boxShadow: [
           BoxShadow(
-              color: Colors.black.withValues(alpha: 0.03),
+              color: context.isDarkMode
+                  ? Colors.transparent
+                  : Colors.black.withValues(alpha: 0.03),
               blurRadius: 6,
               offset: const Offset(0, 2))
         ],
@@ -245,35 +254,35 @@ class PrivacyPolicyScreen extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(title,
-              style: const TextStyle(
+              style: TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 14,
-                  color: Color(0xFF1565C0))),
-          const Divider(height: 16, color: Color(0xFFF0F0F0)),
+                  color: context.colors.primary)),
+          Divider(height: 16, color: context.divider),
           ...content,
         ],
       ),
     );
   }
 
-  Widget _buildParagraph(String text) {
+  Widget _buildParagraph(BuildContext context, String text) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Text(text,
           style: TextStyle(
-              fontSize: 13.5, color: Colors.grey[700], height: 1.6)),
+              fontSize: 13.5, color: context.textSecondary, height: 1.6)),
     );
   }
 
-  Widget _buildBullet({String? heading, required String text}) {
+  Widget _buildBullet(BuildContext context, {String? heading, required String text}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 7),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('•  ',
+          Text('•  ',
               style: TextStyle(
-                  color: Colors.blueAccent,
+                  color: context.colors.primary,
                   fontSize: 14,
                   fontWeight: FontWeight.bold)),
           Expanded(
@@ -281,14 +290,13 @@ class PrivacyPolicyScreen extends StatelessWidget {
               text: TextSpan(
                 style: TextStyle(
                     fontSize: 13.5,
-                    color: Colors.grey[700],
+                    color: context.textSecondary,
                     height: 1.5),
                 children: [
                   if (heading != null)
                     TextSpan(
                       text: '$heading ',
-                      style:
-                          const TextStyle(fontWeight: FontWeight.bold),
+                      style: TextStyle(fontWeight: FontWeight.bold, color: context.textPrimary),
                     ),
                   TextSpan(text: text),
                 ],
@@ -300,31 +308,32 @@ class PrivacyPolicyScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildContactInfo(IconData icon, String text) {
+  Widget _buildContactInfo(BuildContext context, IconData icon, String text) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Row(
         children: [
-          Icon(icon, size: 16, color: Colors.blueAccent),
+          Icon(icon, size: 16, color: context.colors.primary),
           const SizedBox(width: 8),
           Expanded(
               child: Text(text,
-                  style: TextStyle(fontSize: 13, color: Colors.grey[700]))),
+                  style: TextStyle(fontSize: 13, color: context.textSecondary))),
         ],
       ),
     );
   }
 
-  Widget _buildFooterNote() {
+  Widget _buildFooterNote(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.grey[100],
+        color: context.card,
         borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: context.divider),
       ),
       child: Row(
         children: [
-          const Icon(Icons.info_outline, size: 18, color: Colors.grey),
+          Icon(Icons.info_outline, size: 18, color: context.textSecondary),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
@@ -332,7 +341,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
               'B4E có quyền cập nhật chính sách này và sẽ thông báo cho người dùng '
               'qua email hoặc thông báo trong ứng dụng.',
               style: TextStyle(
-                  fontSize: 11.5, color: Colors.grey[600], height: 1.5),
+                  fontSize: 11.5, color: context.textSecondary, height: 1.5),
             ),
           ),
         ],

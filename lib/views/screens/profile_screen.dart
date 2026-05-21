@@ -6,10 +6,14 @@ import '../../viewmodels/auth_provider.dart';
 import 'about_screen.dart';
 import 'admin_screen.dart';
 import 'borrowing_guide_screen.dart';
+import 'chat_screen.dart';
 import 'support_screen.dart';
 import 'privacy_policy_screen.dart';
 import '../widgets/custom_dialog.dart';
+import '../widgets/theme_picker_dialog.dart';
 import '../../core/utils/snackbar_utils.dart';
+import '../../core/theme/theme_extensions.dart';
+import '../../viewmodels/theme_provider.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -83,9 +87,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
       context: context,
       backgroundColor: Colors.transparent,
       builder: (ctx) => Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        decoration: BoxDecoration(
+          color: context.theme.cardColor,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
         ),
         padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
         child: Column(
@@ -167,9 +171,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          border: Border.all(color: Colors.grey[200]!),
+          border: Border.all(color: context.divider),
           borderRadius: BorderRadius.circular(14),
-          color: Colors.grey[50],
+          color: context.isDarkMode ? context.colors.surfaceContainerHighest.withValues(alpha: 0.3) : Colors.grey[50],
         ),
         child: Row(
           children: [
@@ -187,10 +191,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(title,
-                      style: const TextStyle(
+                      style: TextStyle(
                           fontWeight: FontWeight.w600,
                           fontSize: 14,
-                          color: Colors.black87)),
+                          color: context.textPrimary)),
                   const SizedBox(height: 3),
                   Text(subtitle,
                       style: TextStyle(fontSize: 12, color: Colors.grey[500])),
@@ -472,7 +476,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.card,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
@@ -495,12 +499,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   size: 20,
                 ),
                 const SizedBox(width: 8),
-                const Text(
+                Text(
                   'Thông tin cá nhân',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 15,
-                    color: Colors.black87,
+                    color: context.textPrimary,
                   ),
                 ),
                 const Spacer(),
@@ -534,7 +538,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
           ),
 
-          const Divider(height: 1, color: Color(0xFFF0F0F0)),
+          Divider(height: 1, color: context.divider),
 
           // Nội dung: chế độ xem hoặc edit
           _isEditing ? _buildEditForm() : _buildViewMode(user),
@@ -591,9 +595,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
               Expanded(
                 child: Text(
                   value,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 13,
-                    color: Colors.black87,
+                    color: context.colors.onSurface,
                     fontWeight: FontWeight.w500,
                   ),
                   overflow: TextOverflow.ellipsis,
@@ -602,7 +606,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ],
           ),
         ),
-        if (!isLast) const Divider(height: 1, color: Color(0xFFF5F5F5)),
+        if (!isLast) Divider(height: 1, color: context.divider.withValues(alpha: 0.5)),
       ],
     );
   }
@@ -687,38 +691,39 @@ class _ProfileScreenState extends State<ProfileScreen> {
     int maxLines = 1,
     String? Function(String?)? validator,
   }) {
+    final borderColor = context.isDarkMode ? context.divider : Colors.grey[300]!;
     return TextFormField(
       controller: controller,
       keyboardType: keyboardType,
       maxLines: maxLines,
       validator: validator,
+      style: TextStyle(fontSize: 14, color: context.textPrimary),
       decoration: InputDecoration(
         labelText: label,
-        prefixIcon: Icon(icon, size: 18, color: Colors.grey[500]),
+        prefixIcon: Icon(icon, size: 18, color: context.textSecondary),
         filled: true,
-        fillColor: Colors.grey[50],
+        fillColor: context.isDarkMode ? context.card : Colors.grey[50],
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 14,
           vertical: 12,
         ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide(color: Colors.grey[300]!),
+          borderSide: BorderSide(color: borderColor),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide(color: Colors.grey[300]!),
+          borderSide: BorderSide(color: borderColor),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: Color(0xFF1E88E5), width: 1.5),
+          borderSide: BorderSide(color: context.colors.primary, width: 1.5),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: Colors.red),
+          borderSide: BorderSide(color: context.colors.error),
         ),
       ),
-      style: const TextStyle(fontSize: 14),
     );
   }
 
@@ -726,6 +731,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   // WIDGET 4: Quick Menu (Về chúng tôi, Cài đặt,...)
   // ════════════════════════════════════════════════════════════════
   Widget _buildQuickMenu(BuildContext context) {
+    final isAdmin = context.read<AuthProvider>().userProfile?.isAdmin ?? false;
     final items = [
       {
         'icon': Icons.menu_book_outlined,
@@ -747,6 +753,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
           MaterialPageRoute(builder: (_) => const AboutScreen()),
         ),
       },
+      // Ẩn "Chat với hệ thống" nếu user là admin (admin quản lý chat từ màn hình riêng)
+      if (!isAdmin)
+        {
+          'icon': Icons.chat_bubble_outline,
+          'title': 'Chat với hệ thống',
+          'subtitle': 'Hỏi đáp, hỗ trợ mượn trả sách',
+          'color': const Color(0xFF1565C0),
+          'onTap': () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const ChatScreen()),
+          ),
+        },
       {
         'icon': Icons.help_outline,
         'title': 'Hỗ trợ & Góp ý',
@@ -767,14 +785,31 @@ class _ProfileScreenState extends State<ProfileScreen> {
           MaterialPageRoute(builder: (_) => const PrivacyPolicyScreen()),
         ),
       },
+      {
+        'icon': Icons.palette_outlined,
+        'title': 'Giao diện',
+        'subtitle': context.watch<ThemeProvider>().isDarkMode 
+            ? 'Chế độ tối' 
+            : context.watch<ThemeProvider>().isSystemMode 
+                ? 'Theo hệ thống' 
+                : 'Chế độ sáng',
+        'color': Colors.purple,
+        'onTap': () => showDialog(
+          context: context,
+          builder: (_) => const ThemePickerDialog(),
+        ),
+      },
     ];
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.card,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [
+        border: context.isDarkMode
+            ? Border.all(color: context.divider, width: 0.5)
+            : null,
+        boxShadow: context.isDarkMode ? [] : [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
@@ -826,25 +861,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             children: [
                               Text(
                                 item['title'] as String,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w500,
-                                  color: Colors.black87,
+                                  color: context.textPrimary,
                                 ),
                               ),
                               Text(
                                 item['subtitle'] as String,
                                 style: TextStyle(
                                   fontSize: 11,
-                                  color: Colors.grey[500],
+                                  color: context.textSecondary,
                                 ),
                               ),
                             ],
                           ),
                         ),
-                        const Icon(
+                        Icon(
                           Icons.chevron_right,
-                          color: Colors.grey,
+                          color: context.textSecondary,
                           size: 20,
                         ),
                       ],
@@ -853,7 +888,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
               ),
               if (i < items.length - 1)
-                const Divider(height: 1, indent: 64, color: Color(0xFFF0F0F0)),
+                Divider(height: 1, indent: 64, color: context.divider),
             ],
           );
         }),

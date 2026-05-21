@@ -17,6 +17,7 @@ class ApiConstants {
   static const String createBorrowing = '/borrowings/create.php';
   static const String userBorrowings = '/users/borrowings.php';
   static const String userReturn = '/users/return.php';
+  static const String userConfirmAction = '/users/confirm_action.php';
   static const String userRenewBorrowing = '/borrowings/renew.php';
   static const String createDonation = '/donations/create.php';
   static const String userDonations = '/users/donations.php';
@@ -26,6 +27,7 @@ class ApiConstants {
   static const String updateProfile = '/auth/update_profile.php';
   static const String uploadAvatar  = '/auth/upload_avatar.php';
   static const String refreshToken  = '/auth/refresh.php';
+  static const String saveFcmToken  = '/auth/save_fcm_token.php';
 
   // ========== NOTIFICATIONS ==========
   static const String getNotifications     = '/notifications/index.php';
@@ -40,6 +42,12 @@ class ApiConstants {
   static const String adminUpdateBorrowStatus  = '/borrowings/update_status.php';
   static const String adminUpdateDonationStatus = '/donations/update_status.php';
 
+  // ========== DELIVERY & PAYMENT ==========
+  static const String calculateShipping = '/borrowings/calculate_shipping.php';
+  static const String getVietQR         = '/borrowings/get_vietqr.php';
+  static const String confirmPayment    = '/borrowings/confirm_payment.php';
+
+
   // ========== ADMIN ENDPOINTS ==========
   static const String adminStats = '/admin/get_stats.php';
   static const String adminUsers = '/admin/users.php';
@@ -52,6 +60,10 @@ class ApiConstants {
   static const String adminDonations = '/admin/donations.php';
   static const String adminApproveDonation = '/admin/approve_donation.php';
   static const String adminRejectDonation = '/admin/reject_donation.php';
+
+  // Alias tường minh dùng trong admin borrowings tab
+  static const String updateBorrowingStatus = '/borrowings/update_status.php';
+  static const String broadcastNotification = '/admin/send_broadcast.php';
 
   // ========== BOOK CRUD (Admin) ==========
   static const String createBook = '/books/create.php';
@@ -68,6 +80,13 @@ class ApiConstants {
   static const String isbnLookup    = '/books/lookup.php';
   /// Phân tích bìa sách bằng Gemini Vision (yêu cầu Auth Admin)
   static const String analyzeCover  = '/ai/analyze_cover.php';
+
+  // ========== CHAT (User ↔ Admin) ==========
+  static const String chatSend     = '/chat/send.php';
+  static const String chatMessages = '/chat/messages.php';
+  static const String chatThreads  = '/chat/threads.php';
+  static const String chatReply    = '/chat/reply.php';
+  static const String chatMarkRead = '/chat/mark_read.php';
 
   // ========== URL ẢNH ==========
   // URL file tĩnh (dùng cho mobile - không bị CORS)
