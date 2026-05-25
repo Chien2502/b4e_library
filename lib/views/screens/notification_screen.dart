@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../core/theme/theme_extensions.dart';
 import '../../data/models/notification_model.dart';
 import '../../viewmodels/notification_provider.dart';
 import '../widgets/staggered_list_item.dart';
@@ -41,21 +42,22 @@ class _NotificationScreenState extends State<NotificationScreen> {
     }
   }
 
-  // ── Màu theo type ─────────────────────────────────────────────────
-  Color _colorFor(String type) {
+  // ── Màu theo type thích ứng Dark Mode ─────────────────────────────
+  Color _colorFor(BuildContext context, String type) {
+    final isDark = context.isDarkMode;
     switch (type) {
       case 'borrow_approved':
       case 'donation_approved':
-        return Colors.green;
+        return isDark ? Colors.green[400]! : Colors.green[700]!;
       case 'borrow_rejected':
       case 'donation_rejected':
-        return Colors.red;
+        return isDark ? Colors.red[400]! : Colors.red[700]!;
       case 'return_overdue':
-        return Colors.deepOrange;
+        return isDark ? Colors.orangeAccent : Colors.deepOrange;
       case 'return_reminder':
-        return Colors.orange;
+        return isDark ? Colors.amber[400]! : Colors.orange[700]!;
       default:
-        return const Color(0xFF1565C0);
+        return isDark ? Colors.blue[400]! : const Color(0xFF1565C0);
     }
   }
 
@@ -77,21 +79,26 @@ class _NotificationScreenState extends State<NotificationScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = context.isDarkMode;
+
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: isDark ? context.background : Colors.grey[50],
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: isDark ? context.background : Colors.white,
         elevation: 0,
         centerTitle: true,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded,
-              color: Colors.black87, size: 20),
+          icon: Icon(
+            Icons.arrow_back_ios_new_rounded,
+            color: context.textPrimary,
+            size: 20,
+          ),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
+        title: Text(
           'Thông báo',
           style: TextStyle(
-            color: Colors.black87,
+            color: context.textPrimary,
             fontWeight: FontWeight.bold,
             fontSize: 18,
           ),
@@ -103,10 +110,10 @@ class _NotificationScreenState extends State<NotificationScreen> {
               if (!prov.hasUnread) return const SizedBox.shrink();
               return TextButton(
                 onPressed: prov.markAllAsRead,
-                child: const Text(
+                child: Text(
                   'Đọc tất cả',
                   style: TextStyle(
-                    color: Color(0xFF1565C0),
+                    color: isDark ? Colors.blueAccent : const Color(0xFF1565C0),
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
                   ),
@@ -121,8 +128,10 @@ class _NotificationScreenState extends State<NotificationScreen> {
         builder: (context, prov, child) {
           // Loading
           if (prov.isLoading) {
-            return const Center(
-              child: CircularProgressIndicator(color: Color(0xFF1565C0)),
+            return Center(
+              child: CircularProgressIndicator(
+                color: isDark ? Colors.blueAccent : const Color(0xFF1565C0),
+              ),
             );
           }
 
@@ -132,20 +141,26 @@ class _NotificationScreenState extends State<NotificationScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.wifi_off_rounded,
-                      size: 56, color: Colors.grey),
+                  Icon(
+                    Icons.wifi_off_rounded,
+                    size: 56,
+                    color: context.textSecondary,
+                  ),
                   const SizedBox(height: 12),
-                  Text(prov.errorMessage,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(color: Colors.grey)),
+                  Text(
+                    prov.errorMessage,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: context.textSecondary),
+                  ),
                   const SizedBox(height: 16),
                   ElevatedButton.icon(
                     onPressed: prov.fetchNotifications,
                     icon: const Icon(Icons.refresh_rounded),
                     label: const Text('Thử lại'),
                     style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF1565C0),
-                        foregroundColor: Colors.white),
+                      backgroundColor: isDark ? Colors.blueAccent : const Color(0xFF1565C0),
+                      foregroundColor: Colors.white,
+                    ),
                   ),
                 ],
               ),
@@ -158,12 +173,19 @@ class _NotificationScreenState extends State<NotificationScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.notifications_none_rounded,
-                      size: 72, color: Colors.grey[300]),
+                  Icon(
+                    Icons.notifications_none_rounded,
+                    size: 72,
+                    color: isDark ? Colors.grey[800] : Colors.grey[300],
+                  ),
                   const SizedBox(height: 16),
-                  Text('Chưa có thông báo nào',
-                      style: TextStyle(
-                          fontSize: 16, color: Colors.grey[500])),
+                  Text(
+                    'Chưa có thông báo nào',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: context.textSecondary,
+                    ),
+                  ),
                 ],
               ),
             );
@@ -172,12 +194,16 @@ class _NotificationScreenState extends State<NotificationScreen> {
           // Danh sách
           return RefreshIndicator(
             onRefresh: prov.fetchNotifications,
-            color: const Color(0xFF1565C0),
+            color: isDark ? Colors.blueAccent : const Color(0xFF1565C0),
             child: ListView.separated(
               padding: const EdgeInsets.symmetric(vertical: 8),
               itemCount: prov.notifications.length,
-              separatorBuilder: (context, index) =>
-                  const Divider(height: 1, indent: 72, endIndent: 16),
+              separatorBuilder: (context, index) => Divider(
+                height: 1,
+                indent: 72,
+                endIndent: 16,
+                color: context.divider,
+              ),
               itemBuilder: (_, i) => StaggeredListItem(
                 index: i,
                 child: _buildItem(prov.notifications[i], prov),
@@ -190,12 +216,15 @@ class _NotificationScreenState extends State<NotificationScreen> {
   }
 
   Widget _buildItem(AppNotification n, NotificationProvider prov) {
-    final color = _colorFor(n.type);
+    final color = _colorFor(context, n.type);
+    final isDark = context.isDarkMode;
 
     return InkWell(
       onTap: () => prov.markAsRead(n.id),
       child: Container(
-        color: n.isRead ? Colors.transparent : color.withAlpha(15),
+        color: n.isRead
+            ? Colors.transparent
+            : color.withAlpha(isDark ? 25 : 15),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -205,7 +234,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
               width: 44,
               height: 44,
               decoration: BoxDecoration(
-                color: color.withAlpha(25),
+                color: color.withAlpha(isDark ? 40 : 25),
                 shape: BoxShape.circle,
               ),
               child: Icon(_iconFor(n.type), color: color, size: 22),
@@ -227,7 +256,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
                                 ? FontWeight.normal
                                 : FontWeight.bold,
                             fontSize: 14,
-                            color: Colors.black87,
+                            color: context.textPrimary,
                           ),
                         ),
                       ),
@@ -248,7 +277,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
                     n.message,
                     style: TextStyle(
                       fontSize: 13,
-                      color: Colors.grey[600],
+                      color: context.textSecondary,
                       height: 1.4,
                     ),
                     maxLines: 3,
@@ -257,7 +286,10 @@ class _NotificationScreenState extends State<NotificationScreen> {
                   const SizedBox(height: 6),
                   Text(
                     _formatTime(n.createdAt),
-                    style: TextStyle(fontSize: 11, color: Colors.grey[400]),
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: isDark ? Colors.grey[500] : Colors.grey[400],
+                    ),
                   ),
                 ],
               ),

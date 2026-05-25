@@ -9,6 +9,7 @@ import 'admin/admin_borrowings_tab.dart';
 import 'admin/admin_donations_tab.dart';
 import 'admin/admin_users_tab.dart';
 import 'admin/admin_chat_tab.dart';
+import 'admin/admin_broadcast_screen.dart';
 import '../widgets/custom_dialog.dart';
 import '../widgets/liquid_nav_bar.dart';
 
@@ -172,9 +173,9 @@ class _AdminScreenState extends State<AdminScreen> {
 
       // ── Bottom nav: LiquidNavBar ───────────────────────────────────
       bottomNavigationBar: LiquidNavBar(
-        currentIndex: _currentIndex,
-        onTap: _onTabTapped,
-        items: _navItems,
+        currentIndex: [0, 1, 4, 6].indexOf(_currentIndex),
+        onTap: (index) => _onTabTapped([0, 1, 4, 6][index]),
+        items: [0, 1, 4, 6].map((i) => _navItems[i]).toList(),
       ),
     );
   }
@@ -284,6 +285,25 @@ class _AdminScreenState extends State<AdminScreen> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 const Divider(height: 1),
+                // Gửi thông báo hệ thống
+                ListTile(
+                  leading: const Icon(Icons.campaign_outlined,
+                      color: Color(0xFFE65100), size: 22),
+                  title: const Text('Thông báo hệ thống',
+                      style: TextStyle(
+                          fontSize: 14, color: Color(0xFFE65100))),
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const AdminBroadcastScreen(),
+                      ),
+                    );
+                  },
+                  contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16, vertical: 2),
+                ),
                 // Quay về trang chủ
                 ListTile(
                   leading: const Icon(Icons.home_outlined,
