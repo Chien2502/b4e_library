@@ -190,10 +190,11 @@ class _BorrowDeliveryBottomSheetState
         24,
         MediaQuery.of(context).viewInsets.bottom + 32,
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
           // ── Handle ────────────────────────────────────────────────
           Center(
             child: Container(
@@ -405,6 +406,7 @@ class _BorrowDeliveryBottomSheetState
             ),
           ),
         ],
+      ),
       ),
     );
   }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../../core/theme/theme_extensions.dart';
 
 class SupportScreen extends StatefulWidget {
   const SupportScreen({super.key});
@@ -56,20 +57,21 @@ class _SupportScreenState extends State<SupportScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = context.isDarkMode;
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: isDark ? context.background : Colors.grey[50],
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: isDark ? context.background : Colors.white,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new,
-              color: Colors.black87, size: 20),
+          icon: Icon(Icons.arrow_back_ios_new,
+              color: context.textPrimary, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
+        title: Text(
           'Hỗ trợ & Góp ý',
           style: TextStyle(
-              color: Colors.black87,
+              color: context.textPrimary,
               fontWeight: FontWeight.bold,
               fontSize: 18),
         ),
@@ -127,12 +129,12 @@ class _SupportScreenState extends State<SupportScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'Liên hệ trực tiếp',
           style: TextStyle(
               fontWeight: FontWeight.bold,
               fontSize: 16,
-              color: Colors.black87),
+              color: context.textPrimary),
         ),
         const SizedBox(height: 10),
         ...contacts.map((c) => _buildContactCard(
@@ -153,12 +155,13 @@ class _SupportScreenState extends State<SupportScreen> {
     required String value,
     required VoidCallback onTap,
   }) {
+    final isDark = context.isDarkMode;
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? context.card : Colors.white,
         borderRadius: BorderRadius.circular(12),
-        boxShadow: [
+        boxShadow: isDark ? [] : [
           BoxShadow(
               color: Colors.black.withValues(alpha: 0.04),
               blurRadius: 6,
@@ -191,18 +194,18 @@ class _SupportScreenState extends State<SupportScreen> {
                       Text(label,
                           style: TextStyle(
                               fontSize: 11,
-                              color: Colors.grey[500],
+                              color: context.textSecondary,
                               fontWeight: FontWeight.w500)),
                       const SizedBox(height: 2),
                       Text(value,
-                          style: const TextStyle(
+                          style: TextStyle(
                               fontSize: 14,
-                              color: Colors.black87,
+                              color: context.textPrimary,
                               fontWeight: FontWeight.w500)),
                     ],
                   ),
                 ),
-                Icon(Icons.chevron_right, color: Colors.grey[400], size: 18),
+                Icon(Icons.chevron_right, color: context.isDarkMode ? Colors.grey[700] : Colors.grey[400], size: 18),
               ],
             ),
           ),
@@ -213,12 +216,13 @@ class _SupportScreenState extends State<SupportScreen> {
 
   // ── Form góp ý / báo lỗi ─────────────────────────────────────
   Widget _buildFeedbackForm() {
+    final isDark = context.isDarkMode;
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? context.card : Colors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [
+        boxShadow: isDark ? [] : [
           BoxShadow(
               color: Colors.black.withValues(alpha: 0.04),
               blurRadius: 10,
@@ -230,14 +234,14 @@ class _SupportScreenState extends State<SupportScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Gửi góp ý & báo lỗi',
+            Text('Gửi góp ý & báo lỗi',
                 style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 16,
-                    color: Color(0xFF1565C0))),
+                    color: isDark ? Colors.blueAccent : const Color(0xFF1565C0))),
             const SizedBox(height: 4),
             Text('Phản hồi của bạn giúp chúng tôi cải thiện hệ thống tốt hơn.',
-                style: TextStyle(fontSize: 12, color: Colors.grey[500])),
+                style: TextStyle(fontSize: 12, color: context.textSecondary)),
             const SizedBox(height: 16),
 
             // Tên
@@ -280,7 +284,7 @@ class _SupportScreenState extends State<SupportScreen> {
                   : null,
               decoration: _fieldDecoration(
                   'Mô tả chi tiết vấn đề hoặc ý kiến của bạn...'),
-              style: const TextStyle(fontSize: 14),
+              style: TextStyle(fontSize: 14, color: context.textPrimary),
             ),
             const SizedBox(height: 20),
 
@@ -311,12 +315,13 @@ class _SupportScreenState extends State<SupportScreen> {
   }
 
   Widget _buildSuccessBanner() {
+    final isDark = context.isDarkMode;
     return Container(
       padding: const EdgeInsets.all(28),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? context.card : Colors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [
+        boxShadow: isDark ? [] : [
           BoxShadow(
               color: Colors.black.withValues(alpha: 0.04),
               blurRadius: 10,
@@ -329,22 +334,22 @@ class _SupportScreenState extends State<SupportScreen> {
             width: 72,
             height: 72,
             decoration: BoxDecoration(
-                color: Colors.green[50], shape: BoxShape.circle),
-            child: const Icon(Icons.check_circle,
-                color: Colors.green, size: 44),
+                color: isDark ? Colors.green.withValues(alpha: 0.1) : Colors.green[50], shape: BoxShape.circle),
+            child: Icon(Icons.check_circle,
+                color: isDark ? Colors.green[400] : Colors.green, size: 44),
           ),
           const SizedBox(height: 16),
-          const Text('Cảm ơn bạn đã phản hồi!',
+          Text('Cảm ơn bạn đã phản hồi!',
               style: TextStyle(
                   fontSize: 17,
                   fontWeight: FontWeight.bold,
-                  color: Colors.black87)),
+                  color: context.textPrimary)),
           const SizedBox(height: 8),
           Text(
             'Chúng tôi sẽ xem xét và phản hồi lại qua email của bạn trong vòng 1-2 ngày làm việc.',
             textAlign: TextAlign.center,
             style: TextStyle(
-                fontSize: 13, color: Colors.grey[600], height: 1.5),
+                fontSize: 13, color: context.textSecondary, height: 1.5),
           ),
           const SizedBox(height: 20),
           OutlinedButton(
@@ -372,26 +377,27 @@ class _SupportScreenState extends State<SupportScreen> {
 
   // ── Giờ hỗ trợ ────────────────────────────────────────────────
   Widget _buildSupportHours() {
+    final isDark = context.isDarkMode;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.blue[50],
+        color: isDark ? Colors.blue.withValues(alpha: 0.05) : Colors.blue[50],
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.blue[100]!),
+        border: Border.all(color: isDark ? Colors.blue.withValues(alpha: 0.1) : Colors.blue[100]!),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Row(
+          Row(
             children: [
               Icon(Icons.schedule_outlined,
-                  size: 18, color: Color(0xFF1565C0)),
-              SizedBox(width: 8),
+                  size: 18, color: isDark ? Colors.blueAccent : const Color(0xFF1565C0)),
+              const SizedBox(width: 8),
               Text('Giờ làm việc hỗ trợ',
                   style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 14,
-                      color: Color(0xFF1565C0))),
+                      color: isDark ? Colors.blueAccent : const Color(0xFF1565C0))),
             ],
           ),
           const SizedBox(height: 10),
@@ -399,12 +405,12 @@ class _SupportScreenState extends State<SupportScreen> {
           _buildHourRow('Thứ Bảy – Chủ Nhật', '8:00 – 17:00'),
           _buildHourRow('Ngày lễ', 'Tạm nghỉ', isRed: true),
           const SizedBox(height: 8),
-          const Divider(height: 1, color: Color(0xFFBBDEFB)),
+          Divider(height: 1, color: context.isDarkMode ? Colors.blue.withValues(alpha: 0.2) : const Color(0xFFBBDEFB)),
           const SizedBox(height: 8),
           Text(
             'Ngoài giờ làm việc, vui lòng gửi email hoặc để lại tin nhắn, chúng tôi sẽ phản hồi trong giờ làm việc hôm sau.',
             style: TextStyle(
-                fontSize: 12, color: Colors.blue[700], height: 1.5),
+                fontSize: 12, color: context.isDarkMode ? Colors.blue[200] : Colors.blue[700], height: 1.5),
           ),
         ],
       ),
@@ -412,6 +418,7 @@ class _SupportScreenState extends State<SupportScreen> {
   }
 
   Widget _buildHourRow(String day, String hour, {bool isRed = false}) {
+    final isDark = context.isDarkMode;
     return Padding(
       padding: const EdgeInsets.only(bottom: 4),
       child: Row(
@@ -419,14 +426,14 @@ class _SupportScreenState extends State<SupportScreen> {
           Expanded(
               child: Text(day,
                   style:
-                      TextStyle(fontSize: 13, color: Colors.grey[700]))),
+                      TextStyle(fontSize: 13, color: context.textPrimary))),
           Text(hour,
               style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
                   color: isRed
                       ? Colors.red[400]
-                      : const Color(0xFF1565C0))),
+                      : (isDark ? Colors.blueAccent : const Color(0xFF1565C0)))),
         ],
       ),
     );
@@ -439,10 +446,10 @@ class _SupportScreenState extends State<SupportScreen> {
       child: RichText(
         text: TextSpan(
           text: text,
-          style: const TextStyle(
+          style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w600,
-              color: Colors.black87),
+              color: context.textPrimary),
           children: required
               ? const [
                   TextSpan(
@@ -466,27 +473,28 @@ class _SupportScreenState extends State<SupportScreen> {
       keyboardType: keyboardType,
       validator: validator,
       decoration: _fieldDecoration(hint),
-      style: const TextStyle(fontSize: 14),
+      style: TextStyle(fontSize: 14, color: context.textPrimary),
     );
   }
 
   Widget _buildTopicDropdown() {
+    final isDark = context.isDarkMode;
     return Container(
       height: 44,
       padding: const EdgeInsets.symmetric(horizontal: 10),
       decoration: BoxDecoration(
-        color: Colors.grey[100],
+        color: isDark ? context.background : Colors.grey[100],
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey[300]!),
+        border: Border.all(color: isDark ? context.divider : Colors.grey[300]!),
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
           value: _selectedTopic,
           isExpanded: true,
-          dropdownColor: Colors.white,
+          dropdownColor: isDark ? context.card : Colors.white,
           borderRadius: BorderRadius.circular(12),
           icon: const Icon(Icons.keyboard_arrow_down, size: 18, color: Colors.blueAccent),
-          style: const TextStyle(fontSize: 13, color: Colors.black87, fontWeight: FontWeight.w500),
+          style: TextStyle(fontSize: 13, color: context.textPrimary, fontWeight: FontWeight.w500),
           items: _topics
               .map((t) => DropdownMenuItem(value: t, child: Text(t)))
               .toList(),
@@ -498,16 +506,17 @@ class _SupportScreenState extends State<SupportScreen> {
   }
 
   InputDecoration _fieldDecoration(String hint) {
+    final isDark = context.isDarkMode;
     return InputDecoration(
       hintText: hint,
-      hintStyle: TextStyle(fontSize: 13, color: Colors.grey[400]),
+      hintStyle: TextStyle(fontSize: 13, color: context.textSecondary),
       filled: true,
-      fillColor: Colors.grey[50],
+      fillColor: isDark ? context.background : Colors.grey[50],
       contentPadding:
           const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
-        borderSide: BorderSide(color: Colors.grey[300]!),
+        borderSide: BorderSide(color: isDark ? context.divider : Colors.grey[300]!),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
