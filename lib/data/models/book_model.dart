@@ -25,6 +25,7 @@ class Book {
 
   bool get isAvailable => status == 'available';
   set isAvailable(bool value) => status = value ? 'available' : 'borrowed';
+  bool get isBusy => status == 'busy';
 
   factory Book.fromJson(Map<String, dynamic> json) {
     final String rawImage = json['image_url']?.toString() ?? '';

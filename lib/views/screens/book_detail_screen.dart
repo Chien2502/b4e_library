@@ -544,12 +544,18 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                   ? (context.isDarkMode
                       ? Colors.green.withValues(alpha: 0.15)
                       : const Color(0xFFE8F5E9))
-                  : (context.isDarkMode
-                      ? Colors.orange.withValues(alpha: 0.15)
-                      : const Color(0xFFFFF3E0)),
+                  : (book.isBusy
+                      ? (context.isDarkMode
+                          ? Colors.amber.withValues(alpha: 0.15)
+                          : const Color(0xFFFFFDE7))
+                      : (context.isDarkMode
+                          ? Colors.orange.withValues(alpha: 0.15)
+                          : const Color(0xFFFFF3E0))),
               borderRadius: BorderRadius.circular(20),
               border: Border.all(
-                color: book.isAvailable ? Colors.green : Colors.orange,
+                color: book.isAvailable
+                    ? Colors.green
+                    : (book.isBusy ? Colors.amber[700]! : Colors.orange),
                 width: 1,
               ),
             ),
@@ -559,21 +565,27 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                 Icon(
                   book.isAvailable
                       ? Icons.check_circle_outline
-                      : Icons.access_time,
+                      : (book.isBusy ? Icons.hourglass_empty : Icons.access_time),
                   size: 14,
                   color: book.isAvailable
                       ? (context.isDarkMode ? Colors.green[300] : Colors.green[700])
-                      : (context.isDarkMode ? Colors.orange[300] : Colors.orange[700]),
+                      : (book.isBusy
+                          ? (context.isDarkMode ? Colors.amber[300] : Colors.amber[700])
+                          : (context.isDarkMode ? Colors.orange[300] : Colors.orange[700])),
                 ),
                 const SizedBox(width: 6),
                 Text(
-                  book.isAvailable ? 'Có sẵn' : 'Đã mượn',
+                  book.isAvailable
+                      ? 'Có sẵn'
+                      : (book.isBusy ? 'Đang bận' : 'Đã mượn'),
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
                     color: book.isAvailable
                         ? (context.isDarkMode ? Colors.green[300] : Colors.green[700])
-                        : (context.isDarkMode ? Colors.orange[300] : Colors.orange[700]),
+                        : (book.isBusy
+                            ? (context.isDarkMode ? Colors.amber[300] : Colors.amber[700])
+                            : (context.isDarkMode ? Colors.orange[300] : Colors.orange[700])),
                   ),
                 ),
               ],
@@ -706,6 +718,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
   // BOTTOM: Nút Mượn sách / trạng thái Đã mượn (cố định ở đáy)
   // ────────────────────────────────────────────────────────────────
   Widget _buildBorrowButton(BookDetail book, bool isAvailable) {
+    final bool isBusy = book.isBusy;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       child: SizedBox(
@@ -750,20 +763,20 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
             : OutlinedButton.icon(
                 onPressed: null,
                 style: OutlinedButton.styleFrom(
-                  side: BorderSide(color: Colors.orange[300]!),
+                  side: BorderSide(color: isBusy ? Colors.amber[300]! : Colors.orange[300]!),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(14),
                   ),
                 ),
                 icon: Icon(
-                  Icons.access_time,
-                  color: Colors.orange[400],
+                  isBusy ? Icons.hourglass_empty : Icons.access_time,
+                  color: isBusy ? Colors.amber[400] : Colors.orange[400],
                   size: 20,
                 ),
                 label: Text(
-                  'Sách đang được mượn',
+                  isBusy ? 'Sách đang bận giao dịch' : 'Sách đang được mượn',
                   style: TextStyle(
-                    color: Colors.orange[700],
+                    color: isBusy ? Colors.amber[700] : Colors.orange[700],
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
                   ),

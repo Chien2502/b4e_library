@@ -9,6 +9,7 @@ import 'admin/admin_borrowings_tab.dart';
 import 'admin/admin_donations_tab.dart';
 import 'admin/admin_users_tab.dart';
 import 'admin/admin_chat_tab.dart';
+import 'admin/admin_transactions_tab.dart';
 import 'admin/admin_broadcast_screen.dart';
 import '../widgets/custom_dialog.dart';
 import '../widgets/liquid_nav_bar.dart';
@@ -54,6 +55,11 @@ class _AdminScreenState extends State<AdminScreen> {
       label: 'Mượn/Trả',
     ),
     LiquidNavItem(
+      icon: Icons.currency_exchange_outlined,
+      activeIcon: Icons.currency_exchange,
+      label: 'Giao dịch',
+    ),
+    LiquidNavItem(
       icon: Icons.people_outlined,
       activeIcon: Icons.people,
       label: 'Người dùng',
@@ -84,8 +90,10 @@ class _AdminScreenState extends State<AdminScreen> {
         case 4:
           return const AdminBorrowingsTab();
         case 5:
-          return const AdminUsersTab();
+          return const AdminTransactionsTab();
         case 6:
+          return const AdminUsersTab();
+        case 7:
         default:
           return const AdminChatTab();
       }
@@ -161,7 +169,7 @@ class _AdminScreenState extends State<AdminScreen> {
 
       // ── Body: Lazy Offstage stack (giống main_layout) ──────────────
       body: Stack(
-        children: List.generate(7, (i) {
+        children: List.generate(8, (i) {
           return Offstage(
             offstage: _currentIndex != i,
             child: _visitedTabs.contains(i)
@@ -173,9 +181,9 @@ class _AdminScreenState extends State<AdminScreen> {
 
       // ── Bottom nav: LiquidNavBar ───────────────────────────────────
       bottomNavigationBar: LiquidNavBar(
-        currentIndex: [0, 1, 4, 6].indexOf(_currentIndex),
-        onTap: (index) => _onTabTapped([0, 1, 4, 6][index]),
-        items: [0, 1, 4, 6].map((i) => _navItems[i]).toList(),
+        currentIndex: [0, 1, 4, 7].indexOf(_currentIndex),
+        onTap: (index) => _onTabTapped([0, 1, 4, 7][index]),
+        items: [0, 1, 4, 7].map((i) => _navItems[i]).toList(),
       ),
     );
   }

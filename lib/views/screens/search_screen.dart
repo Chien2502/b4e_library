@@ -332,9 +332,18 @@ class _SearchScreenState extends State<SearchScreen> {
   // WIDGET 4: Thẻ sách (tái sử dụng thiết kế từ HomeScreen)
   // ────────────────────────────────────────────────────────────────
   Widget _buildBookCard(Book book) {
-    final bool isAvailable = book.status == 'available';
-    final Color statusColor = isAvailable ? Colors.green : Colors.orange;
-    final String statusText = isAvailable ? 'Có sẵn' : 'Đã mượn';
+    final String statusText;
+    final Color statusColor;
+    if (book.status == 'available') {
+      statusText = 'Có sẵn';
+      statusColor = Colors.green;
+    } else if (book.status == 'busy') {
+      statusText = 'Đang bận';
+      statusColor = Colors.amber.shade700;
+    } else {
+      statusText = 'Đã mượn';
+      statusColor = Colors.orange;
+    }
 
     return GestureDetector(
       onTap: () async {

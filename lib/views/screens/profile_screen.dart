@@ -9,6 +9,7 @@ import 'borrowing_guide_screen.dart';
 import 'chat_screen.dart';
 import 'support_screen.dart';
 import 'privacy_policy_screen.dart';
+import 'user_transactions_screen.dart';
 import '../widgets/custom_dialog.dart';
 import '../widgets/theme_picker_dialog.dart';
 import '../../core/utils/snackbar_utils.dart';
@@ -733,6 +734,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget _buildQuickMenu(BuildContext context) {
     final isAdmin = context.read<AuthProvider>().userProfile?.isAdmin ?? false;
     final items = [
+      {
+        'icon': Icons.receipt_long_outlined,
+        'title': 'Giao dịch chờ thanh toán',
+        'subtitle': 'Xem các đơn hàng VietQR chưa duyệt',
+        'color': Colors.amber.shade800,
+        'onTap': () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const UserTransactionsScreen()),
+        ),
+      },
       {
         'icon': Icons.menu_book_outlined,
         'title': 'Hướng dẫn mượn sách',
